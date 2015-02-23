@@ -25,6 +25,22 @@
   #endif
 #endif
 
+struct PACKED LandInfo {
+    int32_t land_bearing_cd;
+    float sink_rate;
+    float sink_time;
+    float sink_height;
+    float total_distance;
+    float aim_height;
+    float flare_time;
+    float flare_distance;
+    float land_slope;
+    int32_t land_wp_alt;
+    int32_t target_altitude_offset_cm;
+    float land_proportion;
+};
+
+
 class DataFlash_Class
 {
 public:
@@ -77,6 +93,7 @@ public:
     void Log_Write_Message_P(const prog_char_t *message);
     void Log_Write_Camera(const AP_AHRS &ahrs, const AP_GPS &gps, const Location &current_loc);
     void Log_Write_ESC(void);
+    void Log_Write_Land(LandInfo landInfo);
 
     bool logging_started(void) const { return log_write_started; }
 
@@ -458,6 +475,47 @@ struct PACKED log_Esc {
     int16_t temperature;
 };
 
+struct PACKED log_Land1 {
+    LOG_PACKET_HEADER;
+    uint32_t timestamp;
+    int32_t land_bearing_cd;
+    float sink_rate;
+    float sink_time;
+    float sink_height;
+    float total_distance;
+};
+
+struct PACKED log_Land2 {
+    LOG_PACKET_HEADER;
+    float aim_height;
+    float flare_time;
+    float flare_distance;
+    float land_slope;
+    int32_t land_wp_alt;
+    int32_t target_altitude_offset_cm;
+    float land_proportion;
+};
+
+/*
+Format characters in the format string for binary log messages
+  b   : int8_t
+  B   : uint8_t
+  h   : int16_t
+  H   : uint16_t
+  i   : int32_t
+  I   : uint32_t
+  f   : float
+  n   : char[4]
+  N   : char[16]
+  Z   : char[64]
+  c   : int16_t * 100
+  C   : uint16_t * 100
+  e   : int32_t * 100
+  E   : uint32_t * 100
+  L   : int32_t latitude/longitude
+  M   : uint8_t flight mode
+ */
+
 // messages for all boards
 #define LOG_BASE_STRUCTURES \
     { LOG_FORMAT_MSG, sizeof(log_Format), \
@@ -530,7 +588,11 @@ struct PACKED log_Esc {
     { LOG_ESC8_MSG, sizeof(log_Esc), \
       "ESC8",  "Icccc", "TimeMS,RPM,Volt,Curr,Temp" }, \
     { LOG_EKF5_MSG, sizeof(log_EKF5), \
-      "EKF5","IhhhhcBcC","TimeMS,FIX,FIY,AFIX,AFIY,gndPos,fScaler,RI,rng" }
+      "EKF5","IBhhhcccCC","TimeMS,normInnov,FIX,FIY,AFI,HAGL,offset,RI,meaRng,errHAGL" }, \
+    { LOG_LAND1_MSG, sizeof(log_Land1), \
+      "LND1", "Iiffff",  "TimeMS,Bearing,SinkRt,SinkTm,SinkHt,TotalDist" }, \
+    { LOG_LAND2_MSG, sizeof(log_Land2), \
+      "LND2", "ffffiif",  "AimHt,FlareTm,FlareDis,Slope,AltWp,TargetAltOff,Proportion" } \
 
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
 #define LOG_COMMON_STRUCTURES LOG_BASE_STRUCTURES, LOG_EXTRA_STRUCTURES
@@ -576,6 +638,8 @@ struct PACKED log_Esc {
 #define LOG_ESC7_MSG      160
 #define LOG_ESC8_MSG      161
 #define LOG_EKF5_MSG      162
+#define LOG_LAND1_MSG     171
+#define LOG_LAND2_MSG     172
 
 // message types 200 to 210 reversed for GPS driver use
 // message types 211 to 220 reversed for autotune use

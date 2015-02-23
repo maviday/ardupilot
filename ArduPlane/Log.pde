@@ -53,6 +53,7 @@ print_log_menu(void)
         PLOG(CAMERA);
         PLOG(RC);
         PLOG(SONAR);
+        PLOG(LAND);
  #undef PLOG
     }
 
@@ -146,6 +147,7 @@ select_logs(uint8_t argc, const Menu::arg *argv)
         TARG(CAMERA);
         TARG(RC);
         TARG(SONAR);
+        TARG(LAND);
  #undef TARG
     }
 
@@ -372,6 +374,12 @@ static void Log_Write_Sonar()
         correction  : rangefinder_state.correction
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
+
+
+static void Log_Write_Land(const LandInfo landInfo)
+{
+    DataFlash.Log_Write_Land(landInfo);
 }
 
 struct PACKED log_Optflow {
@@ -651,6 +659,7 @@ static void Log_Write_IMU() {}
 static void Log_Write_RC() {}
 static void Log_Write_Airspeed(void) {}
 static void Log_Write_Baro(void) {}
+static void Log_Write_Land(const LandInfo landInfo) {}
 #if OPTFLOW == ENABLED
 static void Log_Write_Optflow() {}
 #endif
