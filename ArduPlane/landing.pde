@@ -176,7 +176,7 @@ static void setup_landing_glide_slope(void)
                 land_slope : land_slope,
                 land_wp_alt : loc.alt,
                 target_altitude_offset_cm : target_altitude.offset_cm,
-                land_proportion : land_proportion
+                land_proportion : 0
             };
 
             Log_Write_Land(landInfo);
