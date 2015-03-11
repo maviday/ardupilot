@@ -132,6 +132,7 @@ public:
         k_param_stall_prevention,
         k_param_optflow,
         k_param_trim_rc_at_start,
+        k_param_land_disarm_delay,
 
         // 100: Arming parameters
         k_param_arming = 100,
@@ -435,6 +436,7 @@ public:
     AP_Int32 RTL_altitude_cm;
     AP_Float land_flare_alt;
     AP_Float land_flare_sec;
+    AP_Int8 land_disarm_delay;
     AP_Int32 min_gndspeed_cm;
     AP_Int16 pitch_trim_cd;
     AP_Int16 FBWB_min_altitude_cm;
