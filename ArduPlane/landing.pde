@@ -52,11 +52,16 @@ static bool verify_land()
     */
     if (height <= g.land_flare_alt ||
         height <= auto_state.land_sink_rate * g.land_flare_sec ||
-        (!rangefinder_state.in_range && location_passed_point(current_loc, prev_WP_loc, next_WP_loc))) {
+        (!rangefinder_state.in_range && location_passed_point(current_loc, prev_WP_loc, next_WP_loc)) ||
+        (fabsf(auto_state.land_sink_rate) < 0.2f && !is_flying())) {
 
         if (!auto_state.land_complete) {
-            gcs_send_text_fmt(PSTR("Flare %.1fm sink=%.2f speed=%.1f"), 
-                              height, auto_state.land_sink_rate, gps.ground_speed());
+            if (!is_flying()) {
+                gcs_send_text_fmt(PSTR("Flare crash detected: speed=%.1f"), gps.ground_speed());
+            } else {
+                gcs_send_text_fmt(PSTR("Flare %.1fm sink=%.2f speed=%.1f"), 
+                                  height, auto_state.land_sink_rate, gps.ground_speed());
+            }
         }
         auto_state.land_complete = true;
 
@@ -220,4 +225,28 @@ static bool jump_to_landing_sequence(void)
 
     gcs_send_text_P(SEVERITY_HIGH, PSTR("Unable to start landing sequence."));
     return false;
+}
+
+/*
+  the height above field elevation that we pass to TECS
+ */
+static float tecs_hgt_afe(void)
+{
+    /*
+      pass the height above field elevation as the height above
+      the ground when in landing, which means that TECS gets the
+      rangefinder information and thus can know when the flare is
+      coming.
+    */
+    float hgt_afe;
+    if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL ||
+        flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH) {
+        hgt_afe = height_above_target();
+        hgt_afe -= rangefinder_correction();
+    } else {
+        // when in normal flight we pass the hgt_afe as relative
+        // altitude to home
+        hgt_afe = relative_altitude();
+    }
+    return hgt_afe;
 }
