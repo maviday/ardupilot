@@ -167,8 +167,8 @@ bool AP_Arming::ins_checks(bool report)
                 // get next accel vector
                 const Vector3f &accel_vec = ins.get_accel(i);
                 Vector3f vec_diff = accel_vec - prime_accel_vec;
-                // allow for up to 0.3 m/s/s difference
-                if (vec_diff.length() > 0.3f) {
+                // allow for up to 0.6 m/s/s difference
+                if (vec_diff.length() > 0.6f) {
                     if (report) {
                         gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: inconsistent Accelerometers"));
                     }
@@ -184,8 +184,8 @@ bool AP_Arming::ins_checks(bool report)
                 // get next gyro vector
                 const Vector3f &gyro_vec = ins.get_gyro(i);
                 Vector3f vec_diff = gyro_vec - prime_gyro_vec;
-                // allow for up to 5 degrees/s difference
-                if (vec_diff.length() > radians(5)) {
+                // allow for up to 10 degrees/s difference
+                if (vec_diff.length() > radians(10)) {
                     if (report) {
                         gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: inconsistent gyros"));
                     }
