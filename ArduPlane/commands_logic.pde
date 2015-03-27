@@ -196,12 +196,20 @@ should move onto the next mission element.
 
 static bool verify_command(const AP_Mission::Mission_Command& cmd)        // Returns true if command complete
 {
+    if ((g.rangefinder_landing == 2) && (cmd.id != MAV_CMD_NAV_LAND)) {
+        rangefinder.SetPoweredDown(true);
+    }
+
+
     switch(cmd.id) {
 
     case MAV_CMD_NAV_TAKEOFF:
         return verify_takeoff();
 
     case MAV_CMD_NAV_LAND:
+        if (g.rangefinder_landing == 2) {
+            rangefinder.SetPoweredDown(false);
+        }
         return verify_land();
 
     case MAV_CMD_NAV_WAYPOINT:

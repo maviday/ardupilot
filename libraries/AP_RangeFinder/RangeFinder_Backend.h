@@ -39,6 +39,8 @@ public:
         return ranger._powersave_range > 0 && ranger.estimated_terrain_height > ranger._powersave_range;
     }
     
+    virtual bool SetPoweredDown(bool powerDown) { return false; };
+
 protected:
     RangeFinder &ranger;
     RangeFinder::RangeFinder_State &state;

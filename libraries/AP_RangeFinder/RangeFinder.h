@@ -62,6 +62,7 @@ public:
         uint16_t               voltage_mv;  // voltage in millivolts,
                                             // if applicable, otherwise 0
         bool                   healthy;     // sensor is communicating correctly
+        bool                   poweredDown;  // powered up or powered down
     };
 
     // parameters for each instance
@@ -91,6 +92,8 @@ public:
     // 10Hz from main loop
     void update(void);
     
+    bool SetPoweredDown(bool powerDown);
+
 #define _RangeFinder_STATE(instance) state[instance]
 
     uint16_t distance_cm(uint8_t instance) const {

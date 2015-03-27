@@ -11,6 +11,9 @@ static void init_barometer(void)
 static void init_rangefinder(void)
 {
     rangefinder.init();
+
+    bool powerDownOnBoot = (g.rangefinder_landing == 2);
+    rangefinder.SetPoweredDown(powerDownOnBoot);
 }
 
 /*
@@ -18,6 +21,24 @@ static void init_rangefinder(void)
  */
 static void read_rangefinder(void)
 {
+//    bool powerDown = false;
+//
+//    if (g.rangefinder_landing == 2) {
+//        powerDown = !isAutoLanding();
+//    }
+//    else if (g.rangefinder_landing == 3) {
+//        powerDown = true;
+//    }
+//
+//    if (rangefinder.SetPoweredDown(powerDown)) {
+//        if (powerDown) {
+//            gcs_send_text_P(SEVERITY_LOW, PSTR("Rangefinder Powered Down"));
+//        }
+//        else {
+//            gcs_send_text_P(SEVERITY_LOW, PSTR("Rangefinder Powered Up"));
+//        }
+//    }
+
     rangefinder.update();
 
     if (should_log(MASK_LOG_SONAR))
