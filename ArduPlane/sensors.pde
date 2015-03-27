@@ -21,23 +21,22 @@ static void init_rangefinder(void)
  */
 static void read_rangefinder(void)
 {
-//    bool powerDown = false;
-//
-//    if (g.rangefinder_landing == 2) {
-//        powerDown = !isAutoLanding();
-//    }
-//    else if (g.rangefinder_landing == 3) {
-//        powerDown = true;
-//    }
-//
-//    if (rangefinder.SetPoweredDown(powerDown)) {
-//        if (powerDown) {
-//            gcs_send_text_P(SEVERITY_LOW, PSTR("Rangefinder Powered Down"));
-//        }
-//        else {
-//            gcs_send_text_P(SEVERITY_LOW, PSTR("Rangefinder Powered Up"));
-//        }
-//    }
+    bool powerDown = false;
+
+    if (g.rangefinder_landing == 2) {
+        powerDown = (control_mode != AUTO) ||
+                (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH &&
+                 flight_stage != AP_SpdHgtControl::FLIGHT_LAND_FINAL);
+    }
+
+    if (rangefinder.SetPoweredDown(powerDown)) {
+        if (powerDown) {
+            gcs_send_text_P(SEVERITY_LOW, PSTR("Rangefinder Powered Down"));
+        }
+        else {
+            gcs_send_text_P(SEVERITY_LOW, PSTR("Rangefinder Powered Up"));
+        }
+    }
 
     rangefinder.update();
 
