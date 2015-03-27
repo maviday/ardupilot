@@ -131,6 +131,8 @@ public:
         k_param_override_channel,
         k_param_stall_prevention,
         k_param_optflow,
+        k_param_land_disarm_delay,
+        k_param_trim_rc_at_start,
 
         // 100: Arming parameters
         k_param_arming = 100,
@@ -271,6 +273,7 @@ public:
         k_param_flight_mode4,
         k_param_flight_mode5,
         k_param_flight_mode6,
+        k_param_initial_mode,
 
         //
         // 220: Waypoint data
@@ -326,6 +329,7 @@ public:
 #endif
 
     AP_Int8  rtl_autoland;
+    AP_Int8  trim_rc_at_start;
 
     // Feed-forward gains
     //
@@ -403,6 +407,7 @@ public:
     AP_Int8 flight_mode4;
     AP_Int8 flight_mode5;
     AP_Int8 flight_mode6;
+    AP_Int8 initial_mode;
 
     // Navigational maneuvering limits
     //
@@ -430,6 +435,7 @@ public:
     AP_Int32 RTL_altitude_cm;
     AP_Float land_flare_alt;
     AP_Float land_flare_sec;
+    AP_Int8  land_disarm_delay;
     AP_Int32 min_gndspeed_cm;
     AP_Int16 pitch_trim_cd;
     AP_Int16 FBWB_min_altitude_cm;

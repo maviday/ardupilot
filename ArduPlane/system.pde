@@ -218,7 +218,7 @@ static void init_ardupilot()
     // choose the nav controller
     set_nav_controller();
 
-    set_mode(MANUAL);
+    set_mode((FlightMode)g.initial_mode.get());
 
     // set the correct flight mode
     // ---------------------------
@@ -259,7 +259,9 @@ static void startup_ground(void)
 
     // read the radio to set trims
     // ---------------------------
-    trim_radio();               // This was commented out as a HACK.  Why?  I don't find a problem.
+    if (g.trim_rc_at_start != 0) {
+        trim_radio();
+    }
 
     // Save the settings for in-air restart
     // ------------------------------------
@@ -716,4 +718,44 @@ static void change_arm_state(void)
     if (should_log(MASK_LOG_MODE)) {
         DataFlash.Log_Write_Mode(control_mode);
     }
+}
+
+/*
+  arm motors
+ */
+static bool arm_motors(AP_Arming::ArmingMethod method)
+{
+    if (!arming.arm(method)) {
+        return false;
+    }
+
+    //only log if arming was successful
+    channel_throttle->enable_out();
+    change_arm_state();
+    return true;
+}
+
+/*
+  disarm motors
+ */
+static bool disarm_motors(void)
+{
+    if (!arming.disarm()) {
+        return false;
+    }
+    if (arming.arming_required() == AP_Arming::YES_ZERO_PWM) {
+        channel_throttle->disable_out();
+    }
+    if (control_mode != AUTO) {
+        // reset the mission on disarm if we are not in auto
+        mission.reset();
+    }
+
+    // suppress the throttle in auto-throttle modes
+    throttle_suppressed = auto_throttle_mode;
+
+    //only log if disarming was successful
+    change_arm_state();
+
+    return true;
 }

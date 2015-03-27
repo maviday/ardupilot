@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V3.3.0beta1 Airphrame v1.1.1"
+#define THISFIRMWARE "ArduPlane V3.3.0beta1 Airphrame v1.1.2"
 /*
    Lead developer: Andrew Tridgell
  
@@ -151,6 +151,7 @@ static AP_Notify notify;
 static void update_events(void);
 void gcs_send_text_fmt(const prog_char_t *fmt, ...);
 static void print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode);
+static bool arm_motors(AP_Arming::ArmingMethod method);
 
 ////////////////////////////////////////////////////////////////////////////////
 // DataFlash
@@ -558,6 +559,9 @@ static struct {
 
     // proportion to next waypoint
     float wp_proportion;
+
+    // last time is_flying() returned true in milliseconds
+    uint32_t last_flying_ms;
 } auto_state = {
     takeoff_complete : true,
     land_complete : false,
@@ -573,7 +577,10 @@ static struct {
     initial_pitch_cd : 0,
     next_turn_angle  : 90.0f,
     land_sink_rate   : 0,
-    takeoff_speed_time_ms : 0
+    takeoff_speed_time_ms : 0,
+    wp_distance : 0,
+    wp_proportion: 0,
+    last_flying_ms : 0
 };
 
 // true if we are in an auto-throttle mode, which means
@@ -1570,10 +1577,17 @@ static void determine_is_flying(void)
                         gps.ground_speed() >= 5);
 
 
-    if(arming.is_armed()) {
+    if(hal.util->get_soft_armed()) {
         // when armed, we need overwhelming evidence that we ARE NOT flying
         isFlyingBool = airspeedMovement || gpsMovement;
 
+        /*
+          make is_flying() more accurate for landing approach
+         */
+        if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH &&
+            fabsf(auto_state.land_sink_rate) > 0.2f) {
+            isFlyingBool = true;
+        }
     } else {
         // when disarmed, we need overwhelming evidence that we ARE flying
         isFlyingBool = airspeedMovement && gpsMovement;
@@ -1581,20 +1595,30 @@ static void determine_is_flying(void)
 
     // low-pass the result.
     isFlyingProbability = (0.6f * isFlyingProbability) + (0.4f * (float)isFlyingBool);
+
+    /*
+      update last_flying_ms so we always know how long we have not
+      been flying for. This helps for crash detection and auto-disarm
+     */
+    if (is_flying()) {
+        auto_state.last_flying_ms = hal.scheduler->millis();
+    }
 }
 
+/*
+ return true if we think we are flying. This is a probabilistic
+ estimate, and needs to be used very carefully. Each use case needs
+ to be thought about individually.
+*/
 static bool is_flying(void)
 {
-    if(arming.is_armed()) {
+    if(hal.util->get_soft_armed()) {
         // when armed, assume we're flying unless we probably aren't
         return (isFlyingProbability >= 0.1f);
     }
-    else
-    {
-        // when disarmed, assume we're not flying unless we probably are
-        return (isFlyingProbability >= 0.9f);
-    }
 
+    // when disarmed, assume we're not flying unless we probably are
+    return (isFlyingProbability >= 0.9f);
 }
 
 

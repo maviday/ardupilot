@@ -223,6 +223,15 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Advanced
     GSCALAR(land_flare_sec,          "LAND_FLARE_SEC",  2.0),
 
+    // @Param: LAND_DISARMDELAY
+    // @DisplayName: Landing disarm delay
+    // @Description: After a landing has completed using a LAND waypoint, automatically disarm after this many seconds have passed. Use 0 to not disarm.
+    // @Units: seconds
+    // @Increment: 1
+    // @Range: 0 127
+    // @User: Advanced
+    GSCALAR(land_disarm_delay,       "LAND_DISARMDELAY",  0),
+
 	// @Param: NAV_CONTROLLER
 	// @DisplayName: Navigation controller selection
 	// @Description: Which navigation controller to enable. Currently the only navigation controller available is L1. From time to time other experimental conrtrollers will be added which are selected using this parameter.
@@ -596,6 +605,13 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
     GSCALAR(flight_mode6,           "FLTMODE6",       FLIGHT_MODE_6),
 
+    // @Param: INITIAL_MODE
+    // @DisplayName: Initial flight mode
+    // @Description: This selects the mode to start in on boot. This is useful for when you want to start in AUTO mode on boot without a receiver.
+    // @Values: 0:Manual,1:CIRCLE,2:STABILIZE,3:TRAINING,4:ACRO,5:FBWA,6:FBWB,7:CRUISE,8:AUTOTUNE,10:Auto,11:RTL,12:Loiter,15:Guided
+    // @User: Advanced
+    GSCALAR(initial_mode,        "INITIAL_MODE",     MANUAL),
+
     // @Param: LIM_ROLL_CD
     // @DisplayName: Maximum Bank Angle
     // @Description: The maximum commanded bank angle in either direction
@@ -906,6 +922,13 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Values: 0:Disable,1:Enable
     // @User: Standard
     GSCALAR(rtl_autoland,         "RTL_AUTOLAND",   0),
+
+    // @Param: RC_TRIM_AT_START
+    // @DisplayName: RC Trims auto set at start.
+    // @Description: Automatically set roll/pitch trim from Tx at ground start. This makes the assumption that the RC transmitter has not been altered since trims were last captured.
+    // @Values: 0:Disable,1:Enable
+    // @User: Standard
+    GSCALAR(trim_rc_at_start,     "TRIM_RC_AT_START",    1),
 
     // barometer ground calibration. The GND_ prefix is chosen for
     // compatibility with previous releases of ArduPlane
