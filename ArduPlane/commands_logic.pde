@@ -322,7 +322,16 @@ static void do_takeoff(const AP_Mission::Mission_Command& cmd)
 
 static void do_nav_wp(const AP_Mission::Mission_Command& cmd)
 {
-    set_next_WP(cmd.content.location);
+    AP_Mission::Mission_Command updated_cmd = cmd;
+
+    // if next command is Nav_Land then check if we should use a new wp
+    // position for bi-directional landing determined by wind direction
+    if (handle_bidirectional_landing(updated_cmd)) {
+        set_next_WP(updated_cmd.content.location);
+    }
+    else {
+        set_next_WP(cmd.content.location);
+    }
 }
 
 static void do_land(const AP_Mission::Mission_Command& cmd)

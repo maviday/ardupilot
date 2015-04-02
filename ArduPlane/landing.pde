@@ -250,3 +250,86 @@ static float tecs_hgt_afe(void)
     }
     return hgt_afe;
 }
+
+/*
+ * in order to always land into the wind, this function will update the location of
+ *  this command to enforce an always-into-the-wind landing approach.
+ *
+ * returns true if the cmd location is changed, false otherwise
+ */
+static bool handle_bidirectional_landing(AP_Mission::Mission_Command& cmd)
+{
+    AP_Mission::Mission_Command next_cmd;
+
+    // check if current cmd is nav_waypoint, and next is land, and bi-directional is enabled
+    if (cmd.id != MAV_CMD_NAV_WAYPOINT ||
+        g.land_bidirectional_thresh <= 0 ||
+        mission.get_next_nav_cmd(mission.get_current_nav_index()+1, next_cmd) == false ||
+        next_cmd.id != MAV_CMD_NAV_LAND)
+    {
+        // this is not the waypoint segment you're looking for!
+        return false;
+    }
+
+    int32_t approach_bearing_cd = mission.get_next_ground_course_cd(-1);
+    if (approach_bearing_cd == -1) {
+        // something wrong with the current wp+land bearing calc
+        return false;
+    }
+
+    // convert from centi-degree to degrees
+    float approach_bearing = approach_bearing_cd/100.0f;
+
+    // get wind values
+    Vector3f wind = ahrs.wind_estimate();
+    float wind_length = wind.length();
+    float wind_rad = atan2f(wind.y, wind.x);
+    float wind_deg = degrees(wind_rad);
+
+    // with wind: (wind_deg - approach_bearing) == 0   (wind dir matches)
+    // into wind: (wind_deg - approach_bearing) == 180 (wind dir opposite)
+    // with wind if (wind_dot_approach > 0)
+    // perpendicular to wind if (wind_dot_approach == 0)
+    // into wind if (wind_dot_approach < 0)
+    float wind_dot_approach = wind_length * cos(radians(wind_deg - approach_bearing));
+
+    // check if we're landing with the wind. Negative would mean into the wind.
+    bool do_rotate_approach_Wp = (wind_dot_approach > 0);
+
+    gcs_send_text_fmt(PSTR("BiDirectional Land dot product: %.2f, %d"), wind_dot_approach, do_rotate_approach_Wp);
+
+    if (!do_rotate_approach_Wp) {
+        // we're already landing into the wind or land waypoint param of wind threshold not met
+        return false;
+    }
+
+    // everything checks out, go ahead and rotate the land approach by 180deg
+    rotate_location_around_another_location(180, next_cmd.content.location, cmd.content.location);
+
+    return true;
+}
+
+
+/*
+ * rotate Location B around Location A (stationary).
+ * bearing = 0 or 360 means location B does not change
+ */
+static void rotate_location_around_another_location(const float rotation_angle, const Location locA, Location& locB)
+{
+    // traverse locB to locA
+    float bearing_cd = get_bearing_cd(locB, locA);
+    float distance = get_distance(locA, locB);
+    location_update(locB, bearing_cd / 100.0f, distance);
+
+    // rotate locB by (rotation_angle-180) degrees. The -180 is because at this point
+    // "0" means no change (keep traversing forward) which is an effective 180deg
+    // reflection and 180 means go back where we started from
+    float effective_rotation_angle = rotation_angle - 180;
+    bearing_cd += (int32_t)(effective_rotation_angle * 100);
+    bearing_cd = wrap_180_cd(bearing_cd);
+
+    // traverse locB away from locA
+    location_update(locB, bearing_cd / 100.f, distance);
+}
+
+

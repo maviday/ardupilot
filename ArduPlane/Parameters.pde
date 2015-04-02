@@ -232,6 +232,15 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Advanced
     GSCALAR(land_disarm_delay,       "LAND_DISARMDELAY",  20),
 
+    // @Param: LAND_BIDIRECTIONAL
+    // @DisplayName: Land BiDirectionally, always into the wind
+    // @Description: Windspeed threshold to rotate land appraoch by 180deg to ensure you always land into the wind. The approach rotation only happens if the windspeed scaled to the approach vector is above this threshold value, 0 to disable. A value of 1.0m/s works nicely.
+    // @Units: meters/sec
+    // @Increment: .01
+    // @Range: 0 100
+    // @User: Advanced
+    GSCALAR(land_bidirectional_thresh,       "LAND_BIDIRECT",  0),
+
 	// @Param: NAV_CONTROLLER
 	// @DisplayName: Navigation controller selection
 	// @Description: Which navigation controller to enable. Currently the only navigation controller available is L1. From time to time other experimental conrtrollers will be added which are selected using this parameter.
