@@ -56,12 +56,8 @@ static bool verify_land()
         (fabsf(auto_state.land_sink_rate) < 0.2f && !is_flying())) {
 
         if (!auto_state.land_complete) {
-            if (!is_flying()) {
-                gcs_send_text_fmt(PSTR("Flare crash detected: speed=%.1f"), gps.ground_speed());
-            } else {
-                gcs_send_text_fmt(PSTR("Flare %.1fm sink=%.2f speed=%.1f"), 
-                                  height, auto_state.land_sink_rate, gps.ground_speed());
-            }
+            gcs_send_text_fmt(PSTR("Flare %.1fm sink=%.2f speed=%.1f"),
+                              height, auto_state.land_sink_rate, gps.ground_speed());
         }
         auto_state.land_complete = true;
 

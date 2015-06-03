@@ -134,6 +134,7 @@ public:
         k_param_trim_rc_at_start,
         k_param_land_disarm_delay,
         k_param_land_bidirectional_thresh,
+        k_param_crash_detection_enable,
 
         // 100: Arming parameters
         k_param_arming = 100,
@@ -332,6 +333,7 @@ public:
     AP_Int8  rtl_autoland;
 
     AP_Int8  trim_rc_at_start;
+    AP_Int8  crash_detection_enable;
 
     // Feed-forward gains
     //

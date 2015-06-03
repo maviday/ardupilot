@@ -323,6 +323,7 @@ static void Log_Write_Status()
         ,timestamp   : hal.scheduler->millis()
         ,is_flying   : is_flying()
         ,is_flying_probability : isFlyingProbability
+        ,is_crashed : auto_state.is_crashed
     };
 
     DataFlash.WriteBlock(&pkt, sizeof(pkt));

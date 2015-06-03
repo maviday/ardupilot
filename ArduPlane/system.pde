@@ -319,6 +319,9 @@ static void set_mode(enum FlightMode mode)
     // zero locked course
     steer_state.locked_course_err = 0;
 
+    // reset crash detection
+    auto_state.is_crashed = false;
+
     // set mode
     previous_mode = control_mode;
     control_mode = mode;
