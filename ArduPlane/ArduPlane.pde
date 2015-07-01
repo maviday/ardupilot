@@ -1662,8 +1662,7 @@ static bool is_flying(void)
 
 static void crash_detection_update()
 {
-    if (!g.crash_detection_enable ||
-        auto_state.is_crashed ||
+    if (auto_state.is_crashed ||
         control_mode != AUTO || // only AUTO mode is supported
         throttle_suppressed || // haven't launched yet
         auto_state.last_flying_ms == 0 || // never flown yet
@@ -1699,8 +1698,10 @@ static void crash_detection_update()
     } // switch
 
     if (auto_state.is_crashed) {
+        if (g.crash_detection_enable) {
+            disarm_motors();
+        }
         auto_state.land_complete = true;
-        //disarm_motors();
         gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected"));
     }
 }
