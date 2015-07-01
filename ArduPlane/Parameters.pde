@@ -941,8 +941,9 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: CRASH_DETECT
     // @DisplayName: Crash Detection
-    // @Description: Automatically disengage motors if a crash is detected
-    // @Values: 0:Disable,1:Enable
+    // @Description: Automatically detect a crash during AUTO flight and perform the bitmask selected action(s). Disarm will turn off motor for saftey and to help against burning out ESC and motor. Setting the mode to manual will help save the servos from burning out by overexerting if the aircraft crashed in an odd orientation such as upsidedown.
+    // @Values: 0:Disabled,1:Disarm,2:SetModeManual
+    // @Bitmask: 0:Disarm,1:SetModeManual
     // @User: Advanced
     GSCALAR(crash_detection_enable,         "CRASH_DETECT",   0),
 

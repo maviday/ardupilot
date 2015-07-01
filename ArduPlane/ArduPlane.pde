@@ -1674,9 +1674,7 @@ static void crash_detection_update()
     switch (flight_stage)
     {
     case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-        //if (g.takeoff_throttle_min_accel > 0) // configured for High-accel bungee/hand launch
-            auto_state.is_crashed = true;
-        //}
+        auto_state.is_crashed = true;
         break;
 
     case AP_SpdHgtControl::FLIGHT_NORMAL:
@@ -1692,17 +1690,32 @@ static void crash_detection_update()
         break;
 
     case AP_SpdHgtControl::FLIGHT_LAND_FINAL:
+        // We should be nice and level-ish in this flight stage. If not, we most
+        // likely had a crazy landing. Throttle is inhibited already at the flare
+        // but go ahead and notify GCS and perform any additional post-crash actions.
+        if (fabsf(ahrs.roll) > 45 || fabsf(ahrs.pitch) > 45) {
+            auto_state.is_crashed = true;
+        }
+        break;
+
     default:
-        // we've flared so throttle is off
         break;
     } // switch
 
     if (auto_state.is_crashed) {
-        if (g.crash_detection_enable) {
-            disarm_motors();
+        if (g.crash_detection_enable == CRASH_DETECT_ACTION_BITMASK_DISABLED) {
+            gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected - no action taken"));
         }
-        auto_state.land_complete = true;
-        gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected"));
+        else {
+            if (g.crash_detection_enable & CRASH_DETECT_ACTION_BITMASK_DISARM) {
+                disarm_motors();
+            }
+            if (g.crash_detection_enable & CRASH_DETECT_ACTION_BITMASK_SET_MODE_MANUAL) {
+                set_mode(MANUAL);
+            }
+            auto_state.land_complete = true;
+            gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected"));
+        }
     }
 }
 
