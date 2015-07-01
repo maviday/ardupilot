@@ -1578,7 +1578,7 @@ static void update_is_flying_5Hz(void)
     float aspeed;
     bool isFlyingBool;
 
-    bool airspeedMovement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= 5);
+    bool airspeedMovement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= 7);
 
     // If we don't have a GPS lock then don't use GPS for this test
     bool gpsMovement = (gps.status() < AP_GPS::GPS_OK_FIX_2D ||
@@ -1596,7 +1596,7 @@ static void update_is_flying_5Hz(void)
             switch (flight_stage)
             {
             case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-                // while on the ground, an uncalibrated airspeed sensor can drift to 5m/s so
+                // while on the ground, an uncalibrated airspeed sensor can drift to 7m/s so
                 // ensure we aren't showing a false positive. If the throttle is suppressed
                 // we are definitely not flying, or at least for not much longer!
                 if (throttle_suppressed) {
