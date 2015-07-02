@@ -1664,7 +1664,6 @@ static void crash_detection_update()
 {
     if (auto_state.is_crashed ||
         control_mode != AUTO || // only AUTO mode is supported
-        throttle_suppressed || // haven't launched yet
         auto_state.last_flying_ms == 0 || // never flown yet
         is_flying()) // we're flying, therefore we're not crashed
     {
@@ -1674,7 +1673,10 @@ static void crash_detection_update()
     switch (flight_stage)
     {
     case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-        auto_state.is_crashed = true;
+        if (!throttle_suppressed) {
+            // has launched
+            auto_state.is_crashed = true;
+        }
         break;
 
     case AP_SpdHgtControl::FLIGHT_NORMAL:
@@ -1693,7 +1695,8 @@ static void crash_detection_update()
         // We should be nice and level-ish in this flight stage. If not, we most
         // likely had a crazy landing. Throttle is inhibited already at the flare
         // but go ahead and notify GCS and perform any additional post-crash actions.
-        if (fabsf(ahrs.roll) > 45 || fabsf(ahrs.pitch) > 45) {
+        // Declare a crash if we are oriented more that 60deg in pitch or roll
+        if (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000) {
             auto_state.is_crashed = true;
         }
         break;
