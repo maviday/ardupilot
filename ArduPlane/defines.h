@@ -203,8 +203,7 @@ enum {
 
 enum {
     CRASH_DETECT_ACTION_BITMASK_DISABLED = 0,
-    CRASH_DETECT_ACTION_BITMASK_DISARM = 1,
-    CRASH_DETECT_ACTION_BITMASK_SET_MODE_MANUAL = 2,
-    // note: next enum will be 4
+    CRASH_DETECT_ACTION_BITMASK_DISARM = (1<<0),
+    // note: next enum will be (1<<1), then (1<<2), then (1<<3)
 };
 #endif // _DEFINES_H

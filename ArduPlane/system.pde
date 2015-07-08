@@ -450,6 +450,7 @@ static void exit_mode(enum FlightMode mode)
         if (mission.state() == AP_Mission::MISSION_RUNNING) {
             mission.stop();
         }
+        auto_state.started_flying_in_auto_ms = 0;
     }
 }
 

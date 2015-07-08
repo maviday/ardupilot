@@ -566,6 +566,9 @@ static struct {
 
     // last time is_flying() returned true in milliseconds
     uint32_t last_flying_ms;
+
+    // time stamp of when we start flying while in auto mode in milliseconds
+    uint32_t started_flying_in_auto_ms;
 } auto_state = {
     takeoff_complete : true,
     land_complete : false,
@@ -586,6 +589,7 @@ static struct {
     wp_distance : 0,
     wp_proportion : 0,
     last_flying_ms : 0,
+    started_flying_in_auto_ms : 0,
 };
 
 // true if we are in an auto-throttle mode, which means
@@ -1576,23 +1580,44 @@ static void update_flight_stage(void)
 static void update_is_flying_5Hz(void)
 {
     float aspeed;
-    bool isFlyingBool;
+    bool is_flying_bool;
+    uint32_t now_ms = hal.scheduler->millis();
 
-    bool airspeedMovement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= 7);
+    if (now_ms < 10000) {
+        // Don't bother checking in the first 10 seconds of a boot to allow for a GPS init and re-lock.
+        // Note: This time is actually longer on a pixhawk since when considering time it takes to check
+        // the Bootloader and NuttX. This may need to be reconsidered for Linux builds.
+        return;
+    }
 
-    // If we don't have a GPS lock then don't use GPS for this test
-    bool gpsMovement = (gps.status() < AP_GPS::GPS_OK_FIX_2D ||
-                        gps.ground_speed() >= 5);
-
+    float ground_speed_thresh_cm = (g.min_gndspeed_cm > 0) ? labs(g.min_gndspeed_cm*0.9f) : 500;
+    bool gps_confirmed_movement = (gps.status() >= AP_GPS::GPS_OK_FIX_3D) &&
+                                    (gps.ground_speed_cm() >= ground_speed_thresh_cm);
+    bool airspeed_movement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= 7);
 
     if(arming.is_armed()) {
-        // when armed, we need overwhelming evidence that we ARE NOT flying
-        isFlyingBool = airspeedMovement || gpsMovement;
+        // when armed assuming flying and we need overwhelming evidence that we ARE NOT flying
+
+        // short drop-outs of GPS are common during flight due to banking which points the antenna in different directions
+        bool gps_lost_recently = (gps.last_fix_time_ms() > 0) && // we have locked to GPS before
+                        (gps.status() < AP_GPS::GPS_OK_FIX_2D) && // and it's lost now
+                        (now_ms < gps.last_fix_time_ms() + 5000); // but it wasn't that long ago (<5s)
+
+        if ((auto_state.last_flying_ms > 0) && gps_lost_recently) {
+            // we've flown before, loosen GPS constraints
+            is_flying_bool = airspeed_movement && // moving through the air
+                    (gps_confirmed_movement || gps_lost_recently); // locked and moving, or recently lost lock
+        } else {
+            // we've never flown yet, require good GPS movement
+            is_flying_bool = airspeed_movement || // moving through the air
+                                gps_confirmed_movement; // locked and we're moving
+        }
 
         if (control_mode == AUTO) {
             /*
               make is_flying() more accurate during various auto modes
              */
+
             switch (flight_stage)
             {
             case AP_SpdHgtControl::FLIGHT_TAKEOFF:
@@ -1600,7 +1625,8 @@ static void update_is_flying_5Hz(void)
                 // ensure we aren't showing a false positive. If the throttle is suppressed
                 // we are definitely not flying, or at least for not much longer!
                 if (throttle_suppressed) {
-                    isFlyingBool = false;
+                    is_flying_bool = false;
+                    auto_state.is_crashed = false;
                 }
                 break;
 
@@ -1609,8 +1635,9 @@ static void update_is_flying_5Hz(void)
                 break;
 
             case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
+                // TODO: detect ground impacts
                 if (fabsf(auto_state.land_sink_rate) > 0.2f) {
-                    isFlyingBool = true;
+                    is_flying_bool = true;
                 }
                 break;
 
@@ -1620,41 +1647,55 @@ static void update_is_flying_5Hz(void)
             } // switch
         }
     } else {
-        // when disarmed, we need overwhelming evidence that we ARE flying
-        isFlyingBool = airspeedMovement && gpsMovement;
+        // when disarmed assume not flying and need overwhelming evidence that we ARE flying
+
+        is_flying_bool = airspeed_movement && gps_confirmed_movement;
+
+        if ((control_mode == AUTO) &&
+            ((flight_stage == AP_SpdHgtControl::FLIGHT_TAKEOFF) ||
+             (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL)) ) {
+            is_flying_bool = false;
+        }
     }
 
     // low-pass the result.
-    // coef=0.2f @ 5Hz takes 2.2s to go from 100% down to 10% (or 0% up to 90%)
-    isFlyingProbability = (0.8f * isFlyingProbability) + (0.2f * (float)isFlyingBool);
+    // coef=0.15f @ 5Hz takes 3.0s to go from 100% down to 10% (or 0% up to 90%)
+    isFlyingProbability = (0.85f * isFlyingProbability) + (0.15f * (float)is_flying_bool);
 
     /*
       update last_flying_ms so we always know how long we have not
       been flying for. This helps for crash detection and auto-disarm
      */
-    if (is_flying()) {
+    bool new_is_flying = is_flying();
+    static bool previous_is_flying = false;
+
+    // we are flying, note the time
+    if (new_is_flying) {
+
         auto_state.last_flying_ms = hal.scheduler->millis();
+
+        if ((control_mode == AUTO) &&
+            ((auto_state.started_flying_in_auto_ms == 0) || (new_is_flying != previous_is_flying)) ) {
+
+            auto_state.started_flying_in_auto_ms = hal.scheduler->millis();
+        }
     }
+    previous_is_flying = new_is_flying;
 
     if (should_log(MASK_LOG_MODE)) {
         Log_Write_Status();
     }
-
 }
 
 /*
-  return true if we think we are flying. This is a probabilistic
-  estimate, and needs to be used very carefully. Each use case needs
-  to be thought about individually.
+  return true if we think we are (probably) flying. Depends on armed state.
  */
 static bool is_flying(void)
 {
     if(arming.is_armed()) {
         // when armed, assume we're flying unless we probably aren't
         return (isFlyingProbability >= 0.1f);
-    }
-    else
-    {
+    } else {
         // when disarmed, assume we're not flying unless we probably are
         return (isFlyingProbability >= 0.9f);
     }
