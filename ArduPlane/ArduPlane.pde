@@ -1703,59 +1703,78 @@ static bool is_flying(void)
 
 static void crash_detection_update()
 {
-    if (auto_state.is_crashed ||
-        control_mode != AUTO || // only AUTO mode is supported
-        auto_state.last_flying_ms == 0 || // never flown yet
-        is_flying()) // we're flying, therefore we're not crashed
+    static uint32_t crash_timer_ms = 0;
+    uint32_t now_ms = hal.scheduler->millis();
+    bool crashed = false;
+    bool been_auto_flying = (auto_state.started_flying_in_auto_ms > 0) &&
+                            (now_ms >= auto_state.started_flying_in_auto_ms + 2500);
+
+    if (control_mode != AUTO)
     {
+        crash_timer_ms = 0;
         return;
     }
 
-    switch (flight_stage)
+    if (!is_flying())
     {
-    case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-        if (!throttle_suppressed) {
-            // has launched
-            auto_state.is_crashed = true;
-        }
-        break;
+        switch (flight_stage)
+        {
+        case AP_SpdHgtControl::FLIGHT_TAKEOFF:
+            if (!throttle_suppressed) {
+                // has launched and has flown but is no longer flying. That's a crash on takeoff.
+                crashed = true;
+            }
+            break;
 
-    case AP_SpdHgtControl::FLIGHT_NORMAL:
+        case AP_SpdHgtControl::FLIGHT_NORMAL:
+            if (been_auto_flying) {
+                crashed = true;
+            }
+            // TODO: handle auto missions without NAV_TAKEOFF mission cmd
+            break;
+
+        case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
+            if (been_auto_flying) {
+                crashed = true;
+            }
+            // when altitude gets low, we automatically progress to FLIGHT_LAND_FINAL
+            // so ground crashes most likely can not be triggered from here. However,
+            // a crash into a tree, for example, would be.
+            break;
+
+        case AP_SpdHgtControl::FLIGHT_LAND_FINAL:
+            // We should be nice and level-ish in this flight stage. If not, we most
+            // likely had a crazy landing. Throttle is inhibited already at the flare
+            // but go ahead and notify GCS and perform any additional post-crash actions.
+            // Declare a crash if we are oriented more that 60deg in pitch or roll
+            if (been_auto_flying &&
+                fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000) {
+                crashed = true;
+            }
+            break;
+
+        default:
+            break;
+        } // switch
+    }
+
+    if (!crashed) {
+        // reset timer
+        crash_timer_ms = 0;
+        auto_state.is_crashed = false;
+
+    } else if (crash_timer_ms == 0) {
+        // start timer
+        crash_timer_ms = now_ms;
+
+    } else if (now_ms >= crash_timer_ms + 2500) {
         auto_state.is_crashed = true;
-        // TODO: handle auto missions without NAV_TAKEOFF cmd
-        break;
-
-    case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
-        auto_state.is_crashed = true;
-        // when altitude gets low, we automatically progress to FLIGHT_LAND_FINAL
-        // so ground crashes most likely can not be triggered from here. However,
-        // a crash into a tree, for example, would be.
-        break;
-
-    case AP_SpdHgtControl::FLIGHT_LAND_FINAL:
-        // We should be nice and level-ish in this flight stage. If not, we most
-        // likely had a crazy landing. Throttle is inhibited already at the flare
-        // but go ahead and notify GCS and perform any additional post-crash actions.
-        // Declare a crash if we are oriented more that 60deg in pitch or roll
-        if (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000) {
-            auto_state.is_crashed = true;
-        }
-        break;
-
-    default:
-        break;
-    } // switch
-
-    if (auto_state.is_crashed) {
         if (g.crash_detection_enable == CRASH_DETECT_ACTION_BITMASK_DISABLED) {
             gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected - no action taken"));
         }
         else {
             if (g.crash_detection_enable & CRASH_DETECT_ACTION_BITMASK_DISARM) {
                 disarm_motors();
-            }
-            if (g.crash_detection_enable & CRASH_DETECT_ACTION_BITMASK_SET_MODE_MANUAL) {
-                set_mode(MANUAL);
             }
             auto_state.land_complete = true;
             gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected"));
