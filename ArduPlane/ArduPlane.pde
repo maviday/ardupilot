@@ -1672,12 +1672,13 @@ static void update_is_flying_5Hz(void)
     // we are flying, note the time
     if (new_is_flying) {
 
-        auto_state.last_flying_ms = hal.scheduler->millis();
+        auto_state.last_flying_ms = now_ms;
 
         if ((control_mode == AUTO) &&
             ((auto_state.started_flying_in_auto_ms == 0) || (new_is_flying != previous_is_flying)) ) {
 
-            auto_state.started_flying_in_auto_ms = hal.scheduler->millis();
+            // We just started flying, note that time also
+            auto_state.started_flying_in_auto_ms = now_ms;
         }
     }
     previous_is_flying = new_is_flying;
@@ -1704,27 +1705,36 @@ static bool is_flying(void)
 static void crash_detection_update()
 {
     static uint32_t crash_timer_ms = 0;
-    uint32_t now_ms = hal.scheduler->millis();
-    bool crashed = false;
-    bool been_auto_flying = (auto_state.started_flying_in_auto_ms > 0) &&
-                            (now_ms >= auto_state.started_flying_in_auto_ms + 2500);
 
     if (control_mode != AUTO)
     {
+        // crash detection is only available in AUTO mode
         crash_timer_ms = 0;
         return;
     }
+
+    uint32_t now_ms = hal.scheduler->millis();
+    bool auto_launch_detected;
+    bool crashed_near_land_waypoint = false;
+    bool crashed = false;
+    bool been_auto_flying = (auto_state.started_flying_in_auto_ms > 0) &&
+                            (now_ms >= auto_state.started_flying_in_auto_ms + 2500);
 
     if (!is_flying())
     {
         switch (flight_stage)
         {
         case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-            if (!throttle_suppressed) {
-                // has launched and has flown but is no longer flying. That's a crash on takeoff.
+            auto_launch_detected = !throttle_suppressed && (g.takeoff_throttle_min_accel > 0);
+
+            if (been_auto_flying || // failed hand launch
+                auto_launch_detected) { // threshold of been_auto_flying may not be met on auto-launches
+
+                // has launched but is no longer flying. That's a crash on takeoff.
                 crashed = true;
             }
             break;
+
 
         case AP_SpdHgtControl::FLIGHT_NORMAL:
             if (been_auto_flying) {
@@ -1750,6 +1760,10 @@ static void crash_detection_update()
             if (been_auto_flying &&
                 (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000)) {
                 crashed = true;
+
+                // did we "crash" within 50m of the landing location? Probably just a hard landing
+                crashed_near_land_waypoint =
+                        get_distance(current_loc, mission.get_current_nav_cmd().content.location) < 50;
             }
             break;
 
@@ -1769,15 +1783,24 @@ static void crash_detection_update()
 
     } else if (now_ms >= crash_timer_ms + 2500) {
         auto_state.is_crashed = true;
+
         if (g.crash_detection_enable == CRASH_DETECT_ACTION_BITMASK_DISABLED) {
-            gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected - no action taken"));
+            if (crashed_near_land_waypoint) {
+                gcs_send_text_P(SEVERITY_HIGH, PSTR("Hard Landing Detected - no action taken"));
+            } else {
+                gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected - no action taken"));
+            }
         }
         else {
             if (g.crash_detection_enable & CRASH_DETECT_ACTION_BITMASK_DISARM) {
                 disarm_motors();
             }
             auto_state.land_complete = true;
-            gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected"));
+            if (crashed_near_land_waypoint) {
+                gcs_send_text_P(SEVERITY_HIGH, PSTR("Hard Landing Detected"));
+            } else {
+                gcs_send_text_P(SEVERITY_HIGH, PSTR("Crash Detected"));
+            }
         }
     }
 }
