@@ -324,6 +324,7 @@ static void Log_Write_Status()
         ,is_flying   : is_flying()
         ,is_flying_probability : isFlyingProbability
         ,is_crashed : auto_state.is_crashed
+        ,is_still : ahrs.is_motionless()
     };
 
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
