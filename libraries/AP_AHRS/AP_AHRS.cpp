@@ -265,3 +265,39 @@ void AP_AHRS::update_cd_values(void)
     if (yaw_sensor < 0)
         yaw_sensor += 36000;
 }
+
+/*
+ update the imu history by loading it into a circular buffer. This is helpful to
+ determine real-time statistical information about the imu
+ */
+void AP_AHRS::update_imu_history()
+{
+    uint32_t now_ms = hal.scheduler->millis();
+    static uint32_t prev_ms = 0;
+
+    if ((now_ms - prev_ms) < ACCEL_HISTORY_SAMPLE_RATE_MS) {
+        return;
+    }
+
+    Vector3f accels = get_accel_ef();
+
+    if (prev_ms == 0) {
+        // init by loading the first accel value to the whole history
+        for (int16_t i=0; i < ACCEL_HISTORY_ARRAY_LENGTH; i++) {
+            _accel_history_x[i] = accels.x;
+            _accel_history_y[i] = accels.y;
+            _accel_history_z[i] = accels.z;
+        }
+    }
+    prev_ms = now_ms;
+
+    _accel_history_index++;
+    if (_accel_history_index >= ACCEL_HISTORY_ARRAY_LENGTH) {
+        _accel_history_index = 0;
+    }
+    _accel_history_x[_accel_history_index] = accels.x;
+    _accel_history_y[_accel_history_index] = accels.y;
+    _accel_history_z[_accel_history_index] = accels.z;
+}
+
+

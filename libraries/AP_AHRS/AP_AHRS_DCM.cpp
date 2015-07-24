@@ -84,6 +84,9 @@ AP_AHRS_DCM::update(void)
 
     // update trig values including _cos_roll, cos_pitch
     update_trig();
+
+    // store a history of the accels
+    update_imu_history();
 }
 
 // update the DCM matrix using only the gyros

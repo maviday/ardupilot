@@ -40,6 +40,10 @@
 #define AHRS_EKF_USE_DEFAULT    0
 #endif
 
+#define ACCEL_HISTORY_MS                1000    // accelerometer history time window in milliseconds
+#define ACCEL_HISTORY_SAMPLE_RATE_MS    50      // accelerometer history sample rate in milliseconds
+#define ACCEL_HISTORY_ARRAY_LENGTH      (ACCEL_HISTORY_MS/ACCEL_HISTORY_SAMPLE_RATE_MS) // total samples (consumes this# * sizeof(3*float) of RAM)
+
 #define AP_AHRS_TRIM_LIMIT 10.0f        // maximum trim angle in degrees
 #define AP_AHRS_RP_P_MIN   0.05f        // minimum value for AHRS_RP_P parameter
 #define AP_AHRS_YAW_P_MIN  0.05f        // minimum value for AHRS_YAW_P parameter
@@ -77,7 +81,8 @@ public:
         _sin_roll(0.0f),
         _sin_pitch(0.0f),
         _sin_yaw(0.0f),
-        _active_accel_instance(0)
+        _active_accel_instance(0),
+        _accel_history_index(0)
     {
         // load default values from var_info table
         AP_Param::setup_object_defaults(this, var_info);
@@ -386,6 +391,9 @@ protected:
     // update roll_sensor, pitch_sensor and yaw_sensor
     void update_cd_values(void);
 
+    // update imu history values for statistical info
+    void update_imu_history(void);
+
     // pointer to compass object, if available
     Compass         * _compass;
 
@@ -430,6 +438,12 @@ protected:
 
     // which accelerometer instance is active
     uint8_t _active_accel_instance;
+
+    // use float[] instead of vector3f[] for easier array scanning on a given x, y or z
+    float _accel_history_x[ACCEL_HISTORY_ARRAY_LENGTH];
+    float _accel_history_y[ACCEL_HISTORY_ARRAY_LENGTH];
+    float _accel_history_z[ACCEL_HISTORY_ARRAY_LENGTH];
+    uint16_t _accel_history_index;
 };
 
 #include <AP_AHRS_DCM.h>
