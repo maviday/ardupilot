@@ -508,6 +508,7 @@ struct PACKED log_Status {
     uint8_t is_flying;
     float is_flying_probability;
     bool is_crashed;
+    bool is_still;
 };
 
 /*
@@ -616,7 +617,7 @@ Format characters in the format string for binary log messages
     { LOG_EKF5_MSG, sizeof(log_EKF5), \
       "EKF5","IBhhhcccCC","TimeMS,normInnov,FIX,FIY,AFI,HAGL,offset,RI,meaRng,errHAGL" }, \
     { LOG_STATUS_MSG, sizeof(log_Status), \
-      "STAT", "IBfB",  "TimeMS,isFlying,isFlyProb,isCrashed" }, \
+      "STAT", "IBfBB",  "TimeMS,isFlying,isFlyProb,Crash,Still" }, \
     { LOG_COMPASS2_MSG, sizeof(log_Compass), \
       "MAG2","Ihhhhhhhhh",    "TimeMS,MagX,MagY,MagZ,OfsX,OfsY,OfsZ,MOfsX,MOfsY,MOfsZ" }, \
     { LOG_COMPASS3_MSG, sizeof(log_Compass), \
