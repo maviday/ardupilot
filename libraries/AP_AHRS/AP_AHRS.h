@@ -363,6 +363,9 @@ public:
     // true if the AHRS has completed initialisation
     virtual bool initialised(void) const { return true; };
 
+    // true if the imu is very still
+    bool is_motionless(void);
+
 protected:
     AHRS_VehicleClass _vehicle_class;
 
