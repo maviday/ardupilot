@@ -165,3 +165,39 @@ float pythagorous2(float a, float b) {
 float pythagorous3(float a, float b, float c) {
 	return sqrtf(sq(a)+sq(b)+sq(c));
 }
+
+// statistical average of array list
+float average(float *list, uint32_t length) {
+    if (length <= 0) {
+        return 0;
+    }
+
+    float sum = 0;
+    for (uint32_t i=0; i<length; i++) {
+        sum += list[i];
+    }
+    return sum / length;
+}
+
+// statistical variance of array list
+float variance(float *list, uint32_t length) {
+    if (length <= 1) {
+        return 0;
+    }
+
+    float var = 0;
+    float mean = average(list, length);
+
+    for (uint32_t i=0; i<length; i++) {
+        var += (list[i] - mean) * (list[i] - mean);
+    }
+
+    return var / length;
+}
+
+// statistical standard deviation of array list
+float standard_deviation(float *list, uint32_t length) {
+    float var = variance(list, length);
+    return sqrtf(var);
+}
+

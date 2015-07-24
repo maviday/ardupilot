@@ -183,6 +183,11 @@ float sq(float v);
 float pythagorous2(float a, float b);
 float pythagorous3(float a, float b, float c);
 
+// statistical sub-routines
+float average(float *list, uint32_t length);
+float variance(float *list, uint32_t length);
+float standard_deviation(float *list, uint32_t length);
+
 #ifdef radians
 #error "Build is including Arduino base headers"
 #endif
