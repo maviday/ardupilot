@@ -1583,19 +1583,21 @@ static void update_is_flying_5Hz(void)
     bool is_flying_bool;
     uint32_t now_ms = hal.scheduler->millis();
 
-    if (now_ms < 10000) {
-        // Don't bother checking in the first 10 seconds of a boot to allow for a GPS init and re-lock.
-        // Note: This time is actually longer on a pixhawk since when considering time it takes to check
-        // the Bootloader and NuttX. This may need to be reconsidered for Linux builds.
-        return;
-    }
-
     float ground_speed_thresh_cm = (g.min_gndspeed_cm > 0) ? labs(g.min_gndspeed_cm*0.9f) : 500;
     bool gps_confirmed_movement = (gps.status() >= AP_GPS::GPS_OK_FIX_3D) &&
                                     (gps.ground_speed_cm() >= ground_speed_thresh_cm);
     bool airspeed_movement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= 7);
 
-    if(arming.is_armed()) {
+    if (now_ms < 10000) {
+        // Don't bother checking in the first 10 seconds of a boot to allow for a GPS init and re-lock.
+        // Note: This time is actually longer on a pixhawk when considering time it takes to check
+        // the Bootloader and NuttX. This may need to be reconsidered for Linux builds.
+        is_flying_bool = false;
+    }
+    else if (ahrs.is_motionless()) {
+        is_flying_bool = false;
+    }
+    else if(arming.is_armed()) {
         // when armed assuming flying and we need overwhelming evidence that we ARE NOT flying
 
         // short drop-outs of GPS are common during flight due to banking which points the antenna in different directions
@@ -1763,7 +1765,7 @@ static void crash_detection_update()
 
                 // did we "crash" within 50m of the landing location? Probably just a hard landing
                 crashed_near_land_waypoint =
-                        get_distance(current_loc, mission.get_current_nav_cmd().content.location) < 50;
+                        get_distance(current_loc, mission.get_current_nav_cmd().content.location) < 75;
             }
             break;
 
