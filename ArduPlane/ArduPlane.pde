@@ -1707,6 +1707,7 @@ static bool is_flying(void)
 static void crash_detection_update()
 {
     static uint32_t crash_timer_ms = 0;
+    static bool checkHardLanding = false;
 
     if (control_mode != AUTO)
     {
@@ -1760,6 +1761,7 @@ static void crash_detection_update()
             // but go ahead and notify GCS and perform any additional post-crash actions.
             // Declare a crash if we are oriented more that 60deg in pitch or roll
             if (been_auto_flying &&
+                !checkHardLanding && // only check once
                 (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000)) {
                 crashed = true;
 
@@ -1767,6 +1769,12 @@ static void crash_detection_update()
                 crashed_near_land_waypoint =
                         get_distance(current_loc, mission.get_current_nav_cmd().content.location) < 75;
             }
+
+            // only check landing code once after a "land". This keeps us from thinking we had a
+            // hard landing if, for example we land normally but let it sit for a minute then pick
+            // up the plane and hold it upsidedown. This flag inhibits us from thinking we *just*
+            // had a hard landing. This is why we check only once after is_flying() becomees false.
+            checkHardLanding = true;
             break;
 
         default:
@@ -1778,7 +1786,7 @@ static void crash_detection_update()
         // reset timer
         crash_timer_ms = 0;
         auto_state.is_crashed = false;
-
+        checkHardLanding = false;
     } else if (crash_timer_ms == 0) {
         // start timer
         crash_timer_ms = now_ms;
