@@ -1768,32 +1768,34 @@ static void crash_detection_update()
                 // did we "crash" within 50m of the landing location? Probably just a hard landing
                 crashed_near_land_waypoint =
                         get_distance(current_loc, mission.get_current_nav_cmd().content.location) < 75;
+
+                // trigger hard landing event right away, or never again. This inhibits a false hard landing
+                // event when, for example, a minute after a good landing you pick the plane up and
+                // this logic is still running and detects the plane is on its side as you carry it.
+                crash_timer_ms = now_ms + 2500;
             }
 
-            // only check landing code once after a "land". This keeps us from thinking we had a
-            // hard landing if, for example we land normally but let it sit for a minute then pick
-            // up the plane and hold it upsidedown. This flag inhibits us from thinking we *just*
-            // had a hard landing. This is why we check only once after is_flying() becomees false.
             checkHardLanding = true;
             break;
 
         default:
             break;
         } // switch
+    } else {
+        checkHardLanding = true;
     }
 
     if (!crashed) {
         // reset timer
         crash_timer_ms = 0;
         auto_state.is_crashed = false;
-        checkHardLanding = false;
+
     } else if (crash_timer_ms == 0) {
         // start timer
         crash_timer_ms = now_ms;
 
     } else if ((now_ms >= crash_timer_ms + 2500) && !auto_state.is_crashed) {
         auto_state.is_crashed = true;
-        crash_timer_ms = 0;
 
         if (g.crash_detection_enable == CRASH_DETECT_ACTION_BITMASK_DISABLED) {
             if (crashed_near_land_waypoint) {
