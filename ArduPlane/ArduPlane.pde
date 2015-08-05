@@ -1583,18 +1583,12 @@ static void update_is_flying_5Hz(void)
     bool is_flying_bool;
     uint32_t now_ms = hal.scheduler->millis();
 
-    float ground_speed_thresh_cm = (g.min_gndspeed_cm > 0) ? labs(g.min_gndspeed_cm*0.9f) : 500;
+    uint32_t ground_speed_thresh_cm = (g.min_gndspeed_cm > 0) ? (g.min_gndspeed_cm*0.9f) : 500;
     bool gps_confirmed_movement = (gps.status() >= AP_GPS::GPS_OK_FIX_3D) &&
                                     (gps.ground_speed_cm() >= ground_speed_thresh_cm);
     bool airspeed_movement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= 7);
 
-    if (now_ms < 10000) {
-        // Don't bother checking in the first 10 seconds of a boot to allow for a GPS init and re-lock.
-        // Note: This time is actually longer on a pixhawk when considering time it takes to check
-        // the Bootloader and NuttX. This may need to be reconsidered for Linux builds.
-        is_flying_bool = false;
-    }
-    else if (ahrs.is_motionless()) {
+    if (ahrs.is_motionless()) {
         is_flying_bool = false;
     }
     else if(arming.is_armed()) {
@@ -1607,10 +1601,9 @@ static void update_is_flying_5Hz(void)
 
         if ((auto_state.last_flying_ms > 0) && gps_lost_recently) {
             // we've flown before, loosen GPS constraints
-            is_flying_bool = airspeed_movement && // moving through the air
-                    (gps_confirmed_movement || gps_lost_recently); // locked and moving, or recently lost lock
+            is_flying_bool = airspeed_movement; // moving through the air
         } else {
-            // we've never flown yet, require good GPS movement
+            // we've never flown yet, require good GPS movement OR airspeed (it's an AND when disarmed)
             is_flying_bool = airspeed_movement || // moving through the air
                                 gps_confirmed_movement; // locked and we're moving
         }
@@ -1650,7 +1643,6 @@ static void update_is_flying_5Hz(void)
         }
     } else {
         // when disarmed assume not flying and need overwhelming evidence that we ARE flying
-
         is_flying_bool = airspeed_movement && gps_confirmed_movement;
 
         if ((control_mode == AUTO) &&
@@ -1677,7 +1669,7 @@ static void update_is_flying_5Hz(void)
         auto_state.last_flying_ms = now_ms;
 
         if ((control_mode == AUTO) &&
-            ((auto_state.started_flying_in_auto_ms == 0) || (new_is_flying != previous_is_flying)) ) {
+            ((auto_state.started_flying_in_auto_ms == 0) || !previous_is_flying) ) {
 
             // We just started flying, note that time also
             auto_state.started_flying_in_auto_ms = now_ms;
@@ -1765,7 +1757,7 @@ static void crash_detection_update()
                 (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000)) {
                 crashed = true;
 
-                // did we "crash" within 50m of the landing location? Probably just a hard landing
+                // did we "crash" within 75m of the landing location? Probably just a hard landing
                 crashed_near_land_waypoint =
                         get_distance(current_loc, mission.get_current_nav_cmd().content.location) < 75;
 
