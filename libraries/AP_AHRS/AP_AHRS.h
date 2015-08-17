@@ -82,7 +82,8 @@ public:
         _sin_pitch(0.0f),
         _sin_yaw(0.0f),
         _active_accel_instance(0),
-        _accel_history_index(0)
+        _accel_history_index(0),
+        _is_motionless(false)
     {
         // load default values from var_info table
         AP_Param::setup_object_defaults(this, var_info);
@@ -364,7 +365,8 @@ public:
     virtual bool initialised(void) const { return true; };
 
     // true if the imu is very still
-    bool is_motionless(void);
+    bool is_motionless(void) const { return _is_motionless; };
+    void calculate_is_motionless(void);
 
 protected:
     AHRS_VehicleClass _vehicle_class;
@@ -447,6 +449,7 @@ protected:
     float _accel_history_y[ACCEL_HISTORY_ARRAY_LENGTH];
     float _accel_history_z[ACCEL_HISTORY_ARRAY_LENGTH];
     uint16_t _accel_history_index;
+    bool _is_motionless;
 };
 
 #include <AP_AHRS_DCM.h>

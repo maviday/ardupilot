@@ -304,14 +304,15 @@ void AP_AHRS::update_imu_history()
   Check for vehicle movement by determining if the variance of all imu axises are very small
   over the past second. This may be a down-sampled to conserve cpu and RAM resources.
  */
-bool AP_AHRS::is_motionless(void) {
+void AP_AHRS::calculate_is_motionless(void) {
     // for a variance the order doesn't matter so the index doesn't matter
     float var_x = variance(_accel_history_x, ACCEL_HISTORY_ARRAY_LENGTH);
     float var_y = variance(_accel_history_y, ACCEL_HISTORY_ARRAY_LENGTH);
     float var_z = variance(_accel_history_z, ACCEL_HISTORY_ARRAY_LENGTH);
 
-    return ((var_x <= 0.001f) &&
-            (var_y <= 0.001f) &&
-            (var_z <= 0.001f) );
+    _is_motionless = ((var_x <= 0.001f) &&
+                      (var_y <= 0.001f) &&
+                      (var_z <= 0.001f) );
 }
+
 

@@ -1588,6 +1588,8 @@ static void update_is_flying_5Hz(void)
                                     (gps.ground_speed_cm() >= ground_speed_thresh_cm);
     bool airspeed_movement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= 7);
 
+    ahrs.calculate_is_motionless();
+
     if (ahrs.is_motionless()) {
         is_flying_bool = false;
     }
