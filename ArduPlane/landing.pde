@@ -10,8 +10,6 @@
  */
 static bool verify_land()
 {
-    static bool post_landing_stats = false;
-
     // we don't 'verify' landing in the sense that it never completes,
     // so we don't verify command completion. Instead we use this to
     // adjust final landing parameters
@@ -58,7 +56,7 @@ static bool verify_land()
         (fabsf(auto_state.land_sink_rate) < 0.2f && !is_flying())) {
 
         if (!auto_state.land_complete) {
-            post_landing_stats = true;
+            auto_state.post_landing_stats = true;
             gcs_send_text_fmt(PSTR("Flare %.1fm sink=%.2f speed=%.1f"),
                               height, auto_state.land_sink_rate, gps.ground_speed());
         }
@@ -86,15 +84,14 @@ static bool verify_land()
                     get_distance(prev_WP_loc, current_loc) + 200);
     nav_controller->update_waypoint(prev_WP_loc, land_WP_loc);
 
-    // check if we should auto-disarm after a confirmed landing
-    disarm_if_autoland_complete();
-
-
     // once landed and stationary, post some statistics
-    if (post_landing_stats && ahrs.is_motionless()) {
-        post_landing_stats = false;
+    if (auto_state.post_landing_stats && !arming.is_armed()) {
+        auto_state.post_landing_stats = false;
         gcs_send_text_fmt(PSTR("Distance from LAND point=%.2fm"), get_distance(current_loc, next_WP_loc));
     }
+
+    // check if we should auto-disarm after a confirmed landing
+    disarm_if_autoland_complete();
 
     /*
       we return false as a landing mission item never completes

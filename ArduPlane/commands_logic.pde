@@ -46,7 +46,9 @@ start_command(const AP_Mission::Mission_Command& cmd)
 
         // if a go around had been commanded, clear it now.
         auto_state.commanded_go_around = false;
-        
+
+        auto_state.post_landing_stats = false;
+
         gcs_send_text_fmt(PSTR("Executing nav command ID #%i"),cmd.id);
     } else {
         gcs_send_text_fmt(PSTR("Executing command ID #%i"),cmd.id);

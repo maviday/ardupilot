@@ -569,6 +569,9 @@ static struct {
 
     // time stamp of when we start flying while in auto mode in milliseconds
     uint32_t started_flying_in_auto_ms;
+
+    // post landing statistics after an auto-landing
+    bool post_landing_stats;
 } auto_state = {
     takeoff_complete : true,
     land_complete : false,
@@ -590,6 +593,7 @@ static struct {
     wp_proportion : 0,
     last_flying_ms : 0,
     started_flying_in_auto_ms : 0,
+    post_landing_stats : false,
 };
 
 // true if we are in an auto-throttle mode, which means
