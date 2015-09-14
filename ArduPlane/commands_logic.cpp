@@ -131,6 +131,12 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
     case MAV_CMD_DO_LAND_START:
         //ensure go around hasn't been set
         auto_state.commanded_go_around = false;
+
+        // check for bi-directional landing
+        if (g.land_bidirectional == 2) {
+            AP_Mission::Mission_Command junk_cmd = cmd;
+            handle_bidirectional_landing(junk_cmd);
+        }
         break;
 
     case MAV_CMD_DO_FENCE_ENABLE:
@@ -343,7 +349,8 @@ void Plane::do_nav_wp(const AP_Mission::Mission_Command& cmd)
 
     // if next command is Nav_Land then check if we should use a new wp
     // position for bi-directional landing determined by wind direction
-    if (handle_bidirectional_landing(updated_cmd)) {
+    if (g.land_bidirectional == 1 &&
+        handle_bidirectional_landing(updated_cmd)) {
         set_next_WP(updated_cmd.content.location);
     }
     else {
