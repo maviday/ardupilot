@@ -262,10 +262,10 @@ const AP_Param::Info Plane::var_info[] = {
 
     // @Param: LAND_BIDIRECT
     // @DisplayName: Land BiDirectionally, always into the wind
-    // @Description: Windspeed threshold to rotate land appraoch by 180deg to ensure you always land into the wind. The approach rotation only happens if the windspeed scaled to the approach vector is above this threshold value, 0 to disable.
-    // @Values: 0:Disable,1:Enable
+    // @Description: Windspeed threshold to rotate land appraoch by 180deg to ensure you always land into the wind.
+    // @Values: 0:Disable,1:Rotate one Waypoint,2: Rotate all between DO_LAND_START and LAND
     // @User: Advanced
-    GSCALAR(land_bidirectional_thresh,       "LAND_BIDIRECT",  0),
+    GSCALAR(land_bidirectional,       "LAND_BIDIRECT",  0),
 
 	// @Param: NAV_CONTROLLER
 	// @DisplayName: Navigation controller selection

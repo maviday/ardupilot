@@ -342,26 +342,63 @@ float Plane::tecs_hgt_afe(void)
  */
 bool Plane::handle_bidirectional_landing(AP_Mission::Mission_Command& cmd)
 {
-    AP_Mission::Mission_Command next_cmd;
+    AP_Mission::Mission_Command land_cmd;
+    int32_t approach_bearing_cd = -1;
+    uint16_t index;
 
-    // check if current cmd is nav_waypoint, and next is land, and bi-directional is enabled
-    if (cmd.id != MAV_CMD_NAV_WAYPOINT ||
-        g.land_bidirectional_thresh <= 0 ||
-        mission.get_next_nav_cmd(mission.get_current_nav_index()+1, next_cmd) == false ||
-        next_cmd.id != MAV_CMD_NAV_LAND)
-    {
-        // this is not the waypoint segment you're looking for!
+    switch (g.land_bidirectional) {
+    case 1:
+        // check if current cmd is nav_waypoint, and next is land, and bi-directional is enabled
+        if (cmd.id != MAV_CMD_NAV_WAYPOINT ||
+            mission.get_next_nav_cmd(cmd.index+1, land_cmd) == false ||
+            land_cmd.id != MAV_CMD_NAV_LAND)
+        {
+            // this is not the waypoint segment you're looking for!
+            return false;
+        }
+        approach_bearing_cd = mission.get_next_ground_course_cd(-1);
+        break;
+
+    case 2:
+        // check that we are currently executing DO_LAND_START
+        if (cmd.id != MAV_CMD_DO_LAND_START) {
+            return false;
+        }
+
+        // and there exists a NAV_LAND
+        index = cmd.index+1; // start with looking at the command after the DO_LAND_START
+        //gcs_send_text_fmt(MAV_SEVERITY_INFO, "checking for land starting at index %d", index);
+        AP_Mission::Mission_Command prev_nav_cmd;
+        while (true) {
+            if (!mission.get_next_nav_cmd(index, land_cmd)) {
+                // We hit the end of the mission and never saw a LAND point.
+                return false;
+            } else if (land_cmd.id == MAV_CMD_NAV_LAND) {
+                // LAND waypoint found, compute approach heading and continue on
+                approach_bearing_cd = get_bearing_cd(prev_nav_cmd.content.location, land_cmd.content.location);
+                //gcs_send_text_fmt(MAV_SEVERITY_DEBUG, "found land index %d", index);
+                break;
+            } else {
+                prev_nav_cmd = land_cmd;
+                // account for grabbing a DO cmd which returned the nav index
+                // of the next index so simply incrementing index will not work
+                index = land_cmd.index+1;
+            }
+        }
+        break;
+
+    default:
         return false;
     }
 
-    int32_t approach_bearing_cd = mission.get_next_ground_course_cd(-1);
+    // check that we have a properly calculated approach angle of way-point to-> land point
     if (approach_bearing_cd == -1) {
         // something wrong with the current wp+land bearing calc
         return false;
     }
 
     // convert from centi-degree to degrees
-    float approach_bearing = approach_bearing_cd/100.0f;
+    float approach_bearing = approach_bearing_cd * 0.01f;
 
     // get wind values
     Vector3f wind = ahrs.wind_estimate();
@@ -379,16 +416,40 @@ bool Plane::handle_bidirectional_landing(AP_Mission::Mission_Command& cmd)
     // check if we're landing with the wind. Negative would mean into the wind.
     bool do_rotate_approach_Wp = (wind_dot_approach > 0);
 
-    gcs_send_text_fmt(PSTR("BiDirectional Land dot product: %.2f, %d"),
-            (double)wind_dot_approach, (double)do_rotate_approach_Wp);
+    //gcs_send_text_fmt(MAV_SEVERITY_DEBUG, "BiDirectional Land dot product: %.2f, %d", (double)wind_dot_approach, do_rotate_approach_Wp);
 
     if (!do_rotate_approach_Wp) {
         // we're already landing into the wind or land waypoint param of wind threshold not met
         return false;
     }
 
-    // everything checks out, go ahead and rotate the land approach by 180deg
-    rotate_location_around_another_location(180, next_cmd.content.location, cmd.content.location);
+    switch (g.land_bidirectional) {
+    case 1:
+        // everything checks out, go ahead and rotate the land approach by 180deg
+        rotate_location_around_another_location(180, land_cmd.content.location, cmd.content.location);
+        break;
+
+    case 2:
+        // rotate all waypoints between DO_LAND_START and NAV_LAND
+        AP_Mission::Mission_Command temp_cmd;
+        index = cmd.index+1; // start with looking at the command after the DO_LAND_START
+        //gcs_send_text_fmt(MAV_SEVERITY_DEBUG, "Starting with %d", index);
+        while(mission.read_cmd_from_storage(index, temp_cmd) && temp_cmd.id != MAV_CMD_NAV_LAND) {
+            if (mission.is_nav_cmd(temp_cmd)) {
+                rotate_location_around_another_location(180, land_cmd.content.location, temp_cmd.content.location);
+                mission.replace_cmd(index, temp_cmd);
+                //gcs_send_text_fmt(MAV_SEVERITY_DEBUG, "Replaced %d", index);
+            } else {
+                //gcs_send_text_fmt(MAV_SEVERITY_DEBUG, "Skipped  %d", index);
+            }
+            index++;
+        }
+        //gcs_send_text_fmt(MAV_SEVERITY_DEBUG, "Ending with %d", index);
+        break;
+
+    default:
+        break;
+    }
 
     return true;
 }
@@ -403,7 +464,7 @@ void Plane::rotate_location_around_another_location(const float rotation_angle, 
     // traverse locB to locA
     float bearing_cd = get_bearing_cd(locB, locA);
     float distance = get_distance(locA, locB);
-    location_update(locB, bearing_cd / 100.0f, distance);
+    location_update(locB, bearing_cd * 0.01f, distance);
 
     // rotate locB by (rotation_angle-180) degrees. The -180 is because at this point
     // "0" means no change (keep traversing forward) which is an effective 180deg
@@ -413,7 +474,7 @@ void Plane::rotate_location_around_another_location(const float rotation_angle, 
     bearing_cd = wrap_180_cd(bearing_cd);
 
     // traverse locB away from locA
-    location_update(locB, bearing_cd / 100.f, distance);
+    location_update(locB, bearing_cd * 0.01f, distance);
 }
 
 
