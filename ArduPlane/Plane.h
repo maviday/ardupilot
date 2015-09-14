@@ -689,6 +689,8 @@ private:
     void demo_servos(uint8_t i);
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);
+    void rotate_location_around_another_location(const float rotation_angle, const Location locA, Location& locB);
+    bool handle_bidirectional_landing(AP_Mission::Mission_Command& cmd);
     void send_heartbeat(mavlink_channel_t chan);
     void send_attitude(mavlink_channel_t chan);
     void send_fence_status(mavlink_channel_t chan);
