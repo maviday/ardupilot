@@ -314,6 +314,9 @@ public:
         k_param_pidNavPitchAltitude, // unused
         k_param_pidWheelSteer, // unused
 
+        // 252: Airphrame specific
+        k_param_land_bidirectional = 252,
+
         // 254,255: reserved
     };
 
@@ -441,6 +444,7 @@ public:
     AP_Float land_flare_sec;
     AP_Int8 land_disarm_delay;
     AP_Int8 land_bidirectional_thresh;
+    AP_Int8 land_bidirectional;
     AP_Int32 min_gndspeed_cm;
     AP_Int16 pitch_trim_cd;
     AP_Int16 FBWB_min_altitude_cm;
