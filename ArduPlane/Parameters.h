@@ -139,6 +139,7 @@ public:
         k_param_rudder_only,
         k_param_gcs3,            // 93
         k_param_gcs_pid_mask,
+        k_param_land_bidirectional_thresh,
         k_param_crash_detection_enable,
         k_param_land_abort_throttle_enable,
         k_param_rssi = 97,
@@ -452,6 +453,7 @@ public:
     AP_Float land_flare_alt;
     AP_Int8 land_disarm_delay;
     AP_Int8 land_abort_throttle_enable;
+    AP_Int8 land_bidirectional_thresh;
     AP_Int32 min_gndspeed_cm;
     AP_Int16 pitch_trim_cd;
     AP_Int16 FBWB_min_altitude_cm;
