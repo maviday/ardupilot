@@ -1797,7 +1797,7 @@ static void crash_detection_update()
         // start timer
         crash_timer_ms = now_ms;
 
-    } else if ((now_ms >= crash_timer_ms + 2500) && !auto_state.is_crashed) {
+    } else if ((now_ms >= crash_timer_ms + 1000) && !auto_state.is_crashed) {
         auto_state.is_crashed = true;
 
         if (g.crash_detection_enable == CRASH_DETECT_ACTION_BITMASK_DISABLED) {
