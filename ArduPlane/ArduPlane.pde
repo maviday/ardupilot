@@ -284,10 +284,15 @@ static AP_HAL::AnalogSource *rssi_analog_source;
 static RangeFinder rangefinder;
 
 static struct {
-    bool in_range;
+    bool in_range:1;
+    bool have_initial_reading:1;
+    bool in_use:1;
+    float initial_range;
     float correction;
+    float initial_correction;
     uint32_t last_correction_time_ms;
     uint8_t in_range_count;
+    uint32_t freeze_terrain_height_until_ms;
 } rangefinder_state;
 
 ////////////////////////////////////////////////////////////////////////////////

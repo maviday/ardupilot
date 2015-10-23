@@ -535,20 +535,35 @@ static float rangefinder_correction(void)
  */
 static void rangefinder_height_update(void)
 {
-    uint16_t distance_cm = rangefinder.distance_cm();
-    int16_t max_distance_cm = rangefinder.max_distance_cm();
+    uint16_t distance = rangefinder.distance_cm() * 0.01f;
+    int16_t max_distance = rangefinder.max_distance_cm() * 0.01f;
     float height_estimate = 0;
-    if (rangefinder.healthy() && distance_cm < max_distance_cm && home_is_set != HOME_UNSET) {
+    if (rangefinder.healthy() && distance < max_distance && home_is_set != HOME_UNSET) {
+        if (!rangefinder_state.have_initial_reading) {
+            rangefinder_state.have_initial_reading = true;
+            rangefinder_state.initial_range = distance;
+        }
         // correct the range for attitude (multiply by DCM.c.z, which
         // is cos(roll)*cos(pitch))
-        height_estimate = distance_cm * 0.01f * ahrs.get_dcm_matrix().c.z;
+        height_estimate = distance * ahrs.get_dcm_matrix().c.z;
 
         // we consider ourselves to be fully in range when we have 10
-        // good samples (0.2s)
+        // good samples (0.2s) that are different by 5% of the maximum
+        // range from the initial range we see. The 5% change is to
+        // catch Lidars that are giving a constant range, either due
+        // to misconfiguration or a faulty sensor
         if (rangefinder_state.in_range_count < 10) {
-            rangefinder_state.in_range_count++;
+            if (fabsf(rangefinder_state.initial_range - distance) > 0.05f * max_distance) {
+                rangefinder_state.in_range_count++;
+            }
         } else {
             rangefinder_state.in_range = true;
+            if (!rangefinder_state.in_use &&
+                flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH &&
+                g.rangefinder_landing) {
+                rangefinder_state.in_use = true;
+                gcs_send_text_fmt(PSTR("Rangefinder engaged at %.2fm"), height_estimate);
+            }
         }
     } else {
         rangefinder_state.in_range_count = 0;
@@ -573,9 +588,27 @@ static void rangefinder_height_update(void)
         // the old data is more than 5 seconds old
         if (hal.scheduler->millis() - rangefinder_state.last_correction_time_ms > 5000) {
             rangefinder_state.correction = correction;
+            rangefinder_state.initial_correction = correction;
         } else {
             rangefinder_state.correction = 0.8f*rangefinder_state.correction + 0.2f*correction;
+            if (fabsf(rangefinder_state.correction - rangefinder_state.initial_correction) > 25 ||
+                fabsf(rangefinder_state.correction) > 20) {
+                // the correction has changed by more than 25m or >20m, reset use of Lidar. We may have a bad lidar
+                if (rangefinder_state.in_use) {
+                    gcs_send_text_fmt(PSTR("Rangefinder disengaged at %.2fm"), height_estimate);
+                }
+                memset(&rangefinder_state, 0, sizeof(rangefinder_state));
+
+                // force a power-reset by setting the range just high enough to trigger a power-off.
+                // The normal runtime system will auto-populate estimated_terrain_height and turn it back on.
+                if (rangefinder._powersave_range > 0) {
+                    rangefinder_state.freeze_terrain_height_until_ms = millis() + 500;
+                    rangefinder.SetPoweredDown(true);
+                }
+                return;
+            }
         }
         rangefinder_state.last_correction_time_ms = hal.scheduler->millis();    
     }
 }
+

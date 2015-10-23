@@ -219,7 +219,7 @@ static bool verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
         return verify_takeoff();
 
     case MAV_CMD_NAV_LAND:
-        if (g.rangefinder_landing == 2) {
+        if (g.rangefinder_landing == 2 && hal.scheduler->millis() > rangefinder_state.freeze_terrain_height_until_ms) {
             rangefinder.SetPoweredDown(false);
         }
         return verify_land();
