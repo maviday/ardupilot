@@ -457,7 +457,7 @@ static const struct LogStructure log_structure[] PROGMEM = {
     { LOG_SONAR_MSG, sizeof(log_Sonar),             
       "SONR", "IffffBBf",   "TimeMS,DistCM,Volt,BaroAlt,GSpd,Thr,Cnt,Corr" },
     { LOG_ARM_DISARM_MSG, sizeof(log_Arm_Disarm),
-      "ARM", "IHB", "TimeMS,ArmState,ArmChecks" },
+      "ARM", "IBH", "TimeMS,ArmState,ArmChecks" },
     { LOG_ATRP_MSG, sizeof(AP_AutoTune::log_ATRP),
       "ATRP", "IBBcfff",  "TimeMS,Type,State,Servo,Demanded,Achieved,P" },
 #if OPTFLOW == ENABLED
