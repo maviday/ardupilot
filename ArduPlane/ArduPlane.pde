@@ -537,9 +537,6 @@ static struct {
     // denotes if a go-around has been commanded for landing
     bool commanded_go_around:1;
 
-    // crash detection
-    bool is_crashed :1;
-
     // Altitude threshold to complete a takeoff command in autonomous
     // modes.  Centimeters above home
     int32_t takeoff_altitude_rel_cm;
@@ -586,7 +583,6 @@ static struct {
     fbwa_tdrag_takeoff_mode : false,
     checked_for_autoland : false,
     commanded_go_around : false,
-    is_crashed : false,
     takeoff_altitude_rel_cm : 0,
     takeoff_pitch_cd : 0,
     highest_airspeed : 0,
@@ -600,6 +596,18 @@ static struct {
     started_flying_in_auto_ms : 0,
     post_landing_stats : false,
 };
+
+struct {
+    // on hard landings, only check once after directly a landing so you
+    // don't trigger a crash when picking up the aircraft
+    bool checkHardLanding:1;
+
+    // crash detection. True when we are crashed
+    bool is_crashed:1;
+
+    // debounce timer
+    uint32_t debounce_timer_ms;
+} crash_state;
 
 // true if we are in an auto-throttle mode, which means
 // we need to run the speed/height controller
@@ -1632,7 +1640,7 @@ static void update_is_flying_5Hz(void)
                 // we are definitely not flying, or at least for not much longer!
                 if (throttle_suppressed) {
                     is_flying_bool = false;
-                    auto_state.is_crashed = false;
+                    crash_state.is_crashed = false;
                 }
                 break;
 
@@ -1709,13 +1717,10 @@ static bool is_flying(void)
 
 static void crash_detection_update()
 {
-    static uint32_t crash_timer_ms = 0;
-    static bool checkHardLanding = false;
-
     if (control_mode != AUTO)
     {
         // crash detection is only available in AUTO mode
-        crash_timer_ms = 0;
+        crash_state.debounce_timer_ms = 0;
         return;
     }
 
@@ -1764,7 +1769,7 @@ static void crash_detection_update()
             // but go ahead and notify GCS and perform any additional post-crash actions.
             // Declare a crash if we are oriented more that 60deg in pitch or roll
             if (been_auto_flying &&
-                !checkHardLanding && // only check once
+                !crash_state.checkHardLanding && // only check once
                 (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000)) {
                 crashed = true;
 
@@ -1775,30 +1780,30 @@ static void crash_detection_update()
                 // trigger hard landing event right away, or never again. This inhibits a false hard landing
                 // event when, for example, a minute after a good landing you pick the plane up and
                 // this logic is still running and detects the plane is on its side as you carry it.
-                crash_timer_ms = now_ms + 2500;
+                crash_state.debounce_timer_ms = now_ms + 2500;
             }
 
-            checkHardLanding = true;
+            crash_state.checkHardLanding = true;
             break;
 
         default:
             break;
         } // switch
     } else {
-        checkHardLanding = true;
+        crash_state.checkHardLanding = true;
     }
 
     if (!crashed) {
         // reset timer
-        crash_timer_ms = 0;
-        auto_state.is_crashed = false;
+        crash_state.debounce_timer_ms = 0;
+        crash_state.is_crashed = false;
 
-    } else if (crash_timer_ms == 0) {
+    } else if (crash_state.debounce_timer_ms == 0) {
         // start timer
-        crash_timer_ms = now_ms;
+        crash_state.debounce_timer_ms = now_ms;
 
-    } else if ((now_ms >= crash_timer_ms + 1000) && !auto_state.is_crashed) {
-        auto_state.is_crashed = true;
+    } else if ((now_ms >= crash_state.debounce_timer_ms + 1000) && !crash_state.is_crashed) {
+        crash_state.is_crashed = true;
 
         if (g.crash_detection_enable == CRASH_DETECT_ACTION_BITMASK_DISABLED) {
             if (crashed_near_land_waypoint) {
