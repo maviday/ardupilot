@@ -1641,6 +1641,7 @@ static void update_is_flying_5Hz(void)
                 if (throttle_suppressed) {
                     is_flying_bool = false;
                     crash_state.is_crashed = false;
+                    auto_state.started_flying_in_auto_ms = 0;
                 }
                 break;
 
@@ -1736,11 +1737,16 @@ static void crash_detection_update()
         switch (flight_stage)
         {
         case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-            auto_launch_detected = !throttle_suppressed && (g.takeoff_throttle_min_accel > 0);
-
-            if (been_auto_flying || // failed hand launch
-                auto_launch_detected) { // threshold of been_auto_flying may not be met on auto-launches
-
+            if (g.takeoff_throttle_min_accel > 0) {
+                if (throttle_suppressed) {
+                    // throttle is in pre-launch suppression.
+                    crash_state.is_crashed = false;
+                    crash_state.debounce_timer_ms = 0;
+                } else if (been_auto_flying) {
+                    // has detected an acceleration launch but is no longer flying. That's a crash on takeoff.
+                    crashed = true;
+                }
+            } else if (been_auto_flying) { // failed hand launch
                 // has launched but is no longer flying. That's a crash on takeoff.
                 crashed = true;
             }
