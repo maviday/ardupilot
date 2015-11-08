@@ -600,7 +600,7 @@ static struct {
 struct {
     // on hard landings, only check once after directly a landing so you
     // don't trigger a crash when picking up the aircraft
-    bool checkHardLanding:1;
+    bool checkedHardLanding:1;
 
     // crash detection. True when we are crashed
     bool is_crashed:1;
@@ -1600,10 +1600,10 @@ static void update_is_flying_5Hz(void)
     bool is_flying_bool;
     uint32_t now_ms = hal.scheduler->millis();
 
-    uint32_t ground_speed_thresh_cm = (g.min_gndspeed_cm > 0) ? (g.min_gndspeed_cm*0.9f) : 500;
+    uint32_t ground_speed_thresh_cm = (g.min_gndspeed_cm > 0) ? ((uint32_t)(g.min_gndspeed_cm*0.9f)) : 500;
     bool gps_confirmed_movement = (gps.status() >= AP_GPS::GPS_OK_FIX_3D) &&
                                     (gps.ground_speed_cm() >= ground_speed_thresh_cm);
-    bool airspeed_movement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= 7);
+    bool airspeed_movement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= (aparm.airspeed_min*0.75f));
 
     ahrs.calculate_is_motionless();
 
@@ -1616,7 +1616,7 @@ static void update_is_flying_5Hz(void)
         // short drop-outs of GPS are common during flight due to banking which points the antenna in different directions
         bool gps_lost_recently = (gps.last_fix_time_ms() > 0) && // we have locked to GPS before
                         (gps.status() < AP_GPS::GPS_OK_FIX_2D) && // and it's lost now
-                        (now_ms < gps.last_fix_time_ms() + 5000); // but it wasn't that long ago (<5s)
+                        (now_ms - gps.last_fix_time_ms() < 5000); // but it wasn't that long ago (<5s)
 
         if ((auto_state.last_flying_ms > 0) && gps_lost_recently) {
             // we've flown before, loosen GPS constraints
@@ -1775,7 +1775,7 @@ static void crash_detection_update()
             // but go ahead and notify GCS and perform any additional post-crash actions.
             // Declare a crash if we are oriented more that 60deg in pitch or roll
             if (been_auto_flying &&
-                !crash_state.checkHardLanding && // only check once
+                !crash_state.checkedHardLanding && // only check once
                 (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000)) {
                 crashed = true;
 
@@ -1789,14 +1789,14 @@ static void crash_detection_update()
                 crash_state.debounce_timer_ms = now_ms + 2500;
             }
 
-            crash_state.checkHardLanding = true;
+            crash_state.checkedHardLanding = true;
             break;
 
         default:
             break;
         } // switch
     } else {
-        crash_state.checkHardLanding = false;
+        crash_state.checkedHardLanding = false;
     }
 
     if (!crashed) {
