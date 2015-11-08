@@ -1796,7 +1796,7 @@ static void crash_detection_update()
             break;
         } // switch
     } else {
-        crash_state.checkHardLanding = true;
+        crash_state.checkHardLanding = false;
     }
 
     if (!crashed) {
