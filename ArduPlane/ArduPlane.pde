@@ -1720,10 +1720,11 @@ static bool is_flying(void)
 
 static void crash_detection_update()
 {
-    if (control_mode != AUTO)
+    if (control_mode != AUTO || !g.crash_detection_enable)
     {
         // crash detection is only available in AUTO mode
         crash_state.debounce_timer_ms = 0;
+        crash_state.is_crashed = false;
         return;
     }
 
