@@ -621,6 +621,8 @@ AP_SpdHgtControl::FlightStage flight_stage = AP_SpdHgtControl::FLIGHT_NORMAL;
 // probability of aircraft is currently in flight. range from 0 to 1 where 1 is 100% sure we're in flight
 static float isFlyingProbability = 0;
 static void update_is_flying_5Hz(void);
+static void crash_detection_update(void);
+static bool in_PreLaunch_stage(void);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Loiter management
@@ -1635,17 +1637,17 @@ static void update_is_flying_5Hz(void)
             switch (flight_stage)
             {
             case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-                // while on the ground, an uncalibrated airspeed sensor can drift to 7m/s so
-                // ensure we aren't showing a false positive. If the throttle is suppressed
-                // we are definitely not flying, or at least for not much longer!
-                if (throttle_suppressed) {
+                // TODO: detect ground impacts
+                break;
+
+            case AP_SpdHgtControl::FLIGHT_NORMAL:
+                if (in_PreLaunch_stage()) {
+                    // while on the ground, an uncalibrated airspeed sensor can drift to 7m/s so
+                    // ensure we aren't showing a false positive.
                     is_flying_bool = false;
                     crash_state.is_crashed = false;
                     auto_state.started_flying_in_auto_ms = 0;
                 }
-                break;
-
-            case AP_SpdHgtControl::FLIGHT_NORMAL:
                 // TODO: detect ground impacts
                 break;
 
@@ -1732,41 +1734,23 @@ static void crash_detection_update()
     bool been_auto_flying = (auto_state.started_flying_in_auto_ms > 0) &&
                             (now_ms >= auto_state.started_flying_in_auto_ms + 2500);
 
-    if (!is_flying())
+    if (!is_flying() && been_auto_flying)
     {
         switch (flight_stage)
         {
         case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-            if (g.takeoff_throttle_min_accel > 0) {
-                if (throttle_suppressed) {
-                    // throttle is in pre-launch suppression.
-                    crash_state.is_crashed = false;
-                    crash_state.debounce_timer_ms = 0;
-                } else if (been_auto_flying) {
-                    // has detected an acceleration launch but is no longer flying. That's a crash on takeoff.
-                    crashed = true;
-                }
-            } else if (been_auto_flying) { // failed hand launch
-                // has launched but is no longer flying. That's a crash on takeoff.
-                crashed = true;
-            }
-            break;
-
-
         case AP_SpdHgtControl::FLIGHT_NORMAL:
-            if (been_auto_flying) {
+            if (!in_PreLaunch_stage()) {
                 crashed = true;
             }
             // TODO: handle auto missions without NAV_TAKEOFF mission cmd
             break;
 
         case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
-            if (been_auto_flying) {
-                crashed = true;
-            }
+            crashed = true;
             // when altitude gets low, we automatically progress to FLIGHT_LAND_FINAL
             // so ground crashes most likely can not be triggered from here. However,
-            // a crash into a tree, for example, would be.
+            // a crash into a tree would be caught here.
             break;
 
         case AP_SpdHgtControl::FLIGHT_LAND_FINAL:
@@ -1774,8 +1758,7 @@ static void crash_detection_update()
             // likely had a crazy landing. Throttle is inhibited already at the flare
             // but go ahead and notify GCS and perform any additional post-crash actions.
             // Declare a crash if we are oriented more that 60deg in pitch or roll
-            if (been_auto_flying &&
-                !crash_state.checkedHardLanding && // only check once
+            if (!crash_state.checkedHardLanding && // only check once
                 (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000)) {
                 crashed = true;
 
@@ -1830,6 +1813,16 @@ static void crash_detection_update()
             }
         }
     }
+}
+
+/*
+ * return true if we are in a pre-launch phase of an auto-launch, typically used in bungee launches
+ */
+static bool in_PreLaunch_stage() {
+    return (control_mode == AUTO &&
+            throttle_suppressed &&
+            flight_stage == AP_SpdHgtControl::FLIGHT_NORMAL &&
+            mission.get_current_nav_cmd().id == MAV_CMD_NAV_TAKEOFF);
 }
 
 #if OPTFLOW == ENABLED
