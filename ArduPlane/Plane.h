@@ -498,7 +498,7 @@ private:
     struct {
         // on hard landings, only check once after directly a landing so you
         // don't trigger a crash when picking up the aircraft
-        bool checkHardLanding:1;
+        bool checkedHardLanding:1;
 
         // crash detection. True when we are crashed
         bool is_crashed:1;
@@ -936,6 +936,7 @@ private:
     void update_aux();
     void update_is_flying_5Hz(void);
     void crash_detection_update(void);
+    bool in_preLaunch_flight_stage(void);
     void gcs_send_text_fmt(MAV_SEVERITY severity, const char *fmt, ...);
     void handle_auto_mode(void);
     void calc_throttle();
