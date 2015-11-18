@@ -591,9 +591,8 @@ static void rangefinder_height_update(void)
             rangefinder_state.initial_correction = correction;
         } else {
             rangefinder_state.correction = 0.8f*rangefinder_state.correction + 0.2f*correction;
-            if (fabsf(rangefinder_state.correction - rangefinder_state.initial_correction) > 25 ||
-                fabsf(rangefinder_state.correction) > 20) {
-                // the correction has changed by more than 25m or >20m, reset use of Lidar. We may have a bad lidar
+            if (fabsf(rangefinder_state.correction - rangefinder_state.initial_correction) > 30) {
+                // the correction has changed by more than 30m, reset use of Lidar. We may have a bad lidar
                 if (rangefinder_state.in_use) {
                     gcs_send_text_fmt(PSTR("Rangefinder disengaged at %.2fm"), height_estimate);
                 }
