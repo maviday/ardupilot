@@ -105,6 +105,10 @@ public:
     const Vector3f &get_gyro_offsets(uint8_t i) const { return _gyro_offset[i]; }
     const Vector3f &get_gyro_offsets(void) const { return get_gyro_offsets(_primary_gyro); }
 
+    // Accelerometer error threshold used to determine inconsistent accelerometers
+    float get_accel_error_threshold(uint8_t i) const { return _accel_error_threshold[i]; }
+    float get_accel_error_threshold(void) const { return get_accel_error_threshold(_primary_accel); }
+
     //get delta angle if available
     bool get_delta_angle(uint8_t i, Vector3f &delta_angle) const;
     bool get_delta_angle(Vector3f &delta_angle) const { return get_delta_angle(_primary_gyro, delta_angle); }
@@ -325,6 +329,9 @@ private:
 
     // use for attitude, velocity, position estimates
     AP_Int8     _use[INS_MAX_INSTANCES];
+
+    // Accelerometer error threshold used to determine inconsistent accelerometers
+    AP_Float    _accel_error_threshold[INS_MAX_INSTANCES];
 
     // board orientation from AHRS
     enum Rotation _board_orientation;

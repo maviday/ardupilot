@@ -39,6 +39,14 @@ extern const AP_HAL::HAL& hal;
 #define DEFAULT_STILL_THRESH 0.1f
 #endif
 
+
+// we allow for a higher threshold for IMU3 as it
+// runs at a different temperature to IMU1/IMU2,
+// and is not used for accel data in the EKF
+#define DEFAULT_ACCEL_ERROR_THRESHOLD_IMU1      0.75f
+#define DEFAULT_ACCEL_ERROR_THRESHOLD_IMU2      0.75f
+#define DEFAULT_ACCEL_ERROR_THRESHOLD_IMU3      2.25f
+
 #define SAMPLE_UNIT 1
 
 // Class level parameters
@@ -295,6 +303,30 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     // @Values: 0:Never, 1:Start-up only
     // @User: Advanced
     AP_GROUPINFO("GYR_CAL", 24, AP_InertialSensor, _gyro_cal_timing, 1),
+
+    // @Param: ACCTHRESH
+    // @DisplayName: Accelerometer error threshold
+    // @Description: Accelerometer error threshold used to determine inconsistent accelerometers. Compares this error range to other accelerometers to detect a hardware or calibration error. Lower value means tighter check and harder to pass arming check. Not all accelerometers are created equal and in the same thermal environment.
+    // @Units: m/s/s
+    // @Range: 0.25 3.0
+    // @User: Advanced
+    AP_GROUPINFO("ACCTHRESH",    25, AP_InertialSensor, _accel_error_threshold[0],   DEFAULT_ACCEL_ERROR_THRESHOLD_IMU1),
+
+    // @Param: ACC2THRESH
+    // @DisplayName: Accelerometer2 error threshold
+    // @Description: Accelerometer2 error threshold used to determine inconsistent accelerometers. Compares this error range to other accelerometers to detect a hardware or calibration error. Lower value means tighter check and harder to pass arming check. Not all accelerometers are created equal and in the same thermal environment.
+    // @Units: m/s/s
+    // @Range: 0.25 3.0
+    // @User: Advanced
+    AP_GROUPINFO("ACC1THRESH",    26, AP_InertialSensor, _accel_error_threshold[1],   DEFAULT_ACCEL_ERROR_THRESHOLD_IMU2),
+
+    // @Param: ACC3THRESH
+    // @DisplayName: Accelerometer3 error threshold
+    // @Description: Accelerometer3 error threshold used to determine inconsistent accelerometers. Compares this error range to other accelerometers to detect a hardware or calibration error. Lower value means tighter check and harder to pass arming check. Not all accelerometers are created equal and in the same thermal environment. For the pixhawk 2 this is larger (x3) than ACC1/ACC2 because it is placed in a relatively warmer physical location.
+    // @Units: m/s/s
+    // @Range: 0.25 3.0
+    // @User: Advanced
+    AP_GROUPINFO("ACC2THRESH",    27, AP_InertialSensor, _accel_error_threshold[2],   DEFAULT_ACCEL_ERROR_THRESHOLD_IMU3),
 
     /*
       NOTE: parameter indexes have gaps above. When adding new
