@@ -161,20 +161,9 @@ bool AP_Arming::ins_checks(bool report)
             const Vector3f &prime_accel_vec = ins.get_accel();
             for(uint8_t i=0; i<ins.get_accel_count(); i++) {
                 // get next accel vector
-                const Vector3f &accel_vec = ins.get_accel(i);
-                Vector3f vec_diff = accel_vec - prime_accel_vec;
-                // allow for up to 0.75 m/s/s difference. Has to pass
-                // in last 10 seconds
-                float threshold = 0.75f;
-                if (i >= 2) {
-                    /*
-                      we allow for a higher threshold for IMU3 as it
-                      runs at a different temperature to IMU1/IMU2,
-                      and is not used for accel data in the EKF
-                     */
-                    threshold *= 3;
-                }
-                if (vec_diff.length() <= threshold) {
+                Vector3f vec_diff = ins.get_accel(i) - prime_accel_vec;
+                // allow for error difference, usually up to 0.75 m/s/s. Has to pass in last 10 seconds
+                if (vec_diff.length() <= ins.get_accel_error_threshold(i)) {
                     last_accel_pass_ms[i] = AP_HAL::millis();
                 }
                 if (AP_HAL::millis() - last_accel_pass_ms[i] > 10000) {
