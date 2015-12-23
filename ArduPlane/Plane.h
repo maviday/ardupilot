@@ -3,7 +3,7 @@
 #ifndef _PLANE_H
 #define _PLANE_H
 
-#define THISFIRMWARE "ArduPlane V3.4.1dev - Airphrame v2.0.1"
+#define THISFIRMWARE "ArduPlane V3.4.1dev - Airphrame v2.0.2"
 #define FIRMWARE_VERSION 3,4,1,FIRMWARE_VERSION_TYPE_DEV
 
 /*
