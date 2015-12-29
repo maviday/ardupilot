@@ -1627,6 +1627,46 @@ void AP_InertialSensor::calc_vibration_and_clipping(uint8_t instance, const Vect
     }
 }
 
+// peak hold detector for slower mechanisms to detect spikes
+void AP_InertialSensor::set_accel_peak_hold(uint8_t instance, const Vector3f &accel)
+{
+    uint32_t now = AP_HAL::millis();
+    uint32_t expired = now - AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS;
+
+    if (now < AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS) {
+        // when now < timeout, result will wrap around and never timeout
+        expired = 0;
+    }
+
+    // positive x,y,z peak hold detector
+    if (accel.x > _accel_peak_hold_pos[instance].x || _accel_peak_hold_pos_age[instance].x >= expired) {
+        _accel_peak_hold_pos[instance].x = accel.x;
+        _accel_peak_hold_pos_age[instance].x = now;
+    }
+    if (accel.y > _accel_peak_hold_pos[instance].y || _accel_peak_hold_pos_age[instance].y >= expired) {
+        _accel_peak_hold_pos[instance].y = accel.y;
+        _accel_peak_hold_pos_age[instance].y = now;
+    }
+    if (accel.z > _accel_peak_hold_pos[instance].z || _accel_peak_hold_pos_age[instance].z >= expired) {
+        _accel_peak_hold_pos[instance].z = accel.z;
+        _accel_peak_hold_pos_age[instance].z = now;
+    }
+
+    // negative x,y,z peak(min) hold detector
+    if (accel.x < _accel_peak_hold_neg[instance].x || _accel_peak_hold_neg_age[instance].x >= expired) {
+        _accel_peak_hold_neg[instance].x = accel.x;
+        _accel_peak_hold_neg_age[instance].x = now;
+    }
+    if (accel.y < _accel_peak_hold_neg[instance].y || _accel_peak_hold_neg_age[instance].y >= expired) {
+        _accel_peak_hold_neg[instance].y = accel.y;
+        _accel_peak_hold_neg_age[instance].y = now;
+    }
+    if (accel.z < _accel_peak_hold_neg[instance].z || _accel_peak_hold_neg_age[instance].z >= expired) {
+        _accel_peak_hold_neg[instance].z = accel.z;
+        _accel_peak_hold_neg_age[instance].z = now;
+    }
+}
+
 // retrieve latest calculated vibration levels
 Vector3f AP_InertialSensor::get_vibration_levels(uint8_t instance) const
 {
