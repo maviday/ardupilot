@@ -6,7 +6,8 @@
   is_flying and crash detection logic
  */
 
-#define CRASH_DETECTION_DELAY_MS        500
+#define CRASH_DETECTION_DELAY_MS            300
+#define IS_FLYING_IMPACT_TIMER_MS           3000
 
 /*
   Do we think we are flying?
@@ -58,12 +59,21 @@ void Plane::update_is_flying_5Hz(void)
                 // large deceleration detected, lets lower confidence VERY quickly
                 if (isFlyingProbability > 0.25f) {
                     isFlyingProbability = 0.25f;
+                    crash_state.impact_detected = true;
+                    crash_state.impact_timer_ms = now_ms;
                 }
             } else if (accel_x < -10) {
                 // medium deceleration detected, lets lower confidence
                 if (isFlyingProbability > 0.5f) {
                     isFlyingProbability = 0.5f;
+                    crash_state.impact_detected = true;
+                    crash_state.impact_timer_ms = now_ms;
                 }
+            }
+
+            if (crash_state.impact_detected &&
+                (now_ms - crash_state.impact_timer_ms > IS_FLYING_IMPACT_TIMER_MS)) {
+                crash_state.impact_detected = false;
             }
 
             switch (flight_stage)
@@ -112,9 +122,13 @@ void Plane::update_is_flying_5Hz(void)
         }
     }
 
-    // low-pass the result.
-    // coef=0.15f @ 5Hz takes 3.0s to go from 100% down to 10% (or 0% up to 90%)
-    isFlyingProbability = (0.85f * isFlyingProbability) + (0.15f * (float)is_flying_bool);
+    if (!crash_state.impact_detected || !is_flying_bool) {
+        // when impact is detected, enforce a clamp. Only allow isFlyingProbability to go down, not up.
+
+        // low-pass the result.
+        // coef=0.15f @ 5Hz takes 3.0s to go from 100% down to 10% (or 0% up to 90%)
+        isFlyingProbability = (0.85f * isFlyingProbability) + (0.15f * (float)is_flying_bool);
+    }
 
     /*
       update last_flying_ms so we always know how long we have not
