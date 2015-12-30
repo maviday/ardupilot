@@ -1631,39 +1631,33 @@ void AP_InertialSensor::calc_vibration_and_clipping(uint8_t instance, const Vect
 void AP_InertialSensor::set_accel_peak_hold(uint8_t instance, const Vector3f &accel)
 {
     uint32_t now = AP_HAL::millis();
-    uint32_t expired = now - AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS;
-
-    if (now < AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS) {
-        // when now < timeout, result will wrap around and never timeout
-        expired = 0;
-    }
 
     // positive x,y,z peak hold detector
-    if (accel.x > _accel_peak_hold_pos[instance].x || _accel_peak_hold_pos_age[instance].x >= expired) {
+    if (accel.x > _accel_peak_hold_pos[instance].x || _accel_peak_hold_pos_age[instance].x <= now) {
         _accel_peak_hold_pos[instance].x = accel.x;
-        _accel_peak_hold_pos_age[instance].x = now;
+        _accel_peak_hold_pos_age[instance].x = now + AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS;
     }
-    if (accel.y > _accel_peak_hold_pos[instance].y || _accel_peak_hold_pos_age[instance].y >= expired) {
+    if (accel.y > _accel_peak_hold_pos[instance].y || _accel_peak_hold_pos_age[instance].y <= now) {
         _accel_peak_hold_pos[instance].y = accel.y;
-        _accel_peak_hold_pos_age[instance].y = now;
+        _accel_peak_hold_pos_age[instance].y = now + AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS;
     }
-    if (accel.z > _accel_peak_hold_pos[instance].z || _accel_peak_hold_pos_age[instance].z >= expired) {
+    if (accel.z > _accel_peak_hold_pos[instance].z || _accel_peak_hold_pos_age[instance].z <= now) {
         _accel_peak_hold_pos[instance].z = accel.z;
-        _accel_peak_hold_pos_age[instance].z = now;
+        _accel_peak_hold_pos_age[instance].z = now + AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS;
     }
 
     // negative x,y,z peak(min) hold detector
-    if (accel.x < _accel_peak_hold_neg[instance].x || _accel_peak_hold_neg_age[instance].x >= expired) {
+    if (accel.x < _accel_peak_hold_neg[instance].x || _accel_peak_hold_neg_age[instance].x <= now) {
         _accel_peak_hold_neg[instance].x = accel.x;
-        _accel_peak_hold_neg_age[instance].x = now;
+        _accel_peak_hold_neg_age[instance].x = now + AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS;
     }
-    if (accel.y < _accel_peak_hold_neg[instance].y || _accel_peak_hold_neg_age[instance].y >= expired) {
+    if (accel.y < _accel_peak_hold_neg[instance].y || _accel_peak_hold_neg_age[instance].y <= now) {
         _accel_peak_hold_neg[instance].y = accel.y;
-        _accel_peak_hold_neg_age[instance].y = now;
+        _accel_peak_hold_neg_age[instance].y = now + AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS;
     }
-    if (accel.z < _accel_peak_hold_neg[instance].z || _accel_peak_hold_neg_age[instance].z >= expired) {
+    if (accel.z < _accel_peak_hold_neg[instance].z || _accel_peak_hold_neg_age[instance].z <= now) {
         _accel_peak_hold_neg[instance].z = accel.z;
-        _accel_peak_hold_neg_age[instance].z = now;
+        _accel_peak_hold_neg_age[instance].z = now + AP_INERTIAL_SENSOR_ACCEL_PEAK_DETECT_TIMEOUT_MS;
     }
 }
 
