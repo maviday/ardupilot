@@ -208,6 +208,7 @@ private:
         float correction_raw;
         float correction_derivitive;
         float initial_correction;
+        float last_stable_correction;
         uint32_t last_correction_time_ms;
         uint32_t freeze_correction_time_ms;
         uint8_t in_range_count;
@@ -507,6 +508,12 @@ private:
 
         // barometric altitude at start of takeoff
         float baro_takeoff_alt;
+
+        // calculated approach slope during auto-landing: ((prev_WP_loc.alt - next_WP_loc.alt)*0.01f - aparm.land_flare_sec * sink_rate) / get_distance(prev_WP_loc, next_WP_loc)
+        float land_slope;
+
+        // same as land_slope but sampled once before a rangefinder changes the slope. This should be the original mission planned slope
+        float initial_land_slope;
 
         // are we in VTOL mode?
         bool vtol_mode:1;
@@ -905,6 +912,7 @@ private:
     bool verify_land();
     void disarm_if_autoland_complete();
     void setup_landing_glide_slope(void);
+    void adjust_landing_slope_for_rangefinder_bump(void);
     bool jump_to_landing_sequence(void);
     float tecs_hgt_afe(void);
     void set_nav_controller(void);

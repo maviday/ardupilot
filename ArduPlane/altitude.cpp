@@ -37,6 +37,7 @@ void Plane::adjust_altitude_target()
     } else if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH ||
             flight_stage == AP_SpdHgtControl::FLIGHT_LAND_PREFLARE) {
         setup_landing_glide_slope();
+        adjust_landing_slope_for_rangefinder_bump();
     } else if (nav_controller->reached_loiter_target()) {
         // once we reach a loiter target then lock to the final
         // altitude target
@@ -614,6 +615,7 @@ void Plane::rangefinder_height_update(void)
         if (now - rangefinder_state.last_correction_time_ms > 5000) {
             rangefinder_state.correction = correction;
             rangefinder_state.initial_correction = correction;
+            auto_state.initial_land_slope = auto_state.land_slope;
             gcs_send_text_fmt(MAV_SEVERITY_INFO, "Rangefinder initial2 at %.2fm", (double)correction);
         } else {
             //rangefinder_state.correction_derivitive = (correction - rangefinder_state.correction) / 0.02f;
