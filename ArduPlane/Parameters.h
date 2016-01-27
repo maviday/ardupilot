@@ -267,6 +267,7 @@ public:
         k_param_long_fs_timeout,
         k_param_rc_13,
         k_param_rc_14,
+        k_param_throttle_off_pwm = 199,
 
         //
         // 200: Feed-forward gains
@@ -409,6 +410,7 @@ public:
     AP_Int8 throttle_fs_enabled;
     AP_Int16 throttle_fs_value;
     AP_Int8 throttle_nudge;
+    AP_Int16 throttle_off_pwm;
 
     // Failsafe
     AP_Int8 short_fs_action;

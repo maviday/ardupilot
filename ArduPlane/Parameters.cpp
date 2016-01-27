@@ -770,6 +770,14 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: User
     GSCALAR(elevon_output,           "ELEVON_OUTPUT",  0),
 
+    // @Param: THR_OFF_PWM
+    // @DisplayName: ESC "Off" value for Reverse Thrust
+    // @Description: For ESCs that support reverse thrust using PWM, this is the value that commands zero throttle. Typically a value near 1500 is used for a symetrical PWM range. When this value is > 0, RCx_MIN will define the maximum reverse thrust pwm. Use a value of 0 to disable reverse thrust. *** WARNING *** Make sure your RC transmitter throttle range is mapped accordingly!
+    // @Range: 0 2200
+    // @Units: PWM
+    // @User: User
+    GSCALAR(throttle_off_pwm,      "THR_OFF_PWM",  0),
+
     // @Param: MIXING_GAIN
     // @DisplayName: Mixing Gain
     // @Description: The gain for the Vtail and elevon output mixers. The default is 0.5, which ensures that the mixer doesn't saturate, allowing both input channels to go to extremes while retaining control over the output. Hardware mixers often have a 1.0 gain, which gives more servo throw, but can saturate. If you don't have enough throw on your servos with VTAIL_OUTPUT or ELEVON_OUTPUT enabled then you can raise the gain using MIXING_GAIN. The mixer allows outputs in the range 900 to 2100 microseconds.

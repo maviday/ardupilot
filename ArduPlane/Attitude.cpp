@@ -23,7 +23,7 @@ float Plane::get_speed_scaler(void)
     } else {
         if (channel_throttle->servo_out > 0) {
             speed_scaler = 0.5f + ((float)THROTTLE_CRUISE / channel_throttle->servo_out / 2.0f);                 // First order taylor expansion of square root
-            // Should maybe be to the 2/7 power, but we aren't goint to implement that...
+            // Should maybe be to the 2/7 power, but we aren't going to implement that...
         }else{
             speed_scaler = 1.67f;
         }
@@ -96,12 +96,12 @@ void Plane::stabilize_pitch(float speed_scaler)
 {
     int8_t force_elevator = takeoff_tail_hold();
     if (force_elevator != 0) {
-        // we are holding the tail down during takeoff. Just covert
+        // we are holding the tail down during takeoff. Just convert
         // from a percentage to a -4500..4500 centidegree angle
         channel_pitch->servo_out = 45*force_elevator;
         return;
     }
-    int32_t demanded_pitch = nav_pitch_cd + g.pitch_trim_cd + channel_throttle->servo_out * g.kff_throttle_to_pitch;
+    int32_t demanded_pitch = nav_pitch_cd + g.pitch_trim_cd + constrain_int16(channel_throttle->servo_out, 0, 100) * g.kff_throttle_to_pitch;
     bool disable_integrator = false;
     if (control_mode == STABILIZE && channel_pitch->control_in != 0) {
         disable_integrator = true;
@@ -760,10 +760,13 @@ void Plane::set_servos_idle(void)
 }
 
 /*
-  return minimum throttle, taking account of throttle reversal
+  return minimum throttle PWM value, taking account of throttle reversal. For reverse thrust you get the throttle off position
  */
 uint16_t Plane::throttle_min(void) const
 {
+    if (g.throttle_off_pwm > 0) {
+        return g.throttle_off_pwm;
+    }
     return channel_throttle->get_reverse() ? channel_throttle->radio_max : channel_throttle->radio_min;
 };
 
@@ -890,18 +893,25 @@ void Plane::set_servos(void)
 #if THROTTLE_OUT == 0
         channel_throttle->servo_out = 0;
 #else
-        // convert 0 to 100% into PWM
-        uint8_t min_throttle = aparm.throttle_min.get();
-        uint8_t max_throttle = aparm.throttle_max.get();
-        if (control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
-            min_throttle = 0;
-        }
-        if (control_mode == AUTO &&
-            (flight_stage == AP_SpdHgtControl::FLIGHT_TAKEOFF || flight_stage == AP_SpdHgtControl::FLIGHT_LAND_ABORT)) {
-            if(aparm.takeoff_throttle_max != 0) {
-                max_throttle = aparm.takeoff_throttle_max;
-            } else {
-                max_throttle = aparm.throttle_max;
+        // convert 0 to 100% (or -100 to +100) into PWM
+        int8_t min_throttle = aparm.throttle_min.get();
+        int8_t max_throttle = aparm.throttle_max.get();
+        if (control_mode == AUTO) {
+            if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+                min_throttle = 0;
+            } else if (min_throttle < 0 && mission.get_current_nav_cmd().id != MAV_CMD_NAV_LAND) {
+                // reverse thrust landing is available but not useful right now
+                // use mission id instead of flight_stage because there is a delay starting the
+                //land approach but we want the reverse thrust to start right away
+                min_throttle = 0;
+            }
+
+            if (flight_stage == AP_SpdHgtControl::FLIGHT_TAKEOFF || flight_stage == AP_SpdHgtControl::FLIGHT_LAND_ABORT) {
+                if(aparm.takeoff_throttle_max != 0) {
+                    max_throttle = aparm.takeoff_throttle_max;
+                } else {
+                    max_throttle = aparm.throttle_max;
+                }
             }
         }
         channel_throttle->servo_out = constrain_int16(channel_throttle->servo_out, 
@@ -910,7 +920,7 @@ void Plane::set_servos(void)
 
         if (!hal.util->get_soft_armed()) {
             channel_throttle->servo_out = 0;
-            channel_throttle->calc_pwm();                
+            channel_throttle->calc_pwm(g.throttle_off_pwm);
         } else if (suppress_throttle()) {
             // throttle is suppressed in auto mode
             channel_throttle->servo_out = 0;
@@ -918,7 +928,7 @@ void Plane::set_servos(void)
                 // manual pass through of throttle while throttle is suppressed
                 channel_throttle->radio_out = channel_throttle->radio_in;
             } else {
-                channel_throttle->calc_pwm();                
+                channel_throttle->calc_pwm(g.throttle_off_pwm);
             }
         } else if (g.throttle_passthru_stabilize && 
                    (control_mode == STABILIZE || 
@@ -939,10 +949,10 @@ void Plane::set_servos(void)
                    quadplane.in_vtol_auto()) {
             // no forward throttle for now
             channel_throttle->servo_out = 0;
-            channel_throttle->calc_pwm();
+            channel_throttle->calc_pwm(g.throttle_off_pwm);
         } else {
             // normal throttle calculation based on servo_out
-            channel_throttle->calc_pwm();
+            channel_throttle->calc_pwm(g.throttle_off_pwm);
         }
 #endif
     }
@@ -1107,7 +1117,7 @@ void Plane::demo_servos(uint8_t i)
  */
 void Plane::adjust_nav_pitch_throttle(void)
 {
-    uint8_t throttle = throttle_percentage();
+    int8_t throttle = throttle_percentage();
     if (throttle < aparm.throttle_cruise && flight_stage != AP_SpdHgtControl::FLIGHT_VTOL) {
         float p = (aparm.throttle_cruise - throttle) / (float)aparm.throttle_cruise;
         nav_pitch_cd -= g.stab_pitch_down * 100.0f * p;

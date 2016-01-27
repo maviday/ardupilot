@@ -373,7 +373,7 @@ void Plane::send_servo_out(mavlink_channel_t chan)
         0, // port 0
         10000 * channel_roll->norm_output() * (channel_roll->get_reverse()?-1:1),
         10000 * channel_pitch->norm_output() * (channel_pitch->get_reverse()?-1:1),
-        10000 * channel_throttle->norm_output() * (channel_throttle->get_reverse()?-1:1),
+        10000 * channel_throttle->norm_output(g.throttle_off_pwm) * (channel_throttle->get_reverse()?-1:1),
         10000 * channel_rudder->norm_output() * (channel_rudder->get_reverse()?-1:1),
         0,
         0,

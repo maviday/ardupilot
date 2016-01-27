@@ -749,15 +749,18 @@ void Plane::frsky_telemetry_send(void)
 
 
 /*
-  return throttle percentage from 0 to 100
+  return throttle percentage from 0 to 100 for normal use and -100 to 100 when using reverse thrust
  */
-uint8_t Plane::throttle_percentage(void)
+int8_t Plane::throttle_percentage(void)
 {
     if (auto_state.vtol_mode) {
         return quadplane.throttle_percentage();
     }
     // to get the real throttle we need to use norm_output() which
     // returns a number from -1 to 1.
+    if (g.throttle_off_pwm > 0) {
+        return constrain_int16(channel_throttle->norm_output(g.throttle_off_pwm), -100, 100);
+    }
     return constrain_int16(50*(channel_throttle->norm_output()+1), 0, 100);
 }
 

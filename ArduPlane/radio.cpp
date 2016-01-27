@@ -25,7 +25,13 @@ void Plane::set_control_channels(void)
     channel_roll->set_angle(SERVO_MAX);
     channel_pitch->set_angle(SERVO_MAX);
     channel_rudder->set_angle(SERVO_MAX);
-    channel_throttle->set_range(0, 100);
+    if (g.throttle_off_pwm > 0) {
+        // reverse thrust
+        channel_throttle->set_range(-100, 100);
+    } else {
+        // normal operation
+        channel_throttle->set_range(0, 100);
+    }
 
     if (!arming.is_armed() && arming.arming_required() == AP_Arming::YES_MIN_PWM) {
         hal.rcout->set_safety_pwm(1UL<<(rcmap.throttle()-1), throttle_min());
