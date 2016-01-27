@@ -229,10 +229,10 @@ RC_Channel::control_mix(float value)
 
 // returns just the PWM without the offset from radio_min
 void
-RC_Channel::calc_pwm(void)
+RC_Channel::calc_pwm(int16_t neutral_pwm)
 {
     if(_type_out == RC_CHANNEL_TYPE_RANGE) {
-        pwm_out         = range_to_pwm();
+        pwm_out         = range_to_pwm(neutral_pwm);
         radio_out       = (_reverse >= 0) ? (radio_min + pwm_out) : (radio_max - pwm_out);
 
     }else if(_type_out == RC_CHANNEL_TYPE_ANGLE_RAW) {
@@ -397,12 +397,22 @@ RC_Channel::pwm_to_range()
 
 
 int16_t
-RC_Channel::range_to_pwm()
+RC_Channel::range_to_pwm(int16_t neutral_pwm)
 {
     if (_high_out == _low_out) {
         return radio_trim;
     }
-    return ((int32_t)(servo_out - _low_out) * (int32_t)(radio_max - radio_min)) / (int32_t)(_high_out - _low_out);
+    if (neutral_pwm == 0) {
+        return ((int32_t)(servo_out - _low_out) * (int32_t)(radio_max - radio_min)) / (int32_t)(_high_out - _low_out);
+
+    } else {
+        // assume non-symmetric positive and negative slopes on conversion
+        if (servo_out >= 0) {
+            return (radio_max - neutral_pwm) * (servo_out/(float)_high_out) + (neutral_pwm - radio_min);
+        } else {
+            return (neutral_pwm - radio_min) * (1 - (servo_out / (float)_low_out));
+        }
+    }
 }
 
 // ------------------------------------------
@@ -463,10 +473,12 @@ RC_Channel::percent_input()
 }
 
 float
-RC_Channel::norm_output()
+RC_Channel::norm_output(int16_t mid)
 {
-    int16_t mid = (radio_max + radio_min) / 2;
     float ret;
+    if (mid == 0) {
+        mid = (radio_max + radio_min) / 2;
+    }
     if (mid <= radio_min) {
         return 0;
     }

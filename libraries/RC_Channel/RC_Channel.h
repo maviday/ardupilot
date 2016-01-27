@@ -93,7 +93,8 @@ public:
     int16_t        servo_out;
 
     // generate PWM from servo_out value
-    void        calc_pwm(void);
+    void        calc_pwm(int16_t neutral_pwm);
+    void        calc_pwm(void) { calc_pwm(0); }
 
     // PWM is without the offset from radio_min
     int16_t         pwm_out;
@@ -123,11 +124,12 @@ public:
     float                                           norm_input_dz();
 
     uint8_t                                         percent_input();
-    float                                           norm_output();
+    float                                           norm_output(int16_t mid);
+    float                                           norm_output(void) { return norm_output(0); };
     int16_t                                         angle_to_pwm();
     int16_t                                         pwm_to_range();
     int16_t                                         pwm_to_range_dz(uint16_t dead_zone);
-    int16_t                                         range_to_pwm();
+    int16_t                                         range_to_pwm(int16_t neutral_pwm);
 
     void                                            output() const;
     void                                            output_trim() const;
