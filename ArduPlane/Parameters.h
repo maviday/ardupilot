@@ -200,6 +200,8 @@ public:
         k_param_mission, // mission library
         k_param_serial_manager, // serial manager library
         k_param_NavEKF2,  // EKF2
+        k_param_land_pre_flare_alt,
+        k_param_land_pre_flare_airspeed = 149,
 
         //
         // 150: Navigation parameters

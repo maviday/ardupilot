@@ -516,6 +516,7 @@ void Plane::handle_auto_mode(void)
             steer_state.hold_course_cd = -1;
         }
         auto_state.land_complete = false;
+        auto_state.land_pre_flare = false;
         calc_nav_roll();
         calc_nav_pitch();
         calc_throttle();
@@ -831,6 +832,7 @@ void Plane::set_flight_stage(AP_SpdHgtControl::FlightStage fs)
         gcs_send_text_fmt(MAV_SEVERITY_NOTICE, "Landing aborted via throttle. Climbing to %dm", auto_state.takeoff_altitude_rel_cm/100);
         break;
 
+    case AP_SpdHgtControl::FLIGHT_LAND_PREFLARE:
     case AP_SpdHgtControl::FLIGHT_LAND_FINAL:
     case AP_SpdHgtControl::FLIGHT_NORMAL:
     case AP_SpdHgtControl::FLIGHT_VTOL:
@@ -902,6 +904,8 @@ void Plane::update_flight_stage(void)
                     set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_ABORT);
                 } else if (auto_state.land_complete == true) {
                     set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_FINAL);
+                } else if (auto_state.land_pre_flare == true) {
+                    set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_PREFLARE);
                 } else if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH) {
                     float path_progress = location_path_proportion(current_loc, prev_WP_loc, next_WP_loc);
                     bool lined_up = abs(nav_controller->bearing_error_cd()) < 1000;
