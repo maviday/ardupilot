@@ -184,6 +184,15 @@ const AP_Param::GroupInfo AP_TECS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("LAND_PMAX", 20, AP_TECS, _land_pitch_max, 10),
 
+    // @Param: APPR_SINK
+    // @DisplayName: Sink rate max for landing approach stage
+    // @Description: The sink rate max for the landing approach stage of landing. This will need to be large for steep landing approaches especially when using reverse thrust. If 0, then use TECS_SINK_MAX.
+    // @Range: 0.0 20.0
+    // @Units: m/s
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("APPR_SINK", 21, AP_TECS, _maxSinkRate_approach, 0),
+
     AP_GROUPEND
 };
 
@@ -402,14 +411,19 @@ void AP_TECS::_update_height_demand(void)
     _hgt_dem = 0.5f * (_hgt_dem + _hgt_dem_in_old);
     _hgt_dem_in_old = _hgt_dem;
 
+    float max_sink_rate = _maxSinkRate;
+    if (_flight_stage == FLIGHT_LAND_APPROACH && _maxSinkRate_approach > 0) {
+        max_sink_rate = _maxSinkRate_approach;
+    }
+
     // Limit height rate of change
     if ((_hgt_dem - _hgt_dem_prev) > (_maxClimbRate * 0.1f))
     {
         _hgt_dem = _hgt_dem_prev + _maxClimbRate * 0.1f;
     }
-    else if ((_hgt_dem - _hgt_dem_prev) < (-_maxSinkRate * 0.1f))
+    else if ((_hgt_dem - _hgt_dem_prev) < (-max_sink_rate * 0.1f))
     {
-        _hgt_dem = _hgt_dem_prev - _maxSinkRate * 0.1f;
+        _hgt_dem = _hgt_dem_prev - max_sink_rate * 0.1f;
     }
     _hgt_dem_prev = _hgt_dem;
 

@@ -53,7 +53,7 @@ public:
                                float load_factor);
 
     // demanded throttle in percentage
-    // should return 0 to 100
+    // should return -100 to 100, usually positive unless reverse thrust is enabled via _THRminf < 0
     int32_t get_throttle_demand(void) {
         return int32_t(_throttle_dem * 100.0f);
     }
@@ -159,6 +159,7 @@ private:
     AP_Int8  _pitch_max;
     AP_Int8  _pitch_min;
     AP_Int8  _land_pitch_max;
+    AP_Float _maxSinkRate_approach;
 
     // temporary _pitch_max_limit. Cleared on each loop. Clear when >= 90
     int8_t _pitch_max_limit = 90;
@@ -166,7 +167,7 @@ private:
     // current height estimate (above field elevation)
     float _height;
 
-    // throttle demand in the range from 0.0 to 1.0
+    // throttle demand in the range from -1.0 to 1.0, usually positive unless reverse thrust is enabled via _THRminf < 0
     float _throttle_dem;
 
     // pitch angle demand in radians
