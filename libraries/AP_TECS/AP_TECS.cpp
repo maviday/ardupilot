@@ -184,14 +184,14 @@ const AP_Param::GroupInfo AP_TECS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("LAND_PMAX", 20, AP_TECS, _land_pitch_max, 10),
 
-    // @Param: APPR_SINK
+    // @Param: APPR_SMAX
     // @DisplayName: Sink rate max for landing approach stage
     // @Description: The sink rate max for the landing approach stage of landing. This will need to be large for steep landing approaches especially when using reverse thrust. If 0, then use TECS_SINK_MAX.
     // @Range: 0.0 20.0
     // @Units: m/s
     // @Increment: 0.1
     // @User: Advanced
-    AP_GROUPINFO("APPR_SINK", 21, AP_TECS, _maxSinkRate_approach, 0),
+    AP_GROUPINFO("APPR_SMAX", 21, AP_TECS, _maxSinkRate_approach, 0),
 
     AP_GROUPEND
 };
