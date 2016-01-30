@@ -550,6 +550,14 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: Standard
     ASCALAR(throttle_cruise,        "TRIM_THROTTLE",  THROTTLE_CRUISE),
 
+    // @Param: USE_REV_THRUST
+    // @DisplayName: Bitmask for when to allow negative reverse thrust
+    // @Description: Typically THR_MIN will be clipped to zero unless reverse thrust is available. Since you may not want negative thrust available at all times this bitmask allows THR_MIN to go below 0 while executing certain auto-mission commands.
+    // @Values: 0:Disabled,1:AlwaysAllowed,2:LandApproach,4:LoiterToAlt,8:Loiter,16:Waypoint
+    // @Bitmask: 0:ALWAYS,1:LAND,2:LOITER_TO_ALT,3:LOITER_ALL,4:WAYPOINTS
+    // @User: Advanced
+    GSCALAR(use_reverse_thrust      ,"USE_REV_THRUST",  0),
+
     // @Param: THROTTLE_NUDGE
     // @DisplayName: Throttle nudge enable
     // @Description: When enabled, this uses the throttle input in auto-throttle modes to 'nudge' the throttle or airspeed to higher or lower values. When you have an airspeed sensor the nudge affects the target airspeed, so that throttle inputs above 50% will increase the target airspeed from TRIM_ARSPD_CM up to a maximum of ARSPD_FBW_MAX. When no airspeed sensor is enabled the throttle nudge will push up the target throttle for throttle inputs above 50%.

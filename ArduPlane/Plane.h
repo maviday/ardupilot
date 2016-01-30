@@ -949,6 +949,7 @@ private:
     void stabilize();
     void set_servos_idle(void);
     void set_servos();
+    bool allow_reverse_thrust(void);
     void update_aux();
     void update_is_flying_5Hz(void);
     void crash_detection_update(void);

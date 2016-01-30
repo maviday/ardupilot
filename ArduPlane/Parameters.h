@@ -177,6 +177,7 @@ public:
         k_param_acro_roll_rate,
         k_param_acro_pitch_rate,
         k_param_acro_locking,
+        k_param_use_reverse_thrust = 129,
 
         //
         // 130: Sensor parameters
@@ -413,6 +414,7 @@ public:
     AP_Int16 throttle_fs_value;
     AP_Int8 throttle_nudge;
     AP_Int16 throttle_off_pwm;
+    AP_Int16 use_reverse_thrust;
 
     // Failsafe
     AP_Int8 short_fs_action;

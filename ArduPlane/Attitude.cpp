@@ -901,10 +901,8 @@ void Plane::set_servos(void)
         if (control_mode == AUTO) {
             if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
                 min_throttle = 0;
-            } else if (min_throttle < 0 && mission.get_current_nav_cmd().id != MAV_CMD_NAV_LAND) {
-                // reverse thrust landing is available but not useful right now
-                // use mission id instead of flight_stage because there is a delay starting the
-                //land approach but we want the reverse thrust to start right away
+            } else if (min_throttle < 0 && !allow_reverse_thrust()) {
+                // reverse thrust is available but not allowed.
                 min_throttle = 0;
             }
 
@@ -1094,6 +1092,49 @@ void Plane::set_servos(void)
     channel_throttle->output();
     channel_rudder->output();
     RC_Channel_aux::output_ch_all();
+}
+
+bool Plane::allow_reverse_thrust(void)
+{
+    // check if we should allow reverse thrust
+    bool allow_reverse_thrust_for_nav_cmd = false;
+    uint8_t nav_cmd = mission.get_current_nav_cmd().id;
+
+    if (g.use_reverse_thrust == USE_REVERSE_THRUST_MASK_NEVER) {
+        return false;
+    }
+
+    // never allow reverse thrust during takeoff
+    if (nav_cmd == MAV_CMD_NAV_TAKEOFF) {
+        return false;
+    }
+
+
+    // always allow regardless of mission item
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust | USE_REVERSE_THRUST_MASK_ALWAYS);
+
+    // landing
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_LAND_APPROACH) &&
+                (nav_cmd == MAV_CMD_NAV_LAND);
+
+    // LOITER_TO_ALT
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_LOITER_TO_ALT) &&
+                (nav_cmd == MAV_CMD_NAV_LOITER_TO_ALT);
+
+    // any Loiter (including LOITER_TO_ALT)
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_LOITER_ALL) &&
+                (nav_cmd == MAV_CMD_NAV_LOITER_TIME ||
+                 nav_cmd == MAV_CMD_NAV_LOITER_TO_ALT ||
+                 nav_cmd == MAV_CMD_NAV_LOITER_TURNS ||
+                 nav_cmd == MAV_CMD_NAV_LOITER_UNLIM);
+
+    // waypoints
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_WAYPOINT) &&
+                (nav_cmd == MAV_CMD_NAV_WAYPOINT ||
+                 nav_cmd == MAV_CMD_NAV_SPLINE_WAYPOINT);
+
+
+    return allow_reverse_thrust_for_nav_cmd;
 }
 
 void Plane::demo_servos(uint8_t i) 
