@@ -22,6 +22,7 @@ bool Plane::verify_land()
 
         throttle_suppressed = false;
         auto_state.land_complete = false;
+        auto_state.land_pre_flare = false;
         nav_controller->update_heading_hold(get_bearing_cd(prev_WP_loc, next_WP_loc));
 
         // see if we have reached abort altitude
@@ -72,8 +73,10 @@ bool Plane::verify_land()
                                   (double)gps.ground_speed(),
                                   (double)get_distance(current_loc, next_WP_loc));
             }
+            auto_state.land_complete = true;
+            update_flight_stage();
         }
-        auto_state.land_complete = true;
+
 
         if (gps.ground_speed() < 3) {
             // reload any airspeed or groundspeed parameters that may have
@@ -84,7 +87,13 @@ bool Plane::verify_land()
             g.min_gndspeed_cm.load();
             aparm.throttle_cruise.load();
         }
-    }
+    } else if (auto_state.land_complete == false &&
+            aparm.land_pre_flare_alt > 0 &&
+            aparm.land_pre_flare_airspeed > 0 &&
+            height <= aparm.land_pre_flare_alt) {
+                auto_state.land_pre_flare = true;
+                update_flight_stage();
+            }
 
     /*
       when landing we keep the L1 navigation waypoint 200m ahead. This
