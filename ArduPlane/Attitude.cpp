@@ -23,7 +23,7 @@ float Plane::get_speed_scaler(void)
     } else {
         if (channel_throttle->servo_out > 0) {
             speed_scaler = 0.5f + ((float)THROTTLE_CRUISE / channel_throttle->servo_out / 2.0f);                 // First order taylor expansion of square root
-            // Should maybe be to the 2/7 power, but we aren't goint to implement that...
+            // Should maybe be to the 2/7 power, but we aren't going to implement that...
         }else{
             speed_scaler = 1.67f;
         }
@@ -96,7 +96,7 @@ void Plane::stabilize_pitch(float speed_scaler)
 {
     int8_t force_elevator = takeoff_tail_hold();
     if (force_elevator != 0) {
-        // we are holding the tail down during takeoff. Just covert
+        // we are holding the tail down during takeoff. Just convert
         // from a percentage to a -4500..4500 centidegree angle
         channel_pitch->servo_out = 45*force_elevator;
         return;
@@ -762,10 +762,13 @@ void Plane::set_servos_idle(void)
 }
 
 /*
-  return minimum throttle, taking account of throttle reversal
+  return minimum throttle PWM value, taking account of throttle reversal. For reverse thrust you get the throttle off position
  */
 uint16_t Plane::throttle_min(void) const
 {
+    if (aparm.throttle_min < 0) {
+        return channel_throttle->radio_trim;
+    }
     return channel_throttle->get_reverse() ? channel_throttle->radio_max : channel_throttle->radio_min;
 };
 
@@ -892,18 +895,23 @@ void Plane::set_servos(void)
 #if THROTTLE_OUT == 0
         channel_throttle->servo_out = 0;
 #else
-        // convert 0 to 100% into PWM
-        uint8_t min_throttle = aparm.throttle_min.get();
-        uint8_t max_throttle = aparm.throttle_max.get();
-        if (control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
-            min_throttle = 0;
-        }
-        if (control_mode == AUTO &&
-            (flight_stage == AP_SpdHgtControl::FLIGHT_TAKEOFF || flight_stage == AP_SpdHgtControl::FLIGHT_LAND_ABORT)) {
-            if(aparm.takeoff_throttle_max != 0) {
-                max_throttle = aparm.takeoff_throttle_max;
-            } else {
-                max_throttle = aparm.throttle_max;
+        // convert 0 to 100% (or -100 to +100) into PWM
+        int8_t min_throttle = aparm.throttle_min.get();
+        int8_t max_throttle = aparm.throttle_max.get();
+        if (control_mode == AUTO) {
+            if (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+                min_throttle = 0;
+            } else if (min_throttle < 0 && !allow_reverse_thrust()) {
+                // reverse thrust is available but not allowed.
+                min_throttle = 0;
+            }
+
+            if (flight_stage == AP_SpdHgtControl::FLIGHT_TAKEOFF || flight_stage == AP_SpdHgtControl::FLIGHT_LAND_ABORT) {
+                if(aparm.takeoff_throttle_max != 0) {
+                    max_throttle = aparm.takeoff_throttle_max;
+                } else {
+                    max_throttle = aparm.throttle_max;
+                }
             }
         }
         channel_throttle->servo_out = constrain_int16(channel_throttle->servo_out, 
@@ -1084,6 +1092,49 @@ void Plane::set_servos(void)
     channel_throttle->output();
     channel_rudder->output();
     RC_Channel_aux::output_ch_all();
+}
+
+bool Plane::allow_reverse_thrust(void)
+{
+    // check if we should allow reverse thrust
+    bool allow_reverse_thrust_for_nav_cmd = false;
+    uint8_t nav_cmd = mission.get_current_nav_cmd().id;
+
+    if (g.use_reverse_thrust == USE_REVERSE_THRUST_MASK_NEVER) {
+        return false;
+    }
+
+    // never allow reverse thrust during takeoff
+    if (nav_cmd == MAV_CMD_NAV_TAKEOFF) {
+        return false;
+    }
+
+
+    // always allow regardless of mission item
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_ALWAYS);
+
+    // landing
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_LAND_APPROACH) &&
+                (nav_cmd == MAV_CMD_NAV_LAND);
+
+    // LOITER_TO_ALT
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_LOITER_TO_ALT) &&
+                (nav_cmd == MAV_CMD_NAV_LOITER_TO_ALT);
+
+    // any Loiter (including LOITER_TO_ALT)
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_LOITER_ALL) &&
+                (nav_cmd == MAV_CMD_NAV_LOITER_TIME ||
+                 nav_cmd == MAV_CMD_NAV_LOITER_TO_ALT ||
+                 nav_cmd == MAV_CMD_NAV_LOITER_TURNS ||
+                 nav_cmd == MAV_CMD_NAV_LOITER_UNLIM);
+
+    // waypoints
+    allow_reverse_thrust_for_nav_cmd |= (g.use_reverse_thrust & USE_REVERSE_THRUST_MASK_WAYPOINT) &&
+                (nav_cmd == MAV_CMD_NAV_WAYPOINT ||
+                 nav_cmd == MAV_CMD_NAV_SPLINE_WAYPOINT);
+
+
+    return allow_reverse_thrust_for_nav_cmd;
 }
 
 void Plane::demo_servos(uint8_t i) 
