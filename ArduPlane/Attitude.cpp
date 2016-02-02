@@ -925,7 +925,7 @@ void Plane::set_servos(void)
 
             if (channel_throttle->servo_out > 0 && // demanding too much positive thrust
                 throttle_watt_limit_max < max_throttle - 25 &&
-                now - throttle_watt_limit_timer_ms >= 100) {
+                now - throttle_watt_limit_timer_ms >= 1) {
                 // always allow for 25% throttle available regardless of battery status
                 throttle_watt_limit_timer_ms = now;
                 throttle_watt_limit_max++;
@@ -933,7 +933,7 @@ void Plane::set_servos(void)
             } else if (channel_throttle->servo_out < 0 &&
                 min_throttle < 0 && // reverse thrust is available
                 throttle_watt_limit_min < -(min_throttle) - 25 &&
-                now - throttle_watt_limit_timer_ms >= 100) {
+                now - throttle_watt_limit_timer_ms >= 1) {
                 // always allow for 25% throttle available regardless of battery status
                 throttle_watt_limit_timer_ms = now;
                 throttle_watt_limit_min++;
