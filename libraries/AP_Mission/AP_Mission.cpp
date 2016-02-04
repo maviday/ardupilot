@@ -634,6 +634,12 @@ MAV_MISSION_RESULT AP_Mission::mavlink_to_mission_cmd(const mavlink_mission_item
         copy_location = true;
         break;
 
+    case MAV_CMD_DO_ROTATE_LANDING_DIR:                 // MAV ID: 198
+        cmd.content.rotate_landing.action = packet.param1;
+        cmd.content.rotate_landing.type = packet.param2;
+        cmd.content.rotate_landing.offset = packet.param3;
+        break;
+
     case MAV_CMD_DO_SET_ROI:                            // MAV ID: 201
         copy_location = true;
         cmd.p1 = packet.param1;                         // 0 = no roi, 1 = next waypoint, 2 = waypoint number, 3 = fixed location, 4 = given target (not supported)
@@ -972,6 +978,12 @@ bool AP_Mission::mission_cmd_to_mavlink(const AP_Mission::Mission_Command& cmd, 
 
     case MAV_CMD_DO_LAND_START:                         // MAV ID: 189
         copy_location = true;
+        break;
+
+    case MAV_CMD_DO_ROTATE_LANDING_DIR:                 // MAV ID: 198
+        packet.param1 = cmd.content.rotate_landing.action;  // see enum MAV_ROTATE_LANDING_DIR_ACTION
+        packet.param2 = cmd.content.rotate_landing.type;    // see enum MAV_ROTATE_LANDING_DIR_TYPE
+        packet.param3 = cmd.content.rotate_landing.offset;  // axis offset in meters
         break;
 
     case MAV_CMD_DO_SET_ROI:                            // MAV ID: 201
