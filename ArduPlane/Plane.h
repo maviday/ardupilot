@@ -619,6 +619,35 @@ private:
         uint32_t time_max_ms;
     } loiter;
 
+    struct  {
+        // waypoint rotation and offsets are applied in realtime because writing a mission
+        // to flash that has an offset and then rebooting means you boot up with the
+        // wrong mission which you then offset again. Must be done in RAM and applied to
+        // waypoints as they're executed.
+
+        // apply this offset to a waypoint. Feature is disabled when offset and angle = 0
+        int16_t offset;
+
+        // apply this rotation angle around NAV_LAND. Feature is disabled when offset and angle = 0
+        float angle;
+
+        // approach bearing for the direction of the offset
+        float bearing;
+
+        // Location which we rotate around
+        Location land_wp;
+
+        // only apply offset and rotation if between DO_ROTATE_LAND and NAV_LAND
+        uint16_t start_index;
+        uint16_t land_index;
+
+        bool is_enabled(uint16_t current_index) {
+            return( (!is_zero(angle) || offset != 0) &&
+                    (start_index <= current_index) &&
+                    (current_index <= land_index)); }
+
+        void disable() { angle = 0; offset = 0; start_index = 0; land_index = 0;}
+    } land_approach_rotation;
 
     // Conditional command
     // A value used in condition commands (eg delay, change alt, etc.)
@@ -738,7 +767,6 @@ private:
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);
     void rotate_location_around_another_location(const float rotation_angle, const Location locA, Location& locB);
-    bool handle_bidirectional_landing(AP_Mission::Mission_Command& cmd);
     void send_heartbeat(mavlink_channel_t chan);
     void send_attitude(mavlink_channel_t chan);
     void send_fence_status(mavlink_channel_t chan);
@@ -994,7 +1022,7 @@ private:
     bool suppress_throttle(void);
     void channel_output_mixer(uint8_t mixing_type, int16_t &chan1_out, int16_t &chan2_out);
     void flaperon_update(int8_t flap_percent);
-    bool start_command(const AP_Mission::Mission_Command& cmd);
+    bool start_command(const AP_Mission::Mission_Command& const_cmd);
     bool verify_command(const AP_Mission::Mission_Command& cmd);
     void do_takeoff(const AP_Mission::Mission_Command& cmd);
     void do_nav_wp(const AP_Mission::Mission_Command& cmd);
@@ -1016,6 +1044,8 @@ private:
     void do_set_home(const AP_Mission::Mission_Command& cmd);
     void do_digicam_configure(const AP_Mission::Mission_Command& cmd);
     void do_digicam_control(const AP_Mission::Mission_Command& cmd);
+    void do_rotate_landing_direction(const AP_Mission::Mission_Command& cmd);
+    void offset_then_rotate(const float rotation_angle, const float approach_bearing, const int16_t offset, const Location locA, Location& locB);
     bool start_command_callback(const AP_Mission::Mission_Command &cmd);
     bool verify_command_callback(const AP_Mission::Mission_Command& cmd);
     void print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode);
