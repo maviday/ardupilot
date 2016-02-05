@@ -608,20 +608,34 @@ void Plane::rangefinder_height_update(void)
 
         // remember the last correction. Use a low pass filter unless
         // the old data is more than 5 seconds old
-        if (millis() - rangefinder_state.last_correction_time_ms > 5000) {
+        uint32_t now = millis();
+        if (now - rangefinder_state.last_correction_time_ms > 5000) {
             rangefinder_state.correction = correction;
             rangefinder_state.initial_correction = correction;
         } else {
-            rangefinder_state.correction = 0.8f*rangefinder_state.correction + 0.2f*correction;
-            if (fabsf(rangefinder_state.correction - rangefinder_state.initial_correction) > 30) {
-                // the correction has changed by more than 30m, reset use of Lidar. We may have a bad lidar
-                if (rangefinder_state.in_use) {
-                    gcs_send_text_fmt(MAV_SEVERITY_INFO, "Rangefinder disengaged at %.2fm", (double)height_estimate);
+            rangefinder_state.correction_derivitive = (correction - rangefinder_state.correction) / 0.02f;
+            rangefinder_state.correction_raw = correction;
+
+            const float object_width_m = 5; // in meters
+            const uint32_t width_ms = 1000 * object_width_m / ahrs.groundspeed();
+            const int32_t dt_trigger_to_freeze = 100;
+
+            if (fabsf(rangefinder_state.correction_derivitive) > dt_trigger_to_freeze) {
+                rangefinder_state.freeze_correction_time_ms = now;
+            }
+
+            if (now - rangefinder_state.freeze_correction_time_ms > width_ms) {
+                rangefinder_state.correction = 0.8f*rangefinder_state.correction + 0.2f*correction;
+                if (fabsf(rangefinder_state.correction - rangefinder_state.initial_correction) > 30) {
+                    // the correction has changed by more than 30m, reset use of Lidar. We may have a bad lidar
+                    if (rangefinder_state.in_use) {
+                        gcs_send_text_fmt(MAV_SEVERITY_INFO, "Rangefinder disengaged at %.2fm", (double)height_estimate);
+                    }
+                    memset(&rangefinder_state, 0, sizeof(rangefinder_state));
                 }
-                memset(&rangefinder_state, 0, sizeof(rangefinder_state));
             }
         }
-        rangefinder_state.last_correction_time_ms = millis();    
+        rangefinder_state.last_correction_time_ms = now;
     }
 }
 #endif

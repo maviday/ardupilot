@@ -201,8 +201,11 @@ private:
         bool in_use:1;
         float initial_range;
         float correction;
+        float correction_raw;
+        float correction_derivitive;
         float initial_correction;
         uint32_t last_correction_time_ms;
+        uint32_t freeze_correction_time_ms;
         uint8_t in_range_count;
     } rangefinder_state;
 #endif
