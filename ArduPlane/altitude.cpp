@@ -613,12 +613,13 @@ void Plane::rangefinder_height_update(void)
             rangefinder_state.correction = correction;
             rangefinder_state.initial_correction = correction;
         } else {
-            rangefinder_state.correction_derivitive = (correction - rangefinder_state.correction) / 0.02f;
+            //rangefinder_state.correction_derivitive = (correction - rangefinder_state.correction) / 0.02f;
+            rangefinder_state.correction_derivitive = (correction - rangefinder_state.correction) * 50; // (new - old) / dt
             rangefinder_state.correction_raw = correction;
 
-            const float object_width_m = 5; // in meters
+            const float object_width_m = rangefinder.get_object_rejection_width(); // in meters
             const uint32_t width_ms = 1000 * object_width_m / ahrs.groundspeed();
-            const int32_t dt_trigger_to_freeze = 100;
+            const int32_t dt_trigger_to_freeze = rangefinder.get_object_rejection_width();
 
             if (fabsf(rangefinder_state.correction_derivitive) > dt_trigger_to_freeze) {
                 rangefinder_state.freeze_correction_time_ms = now;
