@@ -116,7 +116,8 @@ enum log_messages {
     LOG_RC_MSG,
     LOG_SONAR_MSG,
     LOG_ARM_DISARM_MSG,
-    LOG_STATUS_MSG 
+    LOG_STATUS_MSG,
+    LOG_STALL_MSG
 #if OPTFLOW == ENABLED
     ,LOG_OPTFLOW_MSG
 #endif

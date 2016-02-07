@@ -523,6 +523,18 @@ private:
         uint32_t impact_timer_ms;
     } crash_state;
 
+    struct {
+        bool is_below_stall_speed;
+        bool pitch_is_clipping; // pitch_demand > LIM_PITCH_MAX
+
+        // 0 to 1 chance that we're stalled. When 1 we are 100% sure we stalled are are likely falling out of the sky at this point
+        float probability;
+
+        float roll_error; // roll_dem - roll
+        float pitch_error; // pitch_dem - pitch
+
+    } stall_state;
+
     // true if we are in an auto-throttle mode, which means
     // we need to run the speed/height controller
     bool auto_throttle_mode;
@@ -804,6 +816,7 @@ private:
     void Log_Write_TECS_Tuning(void);
     void Log_Write_Nav_Tuning();
     void Log_Write_Status();
+    void Log_Write_Stall();
     void Log_Write_Sonar();
     void Log_Write_Optflow();
     void Log_Write_Current();
@@ -1007,6 +1020,8 @@ private:
     void update_navigation();
     void set_flight_stage(AP_SpdHgtControl::FlightStage fs);
     bool is_flying(void);
+    bool is_stalled(void);
+    void update_stall_detection(void);
     float get_speed_scaler(void);
     bool stick_mixing_enabled(void);
     void stabilize_roll(float speed_scaler);
