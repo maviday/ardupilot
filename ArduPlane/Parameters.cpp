@@ -14,6 +14,11 @@
 #define GOBJECTN(v, pname, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## pname, (const void *)&plane.v, {group_info : class::var_info} }
 
 const AP_Param::Info Plane::var_info[] = {
+
+    ASCALAR(test1,         "TEST1", 0),
+    ASCALAR(test2,         "TEST2", 0),
+    ASCALAR(test3,         "TEST3", 0),
+
     // @Param: FORMAT_VERSION
     // @DisplayName: Eeprom format version number
     // @Description: This value is incremented when changes are made to the eeprom format
