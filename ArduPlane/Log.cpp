@@ -332,6 +332,36 @@ void Plane::Log_Write_Status()
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
+struct PACKED log_Stall {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    bool is_below_stall_speed;
+    bool is_stalled;
+    float is_stalled_prob;
+    float roll_error;
+    float pitch_error;
+    float pitch_error_integrator1;
+    float pitch_error_integrator2;
+    bool pitch_is_clipping;
+};
+
+void Plane::Log_Write_Stall()
+{
+    struct log_Stall pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_STALL_MSG)
+        ,time_us   : AP_HAL::micros64()
+        ,is_below_stall_speed: stall_state.is_below_stall_speed
+        ,is_stalled   : is_stalled()
+        ,is_stalled_prob : stall_state.probability
+        ,roll_error: stall_state.roll_error
+        ,pitch_error: stall_state.pitch_error
+        ,pitch_error_integrator1: stall_state.pitch_error_integrator1
+        ,pitch_error_integrator2: stall_state.pitch_error_integrator2
+        ,pitch_is_clipping: stall_state.pitch_is_clipping
+        };
+
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
 struct PACKED log_Sonar {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -491,6 +521,8 @@ static const struct LogStructure log_structure[] = {
       "ATRP", "QBBcfff",  "TimeUS,Type,State,Servo,Demanded,Achieved,P" },
     { LOG_STATUS_MSG, sizeof(log_Status),
       "STAT", "QBfBBBBBB",  "TimeUS,isFlying,isFlyProb,Armed,Safety,Crash,Still,Stage,Hit" },
+    { LOG_STALL_MSG, sizeof(log_Stall),
+      "STAL", "QBBfffffB",  "TimeUS,LAS,isStall,Prob,RE,PE,PE1,PE2,PC" },
 #if OPTFLOW == ENABLED
     { LOG_OPTFLOW_MSG, sizeof(log_Optflow),
       "OF",   "QBffff",   "TimeUS,Qual,flowX,flowY,bodyX,bodyY" },
@@ -572,6 +604,7 @@ void Plane::Log_Write_TECS_Tuning(void) {}
 void Plane::Log_Write_Nav_Tuning() {}
 void Plane::Log_Write_Status() {}
 void Plane::Log_Write_Sonar() {}
+void Plane::Log_Write_Stall() {}
 
  #if OPTFLOW == ENABLED
 void Plane::Log_Write_Optflow() {}

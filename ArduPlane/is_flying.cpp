@@ -155,6 +155,7 @@ void Plane::update_is_flying_5Hz(void)
     }
     previous_is_flying = new_is_flying;
 
+    update_stall_detection();
     crash_detection_update();
 
     if (should_log(MASK_LOG_MODE)) {
@@ -293,4 +294,56 @@ bool Plane::in_preLaunch_flight_stage(void) {
             mission.get_current_nav_cmd().id == MAV_CMD_NAV_TAKEOFF);
 }
 
+void Plane::update_stall_detection(void) {
 
+    // only AUTO mode is supported.
+    if (control_mode != AUTO || !arming.is_armed()) {
+        memset(&stall_state, 0, sizeof(stall_state));
+    }
+
+    float aspeed;
+    stall_state.roll_error = (nav_roll_cd - ahrs.roll_sensor) * 0.01f;
+    stall_state.pitch_error = (nav_pitch_cd - ahrs.pitch_sensor) * 0.01f;
+    stall_state.pitch_is_clipping = (nav_pitch_cd >= aparm.pitch_limit_max_cd);
+    stall_state.is_below_stall_speed = ahrs.airspeed_estimate(&aspeed) && (aspeed < (aparm.airspeed_min));
+
+    stall_state.pitch_error_integrator1 += stall_state.pitch_error;
+
+    if (stall_state.is_below_stall_speed) {
+        stall_state.pitch_error_integrator2 += stall_state.pitch_error;
+    } else {
+        stall_state.pitch_error_integrator2 = 0;
+    }
+
+    if (should_log(MASK_LOG_MODE)) {
+        Log_Write_Stall();
+    }
+
+    if (aparm.test1 > 0 && is_stalled() && arming.is_armed() &&
+        (ins.get_accel_peak_hold_neg().z < -35 || barometer.get_altitude() < 2)) {
+        // impact detected while stalled or just above the ground, turn those motors off ASAP!
+        gcs_send_text(MAV_SEVERITY_EMERGENCY, "Stall crash, auto-disarmed");
+        arming.disarm();
+    }
+
+}
+
+bool Plane::is_stalled(void) {
+    uint32_t now = millis();
+    bool alltitude_is_OK = (fabsf(stall_state.roll_error) < 10) && (fabsf(stall_state.pitch_error) < 10);
+
+    if (auto_state.sink_rate < 11 &&
+            (is_flying() && alltitude_is_OK)) {
+        // not stalled
+        stall_state.debounce_timer_ms = now;
+        stall_state.probability = 0;
+
+    } else if (now - stall_state.debounce_timer_ms >= 500) {
+        stall_state.probability = 1;
+
+    } else {
+        stall_state.probability = 0;
+    }
+
+    return stall_state.probability >= 0.95;
+}
