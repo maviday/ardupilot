@@ -532,6 +532,8 @@ private:
 
         float roll_error; // roll_dem - roll
         float pitch_error; // pitch_dem - pitch
+        float pitch_error_integrator1; // pitch error integrator
+        float pitch_error_integrator2; // pitch error integrator zeroed when airspeed is > min_airspeed
 
     } stall_state;
 

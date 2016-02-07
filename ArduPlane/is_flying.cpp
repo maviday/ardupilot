@@ -298,15 +298,22 @@ void Plane::update_stall_detection(void) {
 
     // only AUTO mode is supported.
     if (control_mode != AUTO || !arming.is_armed()) {
-        stall_state.probability = 0;
+        memset(&stall_state, 0, sizeof(stall_state));
     }
 
+    float aspeed;
     stall_state.roll_error = (nav_roll_cd - ahrs.roll_sensor) * 0.01f;
     stall_state.pitch_error = (nav_pitch_cd - ahrs.pitch_sensor) * 0.01f;
     stall_state.pitch_is_clipping = (nav_pitch_cd >= aparm.pitch_limit_max_cd);
-
-    float aspeed;
     stall_state.is_below_stall_speed = ahrs.airspeed_estimate(&aspeed) && (aspeed < (aparm.airspeed_min));
+
+    stall_state.pitch_error_integrator1 += stall_state.pitch_error;
+
+    if (stall_state.is_below_stall_speed) {
+        stall_state.pitch_error_integrator2 += stall_state.pitch_error;
+    } else {
+        stall_state.pitch_error_integrator2 = 0;
+    }
 
     if (should_log(MASK_LOG_MODE)) {
         Log_Write_Stall();
@@ -318,8 +325,14 @@ void Plane::update_stall_detection(void) {
         gcs_send_text(MAV_SEVERITY_EMERGENCY, "Stall crash, auto-disarmed");
         arming.disarm();
     }
+
 }
 
 bool Plane::is_stalled(void) {
+
+    if (aparm.test1 > 0) {
+        // TEST1 > 0 means if we're falling then consider it a stall
+        stall_state.probability = (float)(auto_state.sink_rate > 15);
+    }
     return stall_state.probability >= 0.95;
 }
