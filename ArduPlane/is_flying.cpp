@@ -319,8 +319,8 @@ void Plane::update_stall_detection(void) {
         Log_Write_Stall();
     }
 
-    if (is_stalled() && arming.is_armed() &&
-        (ins.get_accel_peak_hold_neg().z < -20 || barometer.get_altitude() < 2)) {
+    if (aparm.test1 > 0 && is_stalled() && arming.is_armed() &&
+        (ins.get_accel_peak_hold_neg().z < -35 || barometer.get_altitude() < 2)) {
         // impact detected while stalled or just above the ground, turn those motors off ASAP!
         gcs_send_text(MAV_SEVERITY_EMERGENCY, "Stall crash, auto-disarmed");
         arming.disarm();
@@ -329,10 +329,21 @@ void Plane::update_stall_detection(void) {
 }
 
 bool Plane::is_stalled(void) {
+    uint32_t now = millis();
+    bool alltitude_is_OK = (fabsf(stall_state.roll_error) < 10) && (fabsf(stall_state.pitch_error) < 10);
 
-    if (aparm.test1 > 0) {
-        // TEST1 > 0 means if we're falling then consider it a stall
-        stall_state.probability = (float)(auto_state.sink_rate > 15);
+    if (auto_state.sink_rate < 11 &&
+            (is_flying() && alltitude_is_OK)) {
+        // not stalled
+        stall_state.debounce_timer_ms = now;
+        stall_state.probability = 0;
+
+    } else if (now - stall_state.debounce_timer_ms >= 500) {
+        stall_state.probability = 1;
+
+    } else {
+        stall_state.probability = 0;
     }
+
     return stall_state.probability >= 0.95;
 }

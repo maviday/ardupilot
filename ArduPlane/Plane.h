@@ -530,6 +530,9 @@ private:
         // 0 to 1 chance that we're stalled. When 1 we are 100% sure we stalled are are likely falling out of the sky at this point
         float probability;
 
+        // don't let it trigger too easily, add a debounce
+        uint32_t debounce_timer_ms;
+
         float roll_error; // roll_dem - roll
         float pitch_error; // pitch_dem - pitch
         float pitch_error_integrator1; // pitch error integrator
