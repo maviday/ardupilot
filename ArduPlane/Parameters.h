@@ -333,9 +333,13 @@ public:
         k_param_pidNavPitchAltitude, // unused
         k_param_pidWheelSteer, // unused
 
+        // Airphrame specific
+        // ---------------
+        k_param_land_bidirectional = 248, // no longer used
         k_param_test1 = 250,
         k_param_test2 = 251,
         k_param_test3 = 252,
+        // ---------------
 
         k_param_DataFlash = 253, // Logging Group
 
@@ -468,6 +472,7 @@ public:
     AP_Float land_flare_alt;
     AP_Int8 land_disarm_delay;
     AP_Int8 land_abort_throttle_enable;
+    AP_Int8 land_bidirectional;
     AP_Float land_pre_flare_alt;
     AP_Float land_pre_flare_sec;
     AP_Int32 min_gndspeed_cm;
