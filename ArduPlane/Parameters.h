@@ -337,6 +337,8 @@ public:
         k_param_test2 = 251,
         k_param_test3 = 252,
 
+        k_param_land_bidirectional = 248, // Airphrame specific
+
         k_param_DataFlash = 253, // Logging Group
 
         // 254,255: reserved
