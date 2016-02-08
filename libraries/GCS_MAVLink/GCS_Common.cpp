@@ -1353,7 +1353,6 @@ void GCS_MAVLINK::send_accel_peaks(const AP_InertialSensor &ins) const
 
     mavlink_msg_accel_peaks_send(
         chan,
-        AP_HAL::micros64(),
         accel_peaks_pos.x,
         accel_peaks_pos.y,
         accel_peaks_pos.z,
