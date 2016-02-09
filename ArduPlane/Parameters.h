@@ -472,6 +472,7 @@ public:
     AP_Float land_flare_alt;
     AP_Int8 land_disarm_delay;
     AP_Int8 land_abort_throttle_enable;
+    AP_Int8 land_bidirectional;
     AP_Float land_pre_flare_alt;
     AP_Float land_pre_flare_sec;
     AP_Int32 min_gndspeed_cm;

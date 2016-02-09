@@ -300,6 +300,13 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: Advanced
     GSCALAR(land_abort_throttle_enable,       "LAND_ABORT_THR",  0),
 
+    // @Param: LAND_BIDIRECT
+    // @DisplayName: Land BiDirectionally, always into the wind
+    // @Description: Windspeed threshold to rotate land appraoch by 180deg to ensure you always land into the wind.
+    // @Values: 0:Disable,1:Rotate one Waypoint,2: Rotate all between DO_LAND_START and LAND
+    // @User: Advanced
+    GSCALAR(land_bidirectional,       "LAND_BIDIRECT",  0),
+
 	// @Param: NAV_CONTROLLER
 	// @DisplayName: Navigation controller selection
 	// @Description: Which navigation controller to enable. Currently the only navigation controller available is L1. From time to time other experimental controllers will be added which are selected using this parameter.
