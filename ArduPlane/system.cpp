@@ -89,6 +89,8 @@ void Plane::init_ardupilot()
     //
     load_parameters();
 
+    GCS_MAVLINK::set_dataflash(&DataFlash);
+
 #if HIL_SUPPORT
     if (g.hil_mode == 1) {
         // set sensors to HIL mode
@@ -309,7 +311,7 @@ void Plane::startup_ground(void)
     serial_manager.set_blocking_writes_all(false);
 
     ins.set_raw_logging(should_log(MASK_LOG_IMU_RAW));
-    ins.set_dataflash(&DataFlash);    
+    ins.set_dataflash(&DataFlash);
 
     gcs_send_text(MAV_SEVERITY_INFO,"Ready to fly");
 }
