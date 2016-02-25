@@ -197,16 +197,25 @@ void Plane::crash_detection_update(void)
     bool been_auto_flying = (auto_state.started_flying_in_auto_ms > 0) &&
                             (now_ms - auto_state.started_flying_in_auto_ms >= 2500);
 
-    if (!is_flying() && been_auto_flying)
+    if (!is_flying())
     {
         switch (flight_stage)
         {
         case AP_SpdHgtControl::FLIGHT_TAKEOFF:
-        case AP_SpdHgtControl::FLIGHT_NORMAL:
-            if (!in_preLaunch_flight_stage()) {
+            if (g.takeoff_throttle_min_accel > 0 &&
+                    !throttle_suppressed) {
+                // if you have an acceleration holding back throttle, but you met the
+                // accel threshold but still not fying, then you either shook/hit the
+                // plane or it was a failed launch.
                 crashed = true;
             }
             // TODO: handle auto missions without NAV_TAKEOFF mission cmd
+            break;
+
+        case AP_SpdHgtControl::FLIGHT_NORMAL:
+            if (!in_preLaunch_flight_stage() && been_auto_flying) {
+                crashed = true;
+            }
             break;
 
         case AP_SpdHgtControl::FLIGHT_VTOL:
@@ -215,7 +224,9 @@ void Plane::crash_detection_update(void)
             break;
             
         case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
-            crashed = true;
+            if (been_auto_flying) {
+                crashed = true;
+            }
             // when altitude gets low, we automatically progress to FLIGHT_LAND_FINAL
             // so ground crashes most likely can not be triggered from here. However,
             // a crash into a tree would be caught here.
@@ -228,7 +239,8 @@ void Plane::crash_detection_update(void)
             // but go ahead and notify GCS and perform any additional post-crash actions.
             // Declare a crash if we are oriented more that 60deg in pitch or roll
             if (!crash_state.checkedHardLanding && // only check once
-                (fabsf(ahrs.roll_sensor) > 6000 || fabsf(ahrs.pitch_sensor) > 6000)) {
+                been_auto_flying &&
+                (labs(ahrs.roll_sensor) > 6000 || labs(ahrs.pitch_sensor) > 6000)) {
                 crashed = true;
 
                 // did we "crash" within 75m of the landing location? Probably just a hard landing
