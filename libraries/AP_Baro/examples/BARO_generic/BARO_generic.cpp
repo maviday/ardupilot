@@ -41,15 +41,13 @@ void loop()
             hal.console->println("not healthy");
             return;
         }
-        hal.console->print("Pressure:");
+        hal.console->print("Pressure: ");
         hal.console->print(barometer.get_pressure());
-        hal.console->print(" Temperature:");
+        hal.console->print(" Temperature: ");
         hal.console->print(barometer.get_temperature());
-        hal.console->print(" Altitude:");
-        hal.console->print(alt);
-        hal.console->printf(" climb=%.2f t=%u",
-                            barometer.get_climb_rate(),
-                            (unsigned)read_time);
+        hal.console->printf(" Altitude: %5.2f",alt);
+        hal.console->printf(" climb: %5.2f",barometer.get_climb_rate());
+        hal.console->printf(" t: %3u",(unsigned)read_time);
         hal.console->println();
     } else {
         hal.scheduler->delay(1);
