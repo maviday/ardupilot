@@ -163,7 +163,7 @@ void Plane::Log_Write_Attitude(void)
     targets.y = nav_pitch_cd;
     targets.z = 0;          //Plane does not have the concept of navyaw. This is a placeholder.
 
-    DataFlash.Log_Write_Attitude(ahrs, targets);
+    DataFlash.Log_Write_Attitude(ahrs, targets, aerodynamic_load_factor);
     DataFlash.Log_Write_PID(LOG_PIDR_MSG, rollController.get_pid_info());
     DataFlash.Log_Write_PID(LOG_PIDP_MSG, pitchController.get_pid_info());
     DataFlash.Log_Write_PID(LOG_PIDY_MSG, yawController.get_pid_info());
