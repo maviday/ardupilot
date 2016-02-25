@@ -122,6 +122,7 @@ public:
         float thr;
         float ptch;
         float dspd_dem;
+        bool underspd;
     } log_tuning;
 
 private:
@@ -347,6 +348,6 @@ private:
 };
 
 #define TECS_LOG_FORMAT(msg) { msg, sizeof(AP_TECS::log_TECS_Tuning),	\
-							   "TECS", "Qffffffffffff", "TimeUS,h,dh,h_dem,dh_dem,sp_dem,sp,dsp,ith,iph,th,ph,dsp_dem" }
+							   "TECS", "QffffffffffffB", "TimeUS,h,dh,h_dem,dh_dem,sp_dem,sp,dsp,ith,iph,th,ph,dsp_dem,st" }
 
 #endif //AP_TECS_H
