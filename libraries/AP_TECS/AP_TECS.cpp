@@ -671,12 +671,15 @@ void AP_TECS::_update_throttle(void)
 float AP_TECS::_get_i_gain(void)
 {
     float i_gain = _integGain;
-    if (_flight_stage == FLIGHT_TAKEOFF && !is_zero(_integGain_takeoff)) {
-        i_gain = _integGain_takeoff;
-    } else if (_is_doing_auto_land && !is_zero(_integGain_land)) {
-        i_gain = _integGain_land;
+    if (_flight_stage == FLIGHT_TAKEOFF) {
+        if (!is_zero(_integGain_takeoff)) {
+            i_gain = _integGain_takeoff;
+        }
+    } else if (_is_doing_auto_land) {
+        if (!is_zero(_integGain_land)) {
+            i_gain = _integGain_land;
+        }
     }
-
     return i_gain;
 }
 
