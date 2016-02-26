@@ -1290,20 +1290,12 @@ void Plane::update_load_factor(void)
         return;
     }
 
-    static uint32_t prev_ms = 0;
-    uint32_t now = AP_HAL::millis();
-
-    float max_load_factor = smoothed_airspeed / (float)aparm.airspeed_min;
+    float max_load_factor = smoothed_airspeed / aparm.airspeed_min;
     if (max_load_factor <= 1) {
         // our airspeed is below the minimum airspeed. Limit roll to
         // 25 degrees
         nav_roll_cd = constrain_int32(nav_roll_cd, -2500, 2500);
         roll_limit_cd = constrain_int32(roll_limit_cd, -2500, 2500);
-        if (now - prev_ms >= 200) {
-            prev_ms = now;
-            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, "mls(%.3f) <= 1",(double)max_load_factor);
-        }
-
     } else if (max_load_factor < aerodynamic_load_factor) {
         // the demanded nav_roll would take us past the aerodymamic
         // load limit. Limit our roll to a bank angle that will keep
@@ -1314,15 +1306,6 @@ void Plane::update_load_factor(void)
         int32_t roll_limit = degrees(acosf(sq(1.0f / max_load_factor)))*100;
         if (roll_limit < 2500) {
             roll_limit = 2500;
-            if (now - prev_ms >= 200) {
-                prev_ms = now;
-                GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, "mls(%.3f) <= alf(%.3f) set roll=25",(double)max_load_factor,(double)aerodynamic_load_factor);
-            }
-        } else {
-            if (now - prev_ms >= 200) {
-                prev_ms = now;
-                GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, "mls(%.3f) < alf(%.3f)",(double)max_load_factor,(double)aerodynamic_load_factor);
-            }
         }
         nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit, roll_limit);
         roll_limit_cd = constrain_int32(roll_limit_cd, -roll_limit, roll_limit);
