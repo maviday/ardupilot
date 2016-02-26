@@ -123,7 +123,13 @@ void Plane::calc_gndspeed_undershoot()
 		Vector2f yawVect = Vector2f(rotMat.a.x,rotMat.b.x);
 		yawVect.normalize();
 		float gndSpdFwd = yawVect * gndVel;
-        groundspeed_undershoot = (g.min_gndspeed_cm > 0) ? (g.min_gndspeed_cm - gndSpdFwd*100) : 0;
+
+		if (g.min_gndspeed_cm > 0) {
+		    // apply LPF to undershoot to prevent throttle pumping
+		    groundspeed_undershoot = 0.9*groundspeed_undershoot + 0.1*(g.min_gndspeed_cm - gndSpdFwd*100);
+		} else {
+            groundspeed_undershoot = 0;
+		}
     }
 }
 
