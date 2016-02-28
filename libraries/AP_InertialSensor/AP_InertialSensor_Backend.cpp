@@ -46,10 +46,16 @@ else
 
     accel_in = accel;
 
-    ACC11 =  0.01637; ACC21 =  1.02535; ACC31 =  0.00870; 
-    ACC12 = -1.02844; ACC22 =  0.00048; ACC32 =  0.02431; 
-    ACC13 = -0.01236; ACC23 =  0.01215; ACC33 =  1.02057; 
-    ACC14 =  3.65077; ACC24 =  4.48577; ACC34 =  2.05127; 
+    ACC11 = -0.01490;     ACC21 = -1.02615;     ACC31 = -0.01028; 
+    ACC12 =  1.02750;     ACC22 = -0.00017;     ACC32 =  0.01950; 
+    ACC13 =  0.01712;     ACC23 =  0.00536;     ACC33 = -1.01912; 
+    ACC14 = -3.67422;     ACC24 = -4.36844;     ACC34 = -2.22917; 
+
+    // Matrix for calibration
+    /*ACC11 =  1.0; ACC21 =  0.0; ACC31 =  0.0;
+    ACC12 =  0.0; ACC22 =  1.0; ACC32 =  0.0;
+    ACC13 =  0.0; ACC23 =  0.0; ACC33 =  1.0;
+    ACC14 =  0.0; ACC24 =  0.0; ACC34 =  0.0;*/
 
     accel.x = accel_in.x*ACC11 + accel_in.y*ACC12 + accel_in.z*ACC13 + ACC14;
     accel.y = accel_in.x*ACC21 + accel_in.y*ACC22 + accel_in.z*ACC23 + ACC24;
@@ -76,13 +82,16 @@ void AP_InertialSensor_Backend::_rotate_and_correct_gyro(uint8_t instance, Vecto
     {
         gyro_in = gyro;
 
-        GYR11 =  0.01592; GYR21 = -0.99987; GYR31 = -0.00126; 
-        GYR12 =  0.99980; GYR22 =  0.01590; GYR32 =  0.01191; 
-        GYR13 = -0.01189; GYR23 = -0.00145; GYR33 =  0.99993; 
+        GYR11 = -0.01450;         GYR21 =  0.99989;         GYR31 =  0.00174; 
+        GYR12 =  0.99988;         GYR22 =  0.01449;         GYR32 =  0.00526; 
+        GYR13 =  0.00523;         GYR23 =  0.00182;         GYR33 = -0.99998; 
 
         gyro.x = gyro_in.x*GYR11 + gyro_in.y*GYR12 + gyro_in.z*GYR13;
         gyro.y = gyro_in.x*GYR21 + gyro_in.y*GYR22 + gyro_in.z*GYR23;
         gyro.z = gyro_in.x*GYR31 + gyro_in.y*GYR32 + gyro_in.z*GYR33;
+
+        gyro.x = -gyro.x;
+        gyro.z = -gyro.z;
     }
 }
 

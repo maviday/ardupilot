@@ -125,7 +125,7 @@ static void run_test()
 
         length = accel.length();
 
-        if (counter++ % 50 == 0) {
+        if (counter++ % 25 == 0) {
             // display results
             hal.console->printf("Accel X:%6.2f \t Y:%6.2f \t Z:%6.2f \t norm:%6.2f \t Gyro X:%6.2f \t Y:%6.2f \t Z:%6.2f\n",
                     accel.x, accel.y, accel.z, length, gyro.x, gyro.y, gyro.z);
@@ -145,7 +145,7 @@ static void run_calibrate()
 
     int n_accels;
 
-    n_accels = 1;
+    n_accels = 2;
 
     hal.console->printf("Entered calibration mode\n");
 
@@ -156,7 +156,6 @@ static void run_calibrate()
     for (int jj = 0; jj<6; jj++)
     {
         // Open the file
-        char str[20];
         char str_base[20];
 
         switch(jj) {
@@ -195,11 +194,12 @@ static void run_calibrate()
             sprintf(str_base, "%d.txt", jj);
         }
 
-        // Wait for user to confirm to take reading
+        // Clear any user input buffer
         while( hal.console->available() ) {
             hal.console->read();
         }
 
+        // Wait for user to confirm to take reading
         hal.console->printf("Press < return > to continue\n");
         while( !hal.console->available() ) {
             hal.scheduler->delay(20);
@@ -212,6 +212,7 @@ static void run_calibrate()
         {
 
             // Start the data collection
+            char str[20];
             sprintf(str, "./Calibration/%d-%s",kk,str_base);
             FILE *f = fopen(str,"w");
 
