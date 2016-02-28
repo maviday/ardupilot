@@ -14,6 +14,8 @@ AP_InertialSensor_Backend::AP_InertialSensor_Backend(AP_InertialSensor &imu) :
 
 void AP_InertialSensor_Backend::_rotate_and_correct_accel(uint8_t instance, Vector3f &accel) 
 {
+if (0)
+{
     /*
       accel calibration is always done in sensor frame with this
       version of the code. That means we apply the rotation after the
@@ -32,12 +34,56 @@ void AP_InertialSensor_Backend::_rotate_and_correct_accel(uint8_t instance, Vect
     // rotate to body frame
     accel.rotate(_imu._board_orientation);
 }
+else
+{
+    // New magic version.  By using funky matricies, everything can be done in one step :)
+    // Don't even need to do the sensor to body frame stuff, it's all done!
+    Vector3f accel_in;
+    float ACC11, ACC21, ACC31;
+    float ACC12, ACC22, ACC32;
+    float ACC13, ACC23, ACC33;
+    float ACC14, ACC24, ACC34;
+
+    accel_in = accel;
+
+    ACC11 =  0.01637; ACC21 =  1.02535; ACC31 =  0.00870; 
+    ACC12 = -1.02844; ACC22 =  0.00048; ACC32 =  0.02431; 
+    ACC13 = -0.01236; ACC23 =  0.01215; ACC33 =  1.02057; 
+    ACC14 =  3.65077; ACC24 =  4.48577; ACC34 =  2.05127; 
+
+    accel.x = accel_in.x*ACC11 + accel_in.y*ACC12 + accel_in.z*ACC13 + ACC14;
+    accel.y = accel_in.x*ACC21 + accel_in.y*ACC22 + accel_in.z*ACC23 + ACC24;
+    accel.z = accel_in.x*ACC31 + accel_in.y*ACC32 + accel_in.z*ACC33 + ACC34;
+}
+}
 
 void AP_InertialSensor_Backend::_rotate_and_correct_gyro(uint8_t instance, Vector3f &gyro) 
 {
+    Vector3f gyro_in;
+    float GYR11, GYR21, GYR31;
+    float GYR12, GYR22, GYR32;
+    float GYR13, GYR23, GYR33;
+    
     // gyro calibration is always assumed to have been done in sensor frame
     gyro -= _imu._gyro_offset[instance];
-    gyro.rotate(_imu._board_orientation);
+
+    if (0)
+    {
+        gyro.rotate(_imu._board_orientation);
+    }
+
+    else
+    {
+        gyro_in = gyro;
+
+        GYR11 =  0.01592; GYR21 = -0.99987; GYR31 = -0.00126; 
+        GYR12 =  0.99980; GYR22 =  0.01590; GYR32 =  0.01191; 
+        GYR13 = -0.01189; GYR23 = -0.00145; GYR33 =  0.99993; 
+
+        gyro.x = gyro_in.x*GYR11 + gyro_in.y*GYR12 + gyro_in.z*GYR13;
+        gyro.y = gyro_in.x*GYR21 + gyro_in.y*GYR22 + gyro_in.z*GYR23;
+        gyro.z = gyro_in.x*GYR31 + gyro_in.y*GYR32 + gyro_in.z*GYR33;
+    }
 }
 
 /*

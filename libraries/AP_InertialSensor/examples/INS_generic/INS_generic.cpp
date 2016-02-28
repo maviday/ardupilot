@@ -127,7 +127,7 @@ static void run_test()
 
         if (counter++ % 50 == 0) {
             // display results
-            hal.console->printf("Accel X:%4.2f \t Y:%4.2f \t Z:%4.2f \t len:%4.2f \t Gyro X:%4.2f \t Y:%4.2f \t Z:%4.2f\n",
+            hal.console->printf("Accel X:%6.2f \t Y:%6.2f \t Z:%6.2f \t norm:%6.2f \t Gyro X:%6.2f \t Y:%6.2f \t Z:%6.2f\n",
                     accel.x, accel.y, accel.z, length, gyro.x, gyro.y, gyro.z);
         }
     }
@@ -156,42 +156,43 @@ static void run_calibrate()
     for (int jj = 0; jj<6; jj++)
     {
         // Open the file
-        char str[10];
+        char str[20];
+        char str_base[20];
 
         switch(jj) {
         case 0 :
             hal.console->printf("Z_down\n");
-            sprintf(str, "%s", "Z_down.txt");
+            sprintf(str_base, "%s", "Z_down.txt");
             break;
 
         case 1 :
             hal.console->printf("Z_up\n");
-            sprintf(str, "%s", "Z_up.txt");
+            sprintf(str_base, "%s", "Z_up.txt");
             break;
 
         case 2 :
             hal.console->printf("Y_down\n");
-            sprintf(str, "%s", "Y_down.txt");
+            sprintf(str_base, "%s", "Y_down.txt");
             break;
 
         case 3 :
             hal.console->printf("Y_up\n");
-            sprintf(str, "%s", "Y_up.txt");
+            sprintf(str_base, "%s", "Y_up.txt");
             break;
 
         case 4 :
             hal.console->printf("X_down\n");
-            sprintf(str, "%s", "X_down.txt");
+            sprintf(str_base, "%s", "X_down.txt");
             break;
 
         case 5 :
             hal.console->printf("X_up\n");
-            sprintf(str, "%s", "X_up.txt");
+            sprintf(str_base, "%s", "X_up.txt");
             break;
 
         default :
             hal.console->printf("Iteration %d!\n",jj);
-            sprintf(str, "%d.txt", jj);
+            sprintf(str_base, "%d.txt", jj);
         }
 
         // Wait for user to confirm to take reading
@@ -207,11 +208,11 @@ static void run_calibrate()
         hal.console->printf("Starting recording\n");
 
         // Loop for each sensor
-        for (int jj = 0; jj<n_accels; jj++)
+        for (int kk = 0; kk<n_accels; kk++)
         {
 
             // Start the data collection
-            sprintf(str, "%d-%s",jj,str);
+            sprintf(str, "./Calibration/%d-%s",kk,str_base);
             FILE *f = fopen(str,"w");
 
             if (f == NULL)
@@ -233,8 +234,8 @@ static void run_calibrate()
                 ins.update();
 
 
-                accel = ins.get_accel(jj);  // const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
-                gyro = ins.get_gyro(jj);
+                accel = ins.get_accel(kk);  // const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
+                gyro = ins.get_gyro(kk);
 
                 //hal.console->printf("Accel X:%4.2f \t Y:%4.2f \t Z:%4.2f\n",accel.x, accel.y, accel.z);
                 fprintf(f,"%f,%f,%f\n",accel.x, accel.y, accel.z);
