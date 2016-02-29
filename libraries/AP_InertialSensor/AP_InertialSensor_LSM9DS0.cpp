@@ -443,18 +443,35 @@ bool AP_InertialSensor_LSM9DS0::_hardware_init()
     uint8_t whoami;
     uint8_t tries;
 
-    whoami = _register_read_g(WHO_AM_I_G);
-    if (whoami != LSM9DS0_G_WHOAMI) {
+    // Try to obtain WHOAMI for the gyro
+    for (tries = 0; tries < 5; tries++) {
+        whoami = _register_read_g(WHO_AM_I_G);
+        if (whoami == LSM9DS0_G_WHOAMI) {
+            break;
+        }
+        hal.scheduler->delay(10);
+    }
+
+    if (tries == 5) {
         hal.console->printf("LSM9DS0: unexpected gyro WHOAMI 0x%x\n", (unsigned)whoami);
         goto fail_whoami;
     }
 
-    whoami = _register_read_xm(WHO_AM_I_XM);
-    if (whoami != LSM9DS0_XM_WHOAMI) {
+    // Try to obtain WHOAMI for the accelerometer
+    for (tries = 0; tries < 5; tries++) {
+        whoami = _register_read_xm(WHO_AM_I_XM);
+        if (whoami == LSM9DS0_XM_WHOAMI) {
+            break;
+        }
+        hal.scheduler->delay(10);
+    }
+
+    if (tries == 5) {
         hal.console->printf("LSM9DS0: unexpected acc/mag  WHOAMI 0x%x\n", (unsigned)whoami);
         goto fail_whoami;
     }
 
+    // Try to turn the devices on
     for (tries = 0; tries < 5; tries++) {
         _dev_gyro->set_speed(AP_HAL::Device::SPEED_LOW);
         _dev_accel->set_speed(AP_HAL::Device::SPEED_LOW);
