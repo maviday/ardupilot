@@ -404,9 +404,6 @@ void GCS_MAVLINK::handle_gimbal_report(AP_Mount &mount, mavlink_message_t *msg) 
  */
 bool GCS_MAVLINK::have_flow_control(void)
 {
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    return false;
-#else
     // sanity check chan
     if (chan >= MAVLINK_COMM_NUM_BUFFERS) {
         return false;
@@ -423,7 +420,6 @@ bool GCS_MAVLINK::have_flow_control(void)
         // all other channels
         return mavlink_comm_port[chan]->get_flow_control() != AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE;
     }
-#endif
 }
 
 
