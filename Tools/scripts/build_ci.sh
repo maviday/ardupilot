@@ -78,6 +78,10 @@ trap 'error_handler' ERR
 bash -c "while true; do echo \$(date) - building ...; sleep 30s; done" &
 PING_LOOP_PID=$!
 
+if [ $CC = 'clang' ]; then
+  export CXXFLAGS="-Qunused-arguments -fcolor-diagnostics -Wno-c++11-narrowing -Wno-inconsistent-missing-override -Wno-unknown-warning-option -Wno-gnu-designator"
+fi
+
 echo "Targets: $CI_BUILD_TARGET"
 for t in $CI_BUILD_TARGET; do
     # echo "Starting make based build for target ${t}..."
