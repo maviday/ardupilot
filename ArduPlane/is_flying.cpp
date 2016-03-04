@@ -208,6 +208,7 @@ void Plane::crash_detection_update(void)
                 // accel threshold but still not fying, then you either shook/hit the
                 // plane or it was a failed launch.
                 crashed = true;
+                crash_state.debounce_time_total_ms = 1000;
             }
             // TODO: handle auto missions without NAV_TAKEOFF mission cmd
             break;
@@ -215,6 +216,7 @@ void Plane::crash_detection_update(void)
         case AP_SpdHgtControl::FLIGHT_NORMAL:
             if (!in_preLaunch_flight_stage() && been_auto_flying) {
                 crashed = true;
+                crash_state.debounce_time_total_ms = CRASH_DETECTION_DELAY_MS;
             }
             break;
 
@@ -226,6 +228,7 @@ void Plane::crash_detection_update(void)
         case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
             if (been_auto_flying) {
                 crashed = true;
+                crash_state.debounce_time_total_ms = CRASH_DETECTION_DELAY_MS;
             }
             // when altitude gets low, we automatically progress to FLIGHT_LAND_FINAL
             // so ground crashes most likely can not be triggered from here. However,
@@ -242,6 +245,7 @@ void Plane::crash_detection_update(void)
                 been_auto_flying &&
                 (labs(ahrs.roll_sensor) > 6000 || labs(ahrs.pitch_sensor) > 6000)) {
                 crashed = true;
+                crash_state.debounce_time_total_ms = CRASH_DETECTION_DELAY_MS;
 
                 // did we "crash" within 75m of the landing location? Probably just a hard landing
                 crashed_near_land_waypoint =
@@ -271,7 +275,7 @@ void Plane::crash_detection_update(void)
         // start timer
         crash_state.debounce_timer_ms = now_ms;
 
-    } else if ((now_ms - crash_state.debounce_timer_ms >= CRASH_DETECTION_DELAY_MS) && !crash_state.is_crashed) {
+    } else if ((now_ms - crash_state.debounce_timer_ms >= crash_state.debounce_time_total_ms) && !crash_state.is_crashed) {
         crash_state.is_crashed = true;
 
         if (g.crash_detection_enable == CRASH_DETECT_ACTION_BITMASK_DISABLED) {
