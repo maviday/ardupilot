@@ -38,7 +38,7 @@ def configure(cfg):
         if cfg.env.TOOLCHAIN != 'native':
             cfg.env.CXXFLAGS += [
                 '--target=' + cfg.env.TOOLCHAIN, 
-                '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/'
+                '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/'
             ]	
     else:
         for k in suffixes:
