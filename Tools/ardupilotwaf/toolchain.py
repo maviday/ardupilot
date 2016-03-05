@@ -37,7 +37,8 @@ def configure(cfg):
     if 'clang' in os.environ['CC'] or 'clang' in cfg.options.check_c_compiler:
         if cfg.env.TOOLCHAIN != 'native':
             cfg.env.CXXFLAGS += [
-                '--target=' + cfg.env.TOOLCHAIN
+                '--target=' + cfg.env.TOOLCHAIN, 
+                '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/'
             ]	
     else:
         for k in suffixes:
