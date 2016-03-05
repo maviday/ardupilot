@@ -13,6 +13,7 @@ Example::
 """
 
 from waflib import Utils
+import os
 
 suffixes = dict(
     CXX='g++',
@@ -33,5 +34,11 @@ def configure(cfg):
         cfg.msg('Using toolchain prefix', cfg.env.TOOLCHAIN)
         prefix = cfg.env.TOOLCHAIN + '-'
 
-    for k in suffixes:
-        cfg.env.append_value(k, prefix + suffixes[k])
+    if 'clang' in os.environ['CC'] or 'clang' in cfg.options.check_c_compiler:
+        if cfg.env.TOOLCHAIN != 'native':
+            cfg.env.CXXFLAGS += [
+                '--target=' + cfg.env.TOOLCHAIN
+            ]	
+    else:
+        for k in suffixes:
+            cfg.env.append_value(k, prefix + suffixes[k])
