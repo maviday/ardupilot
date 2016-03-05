@@ -71,16 +71,16 @@ error_handler() {
   exit 1
 }
 # If an error occurs, run our error handler to output a tail of the build
-trap 'error_handler' ERR
+#trap 'error_handler' ERR
 
 # Set up a repeating loop to send some output to Travis.
 
-bash -c "while true; do echo \$(date) - building ...; sleep 30s; done" &
-PING_LOOP_PID=$!
+#bash -c "while true; do echo \$(date) - building ...; sleep 30s; done" &
+#PING_LOOP_PID=$!
 
 if [ $CC = 'clang' ]; then
   export CCACHE_CPP2=yes
-  export CXXFLAGS="-Qunused-arguments -fcolor-diagnostics -Wno-inconsistent-missing-override -Wno-unknown-warning-option -Wno-gnu-designator"
+  export CXXFLAGS="-Qunused-arguments -fcolor-diagnostics -Wno-unknown-warning-option -Wno-gnu-designator -Wno-inconsistent-missing-override -Wno-mismatched-tags -Wno-gnu-variable-sized-type-not-at-end -Wno-unknown-pragmas"
 fi
 
 echo "Targets: $CI_BUILD_TARGET"
@@ -104,9 +104,10 @@ for t in $CI_BUILD_TARGET; do
 
     if [[ -n ${waf_supported_boards[$t]} ]]; then
         echo "Starting waf build for board ${t}..."
+		$CXX --version
         $waf configure --board $t --enable-benchmarks
         $waf clean
-        $waf ${build_concurrency[$t]} all >> build.log 2>&1
+        $waf ${build_concurrency[$t]} all # >> build.log 2>&1
         if [[ $t == linux ]]; then
             $waf check
         fi
@@ -114,10 +115,10 @@ for t in $CI_BUILD_TARGET; do
 done
 
 # nicely terminate the ping output loop
-kill $PING_LOOP_PID
+#kill $PING_LOOP_PID
 
 # The build finished without returning an error so dump a tail of the output
-dump_output
+#dump_output
 
 echo build OK
 exit 0
