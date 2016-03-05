@@ -80,7 +80,7 @@ error_handler() {
 
 if [ $CC = 'clang' ]; then
   export CCACHE_CPP2=yes
-  export CXXFLAGS="-Qunused-arguments -fcolor-diagnostics -Wno-unknown-warning-option -Wno-gnu-designator -Wno-inconsistent-missing-override -Wno-mismatched-tags -Wno-gnu-variable-sized-type-not-at-end -Wno-unknown-pragmas"
+  export CXXFLAGS="-Qunused-arguments -fcolor-diagnostics -Wno-unknown-warning-option -Wno-gnu-designator -Wno-inconsistent-missing-override -Wno-mismatched-tags -Wno-gnu-variable-sized-type-not-at-end -Wno-unknown-pragmas -Wno-c++11-narrowing"
 fi
 
 echo "Targets: $CI_BUILD_TARGET"
@@ -104,7 +104,6 @@ for t in $CI_BUILD_TARGET; do
 
     if [[ -n ${waf_supported_boards[$t]} ]]; then
         echo "Starting waf build for board ${t}..."
-		$CXX --version
         $waf configure --board $t --enable-benchmarks
         $waf clean
         $waf ${build_concurrency[$t]} all # >> build.log 2>&1
