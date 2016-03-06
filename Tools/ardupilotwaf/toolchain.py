@@ -38,6 +38,7 @@ def configure(cfg):
     if 'clang' in compiler:
         if cfg.env.TOOLCHAIN != 'native':
             cfg.environ['CC'] = compiler + ' -v --target='=' + cfg.env.TOOLCHAIN + ' gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/'
+            cfg.environ['CXX'] = compiler + '++ -v --target='=' + cfg.env.TOOLCHAIN + ' gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/'
             # cfg.env.CXXFLAGS += [
                 # '-v',
                 # '--target=' + cfg.env.TOOLCHAIN,
