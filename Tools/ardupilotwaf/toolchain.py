@@ -34,10 +34,9 @@ def configure(cfg):
         cfg.msg('Using toolchain prefix', cfg.env.TOOLCHAIN)
         prefix = cfg.env.TOOLCHAIN + '-'
 
-    if 'clang' in os.environ['CC'] or 'clang' in cfg.options.check_c_compiler:
+    if 'clang' in os.environ['CC'] or (cfg.options.check_c_compiler and 'clang' in cfg.options.check_c_compiler):
         if cfg.env.TOOLCHAIN != 'native':
             cfg.env.CXXFLAGS += [
-                '-v',
                 '--target=' + cfg.env.TOOLCHAIN,
                 '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
                 # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/tr1',
