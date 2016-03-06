@@ -19,10 +19,10 @@ suffixes = dict(
     CXX='g++ -v',
     CC='gcc -v',
     AS='gcc -v',
-    AR='ar',
+    AR='ar -v',
     LD='g++ -v',
-    GDB='gdb',
-    OBJCOPY='objcopy',
+    GDB='gdb -v',
+    OBJCOPY='objcopy -v',
 )
 
 def configure(cfg):
