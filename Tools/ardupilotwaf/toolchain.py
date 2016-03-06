@@ -41,6 +41,7 @@ def configure(cfg):
             cfg.msg('CXX was: ', cfg.environ['CXX'])
             cfg.environ['CC'] = compiler + ' -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/ --sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
             cfg.environ['CXX'] = compiler + '++ -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/ --sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
+            cfg.environ['LD'] = prefix + suffixes['LD']
             cfg.msg('CC is: ', cfg.environ['CC'])
             cfg.msg('CXX is: ', cfg.environ['CXX'])
             # cfg.env.CXXFLAGS += [

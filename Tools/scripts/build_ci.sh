@@ -71,12 +71,12 @@ error_handler() {
   exit 1
 }
 # If an error occurs, run our error handler to output a tail of the build
-trap 'error_handler' ERR
+#trap 'error_handler' ERR
 
 # Set up a repeating loop to send some output to Travis.
 
-bash -c "while true; do echo \$(date) - building ...; sleep 30s; done" &
-PING_LOOP_PID=$!
+#bash -c "while true; do echo \$(date) - building ...; sleep 30s; done" &
+#PING_LOOP_PID=$!
 
 if [ $CC = 'clang' ]; then
   export CC="arm-linux-gnueabihf-clang"
@@ -109,7 +109,7 @@ for t in $CI_BUILD_TARGET; do
         $waf configure --board $t --enable-benchmarks
         $waf clean
 		which $CC
-        $waf ${build_concurrency[$t]} all >> build.log 2>&1
+        $waf ${build_concurrency[$t]} copter #all >> build.log 2>&1
         if [[ $t == linux ]]; then
             $waf check
         fi
@@ -117,10 +117,10 @@ for t in $CI_BUILD_TARGET; do
 done
 
 # nicely terminate the ping output loop
-kill $PING_LOOP_PID
+#kill $PING_LOOP_PID
 
 # The build finished without returning an error so dump a tail of the output
-dump_output
+#dump_output
 
 echo build OK
 exit 0
