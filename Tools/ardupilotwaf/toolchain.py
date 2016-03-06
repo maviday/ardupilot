@@ -66,6 +66,6 @@ def configure(cfg):
             # ]
     else:
         for k in suffixes:
-            cfg.env.append_value(k, prefix + suffixes[k])
-        cfg.environ.pop('CC', None)
-        cfg.environ.pop('CXX', None)
+            cfg.environ[k] = prefix + suffixes[k]
+        #cfg.environ.pop('CC', None)
+        #cfg.environ.pop('CXX', None)
