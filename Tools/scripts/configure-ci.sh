@@ -53,8 +53,8 @@ ln -s /usr/bin/ccache ~/bin/arm-none-eabi-g++
 ln -s /usr/bin/ccache ~/bin/arm-none-eabi-gcc
 ln -s /usr/bin/ccache ~/bin/arm-linux-gnueabihf-g++
 ln -s /usr/bin/ccache ~/bin/arm-linux-gnueabihf-gcc
-#ln -s /usr/bin/ccache ~/bin/clang++
-#ln -s /usr/bin/ccache ~/bin/clang
+ln -s /usr/bin/clang++-3.7 ~/opt/$compiler/bin/clang++
+ln -s /usr/bin/clang-3.7 ~/opt/$compiler/bin/clang
 
 exportline="export PATH=$HOME/bin:"
 exportline="${exportline}:$HOME/opt/gcc-arm-none-eabi-4_9-2015q3/bin:"
