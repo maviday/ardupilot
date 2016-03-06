@@ -56,6 +56,7 @@ SPIDeviceDriver SPIDeviceManager::_device[] = {
     // SPIDeviceDriver("ms5611",    2, 1, AP_HAL::SPIDevice_MS5611,     SPI_MODE_3, 8, SPI_CS_KERNEL,  10*MHZ,10*MHZ),
 
     // IMU
+        SPIDeviceDriver("mpu9250",    2, 0, AP_HAL::SPIDevice_MPU9250,    SPI_MODE_3, 8, SPI_CS_KERNEL,  1*MHZ, 20*MHZ),
     SPIDeviceDriver("lsm9ds0_am", 1, 0, AP_HAL::SPIDevice_LSM9DS0_AM, SPI_MODE_3, 8, BBB_P9_17,  10*MHZ,10*MHZ),
     SPIDeviceDriver("lsm9ds0_g",  1, 0, AP_HAL::SPIDevice_LSM9DS0_G,  SPI_MODE_3, 8, BBB_P8_9,   10*MHZ,10*MHZ),
 

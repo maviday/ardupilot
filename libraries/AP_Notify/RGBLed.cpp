@@ -73,6 +73,9 @@ void RGBLed::update_colours(void)
 {
     uint8_t brightness = _led_bright;
 
+   /* This was causing a SEGFAULT for some reason and I have no idea why.
+    * One day hopefully I'll be able to go through and find why it's crashing.
+    *
     switch (pNotify->_rgb_led_brightness) {
     case RGB_LED_OFF:
         brightness = _led_off;
@@ -86,7 +89,7 @@ void RGBLed::update_colours(void)
     case RGB_LED_HIGH:
         brightness = _led_bright;
         break;
-    }
+    }*/
 
     // slow rate from 50Hz to 10hz
     counter++;
