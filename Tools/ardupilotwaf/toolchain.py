@@ -34,12 +34,13 @@ def configure(cfg):
         cfg.msg('Using toolchain prefix', cfg.env.TOOLCHAIN)
         prefix = cfg.env.TOOLCHAIN + '-'
 
-    if 'clang' in os.environ['CC'] or (cfg.options.check_c_compiler and 'clang' in cfg.options.check_c_compiler):
+    if 'clang' in cfg.environ.get('CC', '') or (cfg.options.check_c_compiler and 'clang' in cfg.options.check_c_compiler):
         if cfg.env.TOOLCHAIN != 'native':
             cfg.env.CXXFLAGS += [
                 '-v',
                 '--target=' + cfg.env.TOOLCHAIN,
-                '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
+                '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc',
+                '-B/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/'
                 # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/tr1',
                 # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/parallel',
                 # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/tr2',
@@ -52,9 +53,5 @@ def configure(cfg):
     else:
         for k in suffixes:
             cfg.env.append_value(k, prefix + suffixes[k])
-        cfg.msg('CC is: ', os.environ['CC'])
-        cfg.msg('CXX is: ', os.environ['CXX'])
-        del os.environ['CC']
-        del os.environ['CXX']
-        cfg.msg('CC is now: ', os.environ['CC'])
-        cfg.msg('CXX is now: ', os.environ['CXX'])
+        cfg.environ.pop('CC', None)
+        cfg.environ.pop('CXX', None)
