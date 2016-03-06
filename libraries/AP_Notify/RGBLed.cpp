@@ -73,7 +73,7 @@ void RGBLed::update_colours(void)
 {
     uint8_t brightness = _led_bright;
 
-    switch (pNotify->_rgb_led_brightness) {
+   /* switch (pNotify->_rgb_led_brightness) {
     case RGB_LED_OFF:
         brightness = _led_off;
         break;
@@ -86,7 +86,7 @@ void RGBLed::update_colours(void)
     case RGB_LED_HIGH:
         brightness = _led_bright;
         break;
-    }
+    }*/
 
     // slow rate from 50Hz to 10hz
     counter++;
