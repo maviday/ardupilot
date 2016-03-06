@@ -16,11 +16,11 @@ from waflib import Utils
 import os
 
 suffixes = dict(
-    CXX='g++',
-    CC='gcc',
-    AS='gcc',
+    CXX='g++ -v',
+    CC='gcc -v',
+    AS='gcc -v',
     AR='ar',
-    LD='g++',
+    LD='g++ -v',
     GDB='gdb',
     OBJCOPY='objcopy',
 )
