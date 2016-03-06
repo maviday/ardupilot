@@ -34,28 +34,30 @@ def configure(cfg):
         cfg.msg('Using toolchain prefix', cfg.env.TOOLCHAIN)
         prefix = cfg.env.TOOLCHAIN + '-'
 
-    if 'clang' in cfg.environ.get('CC', '') or (cfg.options.check_c_compiler and 'clang' in cfg.options.check_c_compiler):
+    compiler = cfg.environ.get('CC') or cfg.options.check_c_compiler
+    if 'clang' in compiler:
         if cfg.env.TOOLCHAIN != 'native':
-            cfg.env.CXXFLAGS += [
-                '-v',
-                '--target=' + cfg.env.TOOLCHAIN,
-                '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc',
-                '-B/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/'
-                # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/tr1',
-                # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/parallel',
-                # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/tr2',
-                # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/bits',
-                # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/debug',
-                # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/decimal',
-                # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/ext',
-                # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/profile'
-            ]
-            cfg.env.LINKFLAGS += [
-                '-v',
-                '--target=' + cfg.env.TOOLCHAIN,
-                '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc',
-                '-B/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/'
-            ]
+            cfg.environ['CC'] = compiler + ' -v --target='=' + cfg.env.TOOLCHAIN + ' gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/'
+            # cfg.env.CXXFLAGS += [
+                # '-v',
+                # '--target=' + cfg.env.TOOLCHAIN,
+                # '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc',
+                # '-B/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/'
+                # # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/tr1',
+                # # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/parallel',
+                # # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/tr2',
+                # # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/bits',
+                # # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/debug',
+                # # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/decimal',
+                # # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/ext',
+                # # '-I/home/ubuntu/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/profile'
+            # ]
+            # cfg.env.LINKFLAGS += [
+                # '-v',
+                # '--target=' + cfg.env.TOOLCHAIN,
+                # '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc',
+                # '-B/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/'
+            # ]
     else:
         for k in suffixes:
             cfg.env.append_value(k, prefix + suffixes[k])
