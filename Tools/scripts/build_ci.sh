@@ -79,6 +79,8 @@ bash -c "while true; do echo \$(date) - building ...; sleep 30s; done" &
 PING_LOOP_PID=$!
 
 if [ $CC = 'clang' ]; then
+  export CC="arm-linux-gnueabihf-clang"
+  export CXX="arm-linux-gnueabihf-clang++"
   export CCACHE_CPP2=yes
   export CXXFLAGS="-Qunused-arguments -fcolor-diagnostics -Wno-unknown-warning-option -Wno-gnu-designator -Wno-inconsistent-missing-override -Wno-mismatched-tags -Wno-gnu-variable-sized-type-not-at-end -Wno-unknown-pragmas -Wno-c++11-narrowing"
 fi
