@@ -109,7 +109,7 @@ for t in $CI_BUILD_TARGET; do
         $waf configure --board $t --enable-benchmarks
         $waf clean
 		which $CC
-        $waf ${build_concurrency[$t]} copter >> build.log 2>&1
+        $waf -vv ${build_concurrency[$t]} copter >> build.log 2>&1
         if [[ $t == linux ]]; then
             $waf check
         fi
