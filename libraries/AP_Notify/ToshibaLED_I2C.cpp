@@ -30,10 +30,10 @@ extern const AP_HAL::HAL& hal;
 bool ToshibaLED_I2C::hw_init()
 {
     // get pointer to i2c bus semaphore
-    AP_HAL::Semaphore* i2c_sem = hal.i2c1->get_semaphore();
+    AP_HAL::Semaphore* i2c1_sem = hal.i2c1->get_semaphore();
 
     // take i2c bus sempahore
-    if (!i2c_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
+    if (!i2c1_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
         return false;
     }
 
@@ -51,7 +51,7 @@ bool ToshibaLED_I2C::hw_init()
     hal.i2c1->ignore_errors(false);
 
     // give back i2c semaphore
-    i2c_sem->give();
+    i2c1_sem->give();
 
     return ret;
 }
@@ -60,10 +60,10 @@ bool ToshibaLED_I2C::hw_init()
 bool ToshibaLED_I2C::hw_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
     // get pointer to i2c bus semaphore
-    AP_HAL::Semaphore* i2c_sem = hal.i2c1->get_semaphore();
+    AP_HAL::Semaphore* i2c1_sem = hal.i2c1->get_semaphore();
 
     // exit immediately if we can't take the semaphore
-    if (i2c_sem == NULL || !i2c_sem->take(5)) {
+    if (i2c1_sem == NULL || !i2c1_sem->take(5)) {
         return false;
     }
 
@@ -72,6 +72,6 @@ bool ToshibaLED_I2C::hw_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
     bool success = (hal.i2c1->writeRegisters(TOSHIBA_LED_ADDRESS, TOSHIBA_LED_PWM0, 3, val) == 0);
 
     // give back i2c semaphore
-    i2c_sem->give();
+    i2c1_sem->give();
     return success;
 }
