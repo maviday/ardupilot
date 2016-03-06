@@ -38,7 +38,7 @@ def configure(cfg):
         if cfg.env.TOOLCHAIN != 'native':
             cfg.env.CXXFLAGS += [
                 '-v',
-                '--target=' + cfg.env.TOOLCHAIN
+                '--target=' + cfg.env.TOOLCHAIN,
                 '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
                 # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/tr1',
                 # '-I/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/include/c++/4.8.3/parallel',
@@ -52,3 +52,5 @@ def configure(cfg):
     else:
         for k in suffixes:
             cfg.env.append_value(k, prefix + suffixes[k])
+        del os.environ['CC']
+        del os.environ['CXX']
