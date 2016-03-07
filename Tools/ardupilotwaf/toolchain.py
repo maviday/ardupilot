@@ -49,14 +49,12 @@ def configure(cfg):
             
             cfg.env['CC'] = c_compiler
             cfg.env.CFLAGS += [
-                '-v',
                 '--target=' + cfg.env.TOOLCHAIN,
                 '--gcc-toolchain=' + toolchain_path,
                 '--sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc'),
                 '-B' + os.path.join(toolchain_path, 'bin')
             ]
             cfg.env.LINKFLAGS += [
-                '-v',
                 '--target=' + cfg.env.TOOLCHAIN,
                 '--gcc-toolchain=' + toolchain_path,
                 '--sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc'),
@@ -68,14 +66,12 @@ def configure(cfg):
 
             cfg.env['CXX'] = cxx_compiler
             cfg.env.CXXFLAGS += [
-                '-v',
                 '--target=' + cfg.env.TOOLCHAIN,
                 '--gcc-toolchain=' + toolchain_path,
                 '--sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc'),
                 '-B' + os.path.join(toolchain_path, 'bin')
             ]
             cfg.env.LINKFLAGS += [
-                '-v',
                 '--target=' + cfg.env.TOOLCHAIN,
                 '--gcc-toolchain=' + toolchain_path,
                 '--sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc'),
