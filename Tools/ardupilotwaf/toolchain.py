@@ -51,8 +51,8 @@ def configure(cfg):
             toolchain_path = os.path.abspath(os.path.join(os.path.dirname(cfg.find_file(cfg.env['AR'], cfg.environ.get('PATH', '').split(os.pathsep))), '..'))
             cfg.msg('Toolchain path is', toolchain_path)
             
-            cfg.environ['CC'] = c_compiler + ' -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=' + toolchain_path + ' --sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc') + ' -B' + os.path.join(toolchain_path, 'bin')
-            cfg.environ['CXX'] = cxx_compiler + ' -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=' + toolchain_path + ' --sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc') + ' -B' + os.path.join(toolchain_path, 'bin')
+            cfg.env['CC'] = c_compiler + ' -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=' + toolchain_path + ' --sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc') + ' -B' + os.path.join(toolchain_path, 'bin')
+            cfg.env['CXX'] = cxx_compiler + ' -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=' + toolchain_path + ' --sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc') + ' -B' + os.path.join(toolchain_path, 'bin')
 #            cfg.msg('CC is: ', cfg.environ.get('CC'))
 #            cfg.msg('CXX is: ', cfg.environ.get('CXX'))
             # cfg.env.CXXFLAGS += [
