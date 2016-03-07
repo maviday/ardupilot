@@ -17,7 +17,7 @@ class BoardMeta(type):
 class Board:
     def configure(self, cfg):
         env = waflib.ConfigSet.ConfigSet()
-        self.configure_env(env)
+        self.configure_env(cfg, env)
 
         d = env.get_merged_dict()
         # Always prepend so that arguments passed in the command line get
@@ -31,7 +31,7 @@ class Board:
             else:
                 cfg.env.prepend_value(k, val)
 
-    def configure_env(self, env):
+    def configure_env(self, cfg, env):
         # Use a dictionary instead of the convetional list for definitions to
         # make easy to override them. Convert back to list before consumption.
         env.DEFINES = {}
@@ -52,6 +52,18 @@ class Board:
             '-Wno-unused-parameter',
             '-Wno-redundant-decls',
         ]
+        
+        c_compiler = cfg.options.check_c_compiler or cfg.environ.get('CC')
+        
+        if 'clang' in c_compiler:
+            env.CFLAGS += [
+                '-Wno-gnu-designator',
+                '-Wno-inconsistent-missing-override',
+                '-Wno-mismatched-tags',
+                '-Wno-gnu-variable-sized-type-not-at-end',
+                '-Wno-unknown-pragmas',
+                '-Wno-c++11-narrowing'
+            ]
 
         env.CXXFLAGS += [
             '-std=gnu++11',
@@ -74,11 +86,26 @@ class Board:
             '-Wno-redundant-decls',
             '-Werror=format-security',
             '-Werror=array-bounds',
-            '-Werror=unused-but-set-variable',
             '-Werror=uninitialized',
             '-Werror=init-self',
             '-Wfatal-errors',
         ]
+        
+        cxx_compiler = cfg.options.check_cxx_compiler or cfg.environ.get('CXX')
+        
+        if 'clang++' in cxx_compiler:
+            env.CXXFLAGS += [
+                '-Wno-gnu-designator',
+                '-Wno-inconsistent-missing-override',
+                '-Wno-mismatched-tags',
+                '-Wno-gnu-variable-sized-type-not-at-end',
+                '-Wno-unknown-pragmas',
+                '-Wno-c++11-narrowing'
+            ]
+        else:
+            env.CXXFLAFS += [
+                '-Werror=unused-but-set-variable'
+            ]
 
         env.LINKFLAGS += [
             '-Wl,--gc-sections',
@@ -97,8 +124,8 @@ def get_board(name):
 # be worthy to keep board definitions in files of their own.
 
 class sitl(Board):
-    def configure_env(self, env):
-        super(sitl, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(sitl, self).configure_env(cfg, env)
 
         env.DEFINES.update(
             CONFIG_HAL_BOARD = 'HAL_BOARD_SITL',
@@ -117,8 +144,8 @@ class sitl(Board):
         ]
 
 class linux(Board):
-    def configure_env(self, env):
-        super(linux, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(linux, self).configure_env(cfg, env)
 
         env.DEFINES.update(
             CONFIG_HAL_BOARD = 'HAL_BOARD_LINUX',
@@ -137,8 +164,8 @@ class linux(Board):
         ]
 
 class minlure(linux):
-    def configure_env(self, env):
-        super(minlure, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(minlure, self).configure_env(cfg, env)
 
         env.DEFINES.update(
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_MINLURE',
@@ -146,8 +173,8 @@ class minlure(linux):
 
 
 class erleboard(linux):
-    def configure_env(self, env):
-        super(erleboard, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(erleboard, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -155,8 +182,8 @@ class erleboard(linux):
         )
 
 class navio(linux):
-    def configure_env(self, env):
-        super(navio, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(navio, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -164,8 +191,8 @@ class navio(linux):
         )
 
 class navio2(linux):
-    def configure_env(self, env):
-        super(navio2, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(navio2, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -173,8 +200,8 @@ class navio2(linux):
         )
 
 class zynq(linux):
-    def configure_env(self, env):
-        super(zynq, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(zynq, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-xilinx-linux-gnueabi'
         env.DEFINES.update(
@@ -182,8 +209,8 @@ class zynq(linux):
         )
 
 class bbbmini(linux):
-    def configure_env(self, env):
-        super(bbbmini, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(bbbmini, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -191,8 +218,8 @@ class bbbmini(linux):
         )
 
 class pxf(linux):
-    def configure_env(self, env):
-        super(pxf, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(pxf, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -200,8 +227,8 @@ class pxf(linux):
         )
 
 class bebop(linux):
-    def configure_env(self, env):
-        super(bebop, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(bebop, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -210,8 +237,8 @@ class bebop(linux):
         env.STATIC_LINKING = [True]
 
 class raspilot(linux):
-    def configure_env(self, env):
-        super(raspilot, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(raspilot, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -219,8 +246,8 @@ class raspilot(linux):
         )
 
 class erlebrain2(linux):
-    def configure_env(self, env):
-        super(erlebrain2, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(erlebrain2, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -228,8 +255,8 @@ class erlebrain2(linux):
         )
 
 class bhat(linux):
-    def configure_env(self, env):
-        super(bhat, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(bhat, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
@@ -237,8 +264,8 @@ class bhat(linux):
         )
 
 class pxfmini(linux):
-    def configure_env(self, env):
-        super(pxfmini, self).configure_env(env)
+    def configure_env(self, cfg, env):
+        super(pxfmini, self).configure_env(cfg, env)
 
         env.TOOLCHAIN = 'arm-linux-gnueabihf'
         env.DEFINES.update(
