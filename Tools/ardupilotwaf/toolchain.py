@@ -22,7 +22,7 @@ suffixes = dict(
     AR='ar',
     LD='g++',
     GDB='gdb',
-    OBJCOPY='<bjcopy',
+    OBJCOPY='objcopy',
 )
 
 def configure(cfg):
@@ -54,13 +54,14 @@ def configure(cfg):
                 '--gcc-toolchain=' + toolchain_path,
                 '--sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc'),
                 '-B' + os.path.join(toolchain_path, 'bin')
-             ]
-                # cfg.env.LINKFLAGS += [
-                    # '-v',
-                    # '--target=' + cfg.env.TOOLCHAIN,
-                    # '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc',
-                    # '-B/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/'
-                # ]
+            ]
+            cfg.env.LINKFLAGS += [
+                '-v',
+                '--target=' + cfg.env.TOOLCHAIN,
+                '--gcc-toolchain=' + toolchain_path,
+                '--sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc'),
+                '-B' + os.path.join(toolchain_path, 'bin')
+            ]
 
         if 'clang++' in cxx_compiler:
             toolchain_path = os.path.abspath(os.path.join(os.path.dirname(cfg.find_file(cfg.env['AR'], cfg.environ.get('PATH', '').split(os.pathsep))), '..'))
@@ -72,10 +73,11 @@ def configure(cfg):
                 '--gcc-toolchain=' + toolchain_path,
                 '--sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc'),
                 '-B' + os.path.join(toolchain_path, 'bin')
-             ]
-                # cfg.env.LINKFLAGS += [
-                    # '-v',
-                    # '--target=' + cfg.env.TOOLCHAIN,
-                    # '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc',
-                    # '-B/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/'
-                # ]
+            ]
+            cfg.env.LINKFLAGS += [
+                '-v',
+                '--target=' + cfg.env.TOOLCHAIN,
+                '--gcc-toolchain=' + toolchain_path,
+                '--sysroot=' + os.path.join(toolchain_path, cfg.env.TOOLCHAIN, 'libc'),
+                '-B' + os.path.join(toolchain_path, 'bin')
+            ]
