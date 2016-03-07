@@ -327,6 +327,12 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
       parameters check for conflicts carefully
      */
 
+    // @Param:ACC_CAL1
+    // ACC_CAL1_X gives ACC_X = ACC_CAL1_X.X * sensor.X + ACC_CAL1_X.Y * sensor.Y + ACC_CAL1_X.Z * sensor.Z + offset;
+    AP_GROUPINFO("ACC_CAL1_X",    27, AP_InertialSensor, _accel_matrix_x[0],  0),
+    AP_GROUPINFO("ACC_CAL1_Y",    28, AP_InertialSensor, _accel_matrix_y[0],  0),
+    AP_GROUPINFO("ACC_CAL1_Z",    29, AP_InertialSensor, _accel_matrix_z[0],  0),
+
     AP_GROUPEND
 };
 
