@@ -16,13 +16,13 @@ from waflib import Utils
 import os
 
 suffixes = dict(
-    CXX='g++ -v',
-    CC='gcc -v',
-    AS='gcc -v',
+    CXX='g++',
+    CC='gcc',
+    AS='gcc',
     AR='ar',
-    LD='g++ -v',
-    GDB='gdb -v',
-    OBJCOPY='objcopy -v',
+    LD='g++',
+    GDB='gdb',
+    OBJCOPY='<bjcopy',
 )
 
 def configure(cfg):
@@ -34,16 +34,20 @@ def configure(cfg):
         cfg.msg('Using toolchain prefix', cfg.env.TOOLCHAIN)
         prefix = cfg.env.TOOLCHAIN + '-'
 
-    compiler = cfg.environ.get('CC') or cfg.options.check_c_compiler
-    if 'clang' in compiler:
-        if cfg.env.TOOLCHAIN != 'native':
-            cfg.msg('CC was: ', cfg.environ['CC'])
-            cfg.msg('CXX was: ', cfg.environ['CXX'])
-            cfg.environ['CC'] = compiler + ' -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/ --sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
-            cfg.environ['CXX'] = compiler + '++ -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/ --sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
-            cfg.environ['AR'] = prefix + suffixes['AR']
-            cfg.msg('CC is: ', cfg.environ['CC'])
-            cfg.msg('CXX is: ', cfg.environ['CXX'])
+    compiler = cfg.options.check_c_compiler or cfg.environ.get('CXX') or cfg.environ.get('CC')
+    if 'clang' not in compiler or cfg.env.TOOLCHAIN != 'native':
+        for k in suffixes:
+            cfg.env.append_value(k, prefix + suffixes[k])
+        
+        cfg.environ.pop('CC', None)
+        cfg.environ.pop('CXX', None)
+
+    if 'clang' in compiler and cfg.env.TOOLCHAIN != 'native':
+        toolchain_path = os.path.abspath(os.path.join(os.path.dirname(cfg.find_file(cfg.env['LD'], cfg.environ.get('PATH', '').split(os.pathsep))), '..'))
+        cfg.msg('Toolchain path is', toolchain_path)
+        
+        cfg.environ['CC'] = compiler + ' -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/ --sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
+        cfg.environ['CXX'] = compiler + '++ -v --target=' + cfg.env.TOOLCHAIN + ' --gcc-toolchain=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/ --sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc'
             # cfg.env.CXXFLAGS += [
                 # '-v',
                 # '--target=' + cfg.env.TOOLCHAIN,
@@ -64,8 +68,3 @@ def configure(cfg):
                 # '--sysroot=/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/' + cfg.env.TOOLCHAIN + '/libc',
                 # '-B/home/travis/opt/tools-master/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/'
             # ]
-    else:
-        for k in suffixes:
-            cfg.environ[k] = prefix + suffixes[k]
-        #cfg.environ.pop('CC', None)
-        #cfg.environ.pop('CXX', None)
