@@ -328,10 +328,12 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
      */
 
     // @Param:ACC_CAL1
-    // ACC_CAL1_X gives ACC_X = ACC_CAL1_X.X * sensor.X + ACC_CAL1_X.Y * sensor.Y + ACC_CAL1_X.Z * sensor.Z + offset;
-    AP_GROUPINFO("ACC_CAL1_X",    27, AP_InertialSensor, _accel_matrix_x[0],  0),
-    AP_GROUPINFO("ACC_CAL1_Y",    28, AP_InertialSensor, _accel_matrix_y[0],  0),
-    AP_GROUPINFO("ACC_CAL1_Z",    29, AP_InertialSensor, _accel_matrix_z[0],  0),
+    // ACC_CAL1_X gives ACC_X = ACC_CAL1_X.X * sensor.X + ACC_CAL1_X.Y * sensor.Y + ACC_CAL1_X.Z * sensor.Z + _accel_offset.X;
+    // ACC_CAL1_Y gives ACC_Y = ACC_CAL1_Y.X * sensor.X + ACC_CAL1_Y.Y * sensor.Y + ACC_CAL1_Y.Z * sensor.Z + _accel_offset.Y;
+    // ACC_CAL1_Z gives ACC_Z = ACC_CAL1_Z.X * sensor.X + ACC_CAL1_Z.Y * sensor.Y + ACC_CAL1_Z.Z * sensor.Z + _accel_offset.Z;
+    AP_GROUPINFO("ACC_CAL1_X",    27, AP_InertialSensor, _accel_cal_x[0],  0),
+    AP_GROUPINFO("ACC_CAL1_Y",    28, AP_InertialSensor, _accel_cal_y[0],  0),
+    AP_GROUPINFO("ACC_CAL1_Z",    29, AP_InertialSensor, _accel_cal_z[0],  0),
 
     AP_GROUPEND
 };

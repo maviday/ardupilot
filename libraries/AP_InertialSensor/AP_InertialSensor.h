@@ -319,9 +319,9 @@ private:
     AP_Vector3f _accel_offset[INS_MAX_INSTANCES];
     AP_Vector3f _gyro_offset[INS_MAX_INSTANCES];
 
-    AP_Vector3f _accel_matrix_x[INS_MAX_INSTANCES];
-    AP_Vector3f _accel_matrix_y[INS_MAX_INSTANCES];
-    AP_Vector3f _accel_matrix_z[INS_MAX_INSTANCES];
+    AP_Vector3f _accel_cal_x[INS_MAX_INSTANCES];
+    AP_Vector3f _accel_cal_y[INS_MAX_INSTANCES];
+    AP_Vector3f _accel_cal_z[INS_MAX_INSTANCES];
 
     // accelerometer max absolute offsets to be used for calibration
     float _accel_max_abs_offsets[INS_MAX_INSTANCES];
