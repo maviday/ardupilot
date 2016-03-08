@@ -334,6 +334,14 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     AP_GROUPINFO("ACC_CAL1_X",    27, AP_InertialSensor, _accel_cal_x[0],  0),
     AP_GROUPINFO("ACC_CAL1_Y",    28, AP_InertialSensor, _accel_cal_y[0],  0),
     AP_GROUPINFO("ACC_CAL1_Z",    29, AP_InertialSensor, _accel_cal_z[0],  0),
+    // INS 2
+    AP_GROUPINFO("ACC_CAL2_X",    27, AP_InertialSensor, _accel_cal_x[1],  0),
+    AP_GROUPINFO("ACC_CAL2_Y",    28, AP_InertialSensor, _accel_cal_y[1],  0),
+    AP_GROUPINFO("ACC_CAL2_Z",    29, AP_InertialSensor, _accel_cal_z[1],  0),
+    // INS 3
+    AP_GROUPINFO("ACC_CAL3_X",    27, AP_InertialSensor, _accel_cal_x[2],  0),
+    AP_GROUPINFO("ACC_CAL3_Y",    28, AP_InertialSensor, _accel_cal_y[2],  0),
+    AP_GROUPINFO("ACC_CAL3_Z",    29, AP_InertialSensor, _accel_cal_z[2],  0),
 
     AP_GROUPEND
 };
