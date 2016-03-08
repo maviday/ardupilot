@@ -1477,7 +1477,7 @@ bool AP_InertialSensor::get_primary_accel_cal_sample_avg(uint8_t sample_num, Vec
     return true;
 }
 
-void run_calibrate()
+void AP_InertialSensor::run_calibrate()
 {
     #define CALIBRATION_DIR "/root/APM/Calibration/"
 
@@ -1499,10 +1499,10 @@ void run_calibrate()
     // Set each of the calibration parameters to the << calibration >> state
     for (int ii = 0; ii<n_accels; ii++)
     {
-        ins._accel_cal_x[ii].set_and_save(Vector3f(1,0,0));
-        ins._accel_cal_y[ii].set_and_save(Vector3f(0,1,0));
-        ins._accel_cal_z[ii].set_and_save(Vector3f(0,0,1));
-        ins._accel_offset[ii].set_and_save(Vector3f(0,0,0));
+        _accel_cal_x[ii].set_and_save(Vector3f(1,0,0));
+        _accel_cal_y[ii].set_and_save(Vector3f(0,1,0));
+        _accel_cal_z[ii].set_and_save(Vector3f(0,0,1));
+        _accel_offset[ii].set_and_save(Vector3f(0,0,0));
     }
 
     // Need six different positions
@@ -1582,13 +1582,13 @@ void run_calibrate()
             for (int ii = 0; ii<500; ii++)
             {
                 // wait until we have a sample
-                ins.wait_for_sample();
+                wait_for_sample();
 
                 // read samples from ins
-                ins.update();
+                update();
 
-                accel = ins.get_accel(kk);  // const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
-                gyro = ins.get_gyro(kk);
+                accel = get_accel(kk);  // const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
+                gyro  = get_gyro(kk);
 
                 fprintf(f,"%f,%f,%f\n",accel.x, accel.y, accel.z);
             }
