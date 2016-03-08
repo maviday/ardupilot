@@ -57,6 +57,8 @@ class Board:
         
         if 'clang' in c_compiler:
             env.CFLAGS += [
+                '-fcolor-diagnostics',
+
                 '-Wno-gnu-designator',
                 '-Wno-inconsistent-missing-override',
                 '-Wno-mismatched-tags',
@@ -95,6 +97,8 @@ class Board:
         
         if 'clang++' in cxx_compiler:
             env.CXXFLAGS += [
+                '-fcolor-diagnostics',
+
                 '-Wno-gnu-designator',
                 '-Wno-inconsistent-missing-override',
                 '-Wno-mismatched-tags',
