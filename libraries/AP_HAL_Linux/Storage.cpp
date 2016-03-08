@@ -23,7 +23,7 @@ using namespace Linux;
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
 #define STORAGE_DIR "/data/ftp/internal_000/APM"
 #else
-#define STORAGE_DIR "/var/APM"
+#define STORAGE_DIR "/root/APM/"
 #endif
 #define STORAGE_FILE STORAGE_DIR "/" SKETCHNAME ".stg"
 
