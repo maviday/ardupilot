@@ -38,28 +38,15 @@ else
 {
     // New magic version.  By using funky matricies, everything can be done in one step :)
     // Don't even need to do the sensor to body frame stuff, it's all done!
-    Vector3f accel_in;
-    float ACC11, ACC21, ACC31;
-    float ACC12, ACC22, ACC32;
-    float ACC13, ACC23, ACC33;
-    float ACC14, ACC24, ACC34;
+    const Vector3f  accel_in     = accel;
+    const Vector3f &accel_cal_x  = _imu._accel_cal_x[instance].get();
+    const Vector3f &accel_cal_y  = _imu._accel_cal_y[instance].get();
+    const Vector3f &accel_cal_z  = _imu._accel_cal_z[instance].get();
+    const Vector3f &accel_offset = _imu._accel_offset[instance].get();
 
-    accel_in = accel;
-
-    ACC11 = -0.01490;     ACC21 = -1.02615;     ACC31 = -0.01028; 
-    ACC12 =  1.02750;     ACC22 = -0.00017;     ACC32 =  0.01950; 
-    ACC13 =  0.01712;     ACC23 =  0.00536;     ACC33 = -1.01912; 
-    ACC14 = -3.67422;     ACC24 = -4.36844;     ACC34 = -2.22917; 
-
-    // Matrix for calibration
-    /*ACC11 =  1.0; ACC21 =  0.0; ACC31 =  0.0;
-    ACC12 =  0.0; ACC22 =  1.0; ACC32 =  0.0;
-    ACC13 =  0.0; ACC23 =  0.0; ACC33 =  1.0;
-    ACC14 =  0.0; ACC24 =  0.0; ACC34 =  0.0;*/
-
-    accel.x = accel_in.x*ACC11 + accel_in.y*ACC12 + accel_in.z*ACC13 + ACC14;
-    accel.y = accel_in.x*ACC21 + accel_in.y*ACC22 + accel_in.z*ACC23 + ACC24;
-    accel.z = accel_in.x*ACC31 + accel_in.y*ACC32 + accel_in.z*ACC33 + ACC34;
+    accel.x = accel_in.x*accel_cal_x.x + accel_in.y*accel_cal_x.y + accel_in.z*accel_cal_x.z + accel_offset.x;
+    accel.y = accel_in.x*accel_cal_y.x + accel_in.y*accel_cal_y.y + accel_in.z*accel_cal_y.z + accel_offset.y;
+    accel.z = accel_in.x*accel_cal_z.x + accel_in.y*accel_cal_z.y + accel_in.z*accel_cal_z.z + accel_offset.z;
 }
 }
 
