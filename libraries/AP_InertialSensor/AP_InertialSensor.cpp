@@ -342,6 +342,19 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     AP_GROUPINFO("ACC_CAL3_X",    33, AP_InertialSensor, _accel_cal_x[2],  0),
     AP_GROUPINFO("ACC_CAL3_Y",    34, AP_InertialSensor, _accel_cal_y[2],  0),
     AP_GROUPINFO("ACC_CAL3_Z",    35, AP_InertialSensor, _accel_cal_z[2],  0),
+    // GYR 1
+    // GYR_CAL1 gives GYR_X = GYR_CAL1_X.X * sensor.X + GYR_CAL1_X.Y * sensor.Y + GYR_CAL1_X.Z * sensor.Z + _gyro_offset.X;
+    AP_GROUPINFO("GYR_CAL1_X",      36, AP_InertialSensor, _gyro_cal_x[0],  0),
+    AP_GROUPINFO("GYR_CAL1_Y",      37, AP_InertialSensor, _gyro_cal_y[0],  0),
+    AP_GROUPINFO("GYR_CAL1_Z",      38, AP_InertialSensor, _gyro_cal_z[0],  0),
+    // GYR 2
+    AP_GROUPINFO("GYR_CAL2_X",      39, AP_InertialSensor, _gyro_cal_x[1],  0),
+    AP_GROUPINFO("GYR_CAL2_Y",      40, AP_InertialSensor, _gyro_cal_y[1],  0),
+    AP_GROUPINFO("GYR_CAL2_Z",      41, AP_InertialSensor, _gyro_cal_z[1],  0),
+    // GYR 3
+    AP_GROUPINFO("GYR_CAL3_X",      42, AP_InertialSensor, _gyro_cal_x[1],  0),
+    AP_GROUPINFO("GYR_CAL3_Y",      43, AP_InertialSensor, _gyro_cal_y[1],  0),
+    AP_GROUPINFO("GYR_CAL3_Z",      44, AP_InertialSensor, _gyro_cal_z[1],  0),
 
     AP_GROUPEND
 };

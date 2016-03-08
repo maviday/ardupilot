@@ -52,33 +52,29 @@ else
 
 void AP_InertialSensor_Backend::_rotate_and_correct_gyro(uint8_t instance, Vector3f &gyro) 
 {
-    Vector3f gyro_in;
-    float GYR11, GYR21, GYR31;
-    float GYR12, GYR22, GYR32;
-    float GYR13, GYR23, GYR33;
     
-    // gyro calibration is always assumed to have been done in sensor frame
-    gyro -= _imu._gyro_offset[instance];
 
-    if (0)
+
+    if (0)  // The old way
     {
+        // gyro calibration is always assumed to have been done in sensor frame
+        gyro -= _imu._gyro_offset[instance];
         gyro.rotate(_imu._board_orientation);
     }
 
-    else
+    else   // My new way
     {
-        gyro_in = gyro;
+        const Vector3f  gyro_in    = gyro;
+        const Vector3f &gyro_cal_x = _imu._gyro_cal_x[instance].get();
+        const Vector3f &gyro_cal_y = _imu._gyro_cal_y[instance].get();
+        const Vector3f &gyro_cal_z = _imu._gyro_cal_z[instance].get();
 
-        GYR11 = -0.01450;         GYR21 =  0.99989;         GYR31 =  0.00174; 
-        GYR12 =  0.99988;         GYR22 =  0.01449;         GYR32 =  0.00526; 
-        GYR13 =  0.00523;         GYR23 =  0.00182;         GYR33 = -0.99998; 
+        gyro.x = gyro_in.x*gyro_cal_x.x + gyro_in.y*gyro_cal_x.y + gyro_in.z*gyro_cal_x.z;
+        gyro.y = gyro_in.x*gyro_cal_y.x + gyro_in.y*gyro_cal_y.y + gyro_in.z*gyro_cal_y.z;
+        gyro.z = gyro_in.x*gyro_cal_z.x + gyro_in.y*gyro_cal_z.y + gyro_in.z*gyro_cal_z.z;
+        // Gyro offsets done before or after rotation of gyro data.... I think it's after the rotation.
+        gyro -= _imu._gyro_offset[instance];
 
-        gyro.x = gyro_in.x*GYR11 + gyro_in.y*GYR12 + gyro_in.z*GYR13;
-        gyro.y = gyro_in.x*GYR21 + gyro_in.y*GYR22 + gyro_in.z*GYR23;
-        gyro.z = gyro_in.x*GYR31 + gyro_in.y*GYR32 + gyro_in.z*GYR33;
-
-        gyro.x = -gyro.x;
-        gyro.z = -gyro.z;
     }
 }
 
