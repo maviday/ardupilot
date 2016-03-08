@@ -512,6 +512,18 @@ AP_InertialSensor::init(uint16_t sample_rate)
         }
     }
 
+    // initialise the accel and gyro matricies if need be.  This is needed
+    // as we can't define default non-zero values for vectors in AP_Param
+    for (uint8_t i=0; i<get_accel_count(); i++)
+    {
+        if (_accel_cal_x[i].get().is_zero()) { _accel_cal_x[i].set(Vector3f(1,0,0)); }
+        if (_accel_cal_y[i].get().is_zero()) { _accel_cal_y[i].set(Vector3f(0,1,0)); }
+        if (_accel_cal_z[i].get().is_zero()) { _accel_cal_z[i].set(Vector3f(0,0,1)); }
+        if (_gyro_cal_x[i].get().is_zero())  { _gyro_cal_x[i].set(Vector3f(1,0,0)); }
+        if (_gyro_cal_y[i].get().is_zero())  { _gyro_cal_y[i].set(Vector3f(0,1,0)); }
+        if (_gyro_cal_z[i].get().is_zero())  { _gyro_cal_z[i].set(Vector3f(0,0,1)); }
+    }
+
     // calibrate gyros unless gyro calibration has been disabled
     if (gyro_calibration_timing() != GYRO_CAL_NEVER) {
         _init_gyro();
