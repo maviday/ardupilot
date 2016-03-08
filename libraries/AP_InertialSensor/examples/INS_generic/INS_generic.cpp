@@ -140,6 +140,8 @@ static void run_test()
 
 static void run_calibrate()
 {
+    #define CALIBRATION_DIR "/root/APM/Calibration/"
+
     Vector3f accel;
     Vector3f gyro;
 
@@ -150,6 +152,10 @@ static void run_calibrate()
     hal.console->printf("Entered calibration mode\n");
 
     hal.console->printf("Making calibration file\n");
+
+    // Create the directory for things to be stored into
+    mkdir(CALIBRATION_DIR, 0777);
+
     // Probably want something to make sure all the offsets and stuff are at zero
 
     // Need probably six files perhaps
@@ -213,7 +219,7 @@ static void run_calibrate()
 
             // Start the data collection
             char str[20];
-            sprintf(str, "./Calibration/%d-%s",kk,str_base);
+            sprintf(str, "%s%d-%s",CALIBRATION_DIR,kk,str_base);
             FILE *f = fopen(str,"w");
 
             if (f == NULL)
