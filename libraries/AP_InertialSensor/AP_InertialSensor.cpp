@@ -1509,13 +1509,20 @@ void AP_InertialSensor::run_calibrate()
     mkdir(CALIBRATION_DIR, 0777);
 
     // Probably want something to make sure all the offsets and stuff are at zero
-    // Set each of the calibration parameters to the << calibration >> state
+    // Set each of the calibration parameters to the << calibration >> state.  This
+    // is also required for the gyros as they'll initialise to giving all zero
+    // results.
     for (int ii = 0; ii<n_accels; ii++)
     {
+        // Accelerometers
         _accel_cal_x[ii].set_and_save(Vector3f(1,0,0));
         _accel_cal_y[ii].set_and_save(Vector3f(0,1,0));
         _accel_cal_z[ii].set_and_save(Vector3f(0,0,1));
         _accel_offset[ii].set_and_save(Vector3f(0,0,0));
+        // Gyros
+        _gyro_cal_x[ii].set_and_save(Vector3f(1,0,0));
+        _gyro_cal_y[ii].set_and_save(Vector3f(0,1,0));
+        _gyro_cal_z[ii].set_and_save(Vector3f(0,0,1));
     }
 
     // Need six different positions
