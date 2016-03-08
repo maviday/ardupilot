@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <sys/stat.h>
 
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
