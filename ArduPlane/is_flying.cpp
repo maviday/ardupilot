@@ -6,7 +6,7 @@
   is_flying and crash detection logic
  */
 
-#define CRASH_DETECTION_DELAY_MS            300
+#define CRASH_DETECTION_DELAY_MS            500
 #define IS_FLYING_IMPACT_TIMER_MS           3000
 
 /*
@@ -208,7 +208,7 @@ void Plane::crash_detection_update(void)
                 // accel threshold but still not fying, then you either shook/hit the
                 // plane or it was a failed launch.
                 crashed = true;
-                crash_state.debounce_time_total_ms = 1000;
+                crash_state.debounce_time_total_ms = CRASH_DETECTION_DELAY_MS;
             }
             // TODO: handle auto missions without NAV_TAKEOFF mission cmd
             break;
