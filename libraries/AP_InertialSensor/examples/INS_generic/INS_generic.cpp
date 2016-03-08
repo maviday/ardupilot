@@ -20,7 +20,6 @@ AP_InertialSensor ins;
 
 static void display_offsets_and_scaling();
 static void run_test();
-static void run_calibrate();
 
 void setup(void)
 {
@@ -65,7 +64,7 @@ void loop(void)
         }
 
         if( user_input == 'c' || user_input == 'C' ) {
-            run_calibrate();
+            ins.run_calibrate();
         }
 
         if( user_input == 'r' || user_input == 'R' ) {
@@ -137,129 +136,6 @@ static void run_test()
     while( hal.console->available() ) {
         hal.console->read();
     }
-}
-
-static void run_calibrate()
-{
-    #define CALIBRATION_DIR "/root/APM/Calibration/"
-
-    Vector3f accel;
-    Vector3f gyro;
-
-    int n_accels;
-
-    n_accels = 2;
-
-    hal.console->printf("Entered calibration mode\n");
-
-    hal.console->printf("Making calibration file\n");
-
-    // Create the directory for things to be stored into
-    mkdir(CALIBRATION_DIR, 0777);
-
-    // Probably want something to make sure all the offsets and stuff are at zero
-
-    // Need probably six files perhaps
-    for (int jj = 0; jj<6; jj++)
-    {
-        // Open the file
-        char str_base[20];
-
-        switch(jj) {
-        case 0 :
-            hal.console->printf("Z_down\n");
-            sprintf(str_base, "%s", "Z_down.txt");
-            break;
-
-        case 1 :
-            hal.console->printf("Z_up\n");
-            sprintf(str_base, "%s", "Z_up.txt");
-            break;
-
-        case 2 :
-            hal.console->printf("Y_down\n");
-            sprintf(str_base, "%s", "Y_down.txt");
-            break;
-
-        case 3 :
-            hal.console->printf("Y_up\n");
-            sprintf(str_base, "%s", "Y_up.txt");
-            break;
-
-        case 4 :
-            hal.console->printf("X_down\n");
-            sprintf(str_base, "%s", "X_down.txt");
-            break;
-
-        case 5 :
-            hal.console->printf("X_up\n");
-            sprintf(str_base, "%s", "X_up.txt");
-            break;
-
-        default :
-            hal.console->printf("Iteration %d!\n",jj);
-            sprintf(str_base, "%d.txt", jj);
-        }
-
-        // Clear any user input buffer
-        while( hal.console->available() ) {
-            hal.console->read();
-        }
-
-        // Wait for user to confirm to take reading
-        hal.console->printf("Press < return > to continue\n");
-        while( !hal.console->available() ) {
-            hal.scheduler->delay(20);
-        }
-
-        hal.console->printf("Starting recording\n");
-
-        // Loop for each sensor
-        for (int kk = 0; kk<n_accels; kk++)
-        {
-
-            // Start the data collection
-            char str[20];
-            sprintf(str, "%s%d-%s",CALIBRATION_DIR,kk,str_base);
-            FILE *f = fopen(str,"w");
-
-            if (f == NULL)
-            {
-                printf("Error opening file!\n");
-                exit(1);
-            }
-
-            fprintf(f,"Accelerometer Calibration File\n");
-            fprintf(f,"=======================\n");
-
-            // Write data points
-            for (int ii = 0; ii<500; ii++)
-            {
-                // wait until we have a sample
-                ins.wait_for_sample();
-
-                // read samples from ins
-                ins.update();
-
-
-                accel = ins.get_accel(kk);  // const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
-                gyro = ins.get_gyro(kk);
-
-                //hal.console->printf("Accel X:%4.2f \t Y:%4.2f \t Z:%4.2f\n",accel.x, accel.y, accel.z);
-                fprintf(f,"%f,%f,%f\n",accel.x, accel.y, accel.z);
-            }
-
-            fclose(f);
-        }
-
-        // Close the file
-
-
-        hal.console->printf("Done file %d!\n\n",jj);
-    }
-
-    // Return
-    return;
 }
 
 AP_HAL_MAIN();

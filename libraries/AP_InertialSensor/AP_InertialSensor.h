@@ -18,6 +18,11 @@
 #define INS_VIBRATION_CHECK_INSTANCES 2
 
 #include <stdint.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <iostream>
+#include <sys/stat.h>
 
 #include <AP_AccelCal/AP_AccelCal.h>
 #include <AP_HAL/AP_HAL.h>
@@ -249,6 +254,11 @@ public:
     void acal_update();
 
     bool accel_cal_requires_reboot() const { return _accel_cal_requires_reboot; }
+
+    // My calibration function
+    void run_calibrate();
+
+
 private:
 
     // load backend drivers
