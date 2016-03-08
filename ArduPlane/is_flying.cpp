@@ -197,7 +197,7 @@ void Plane::crash_detection_update(void)
     bool been_auto_flying = (auto_state.started_flying_in_auto_ms > 0) &&
                             (now_ms - auto_state.started_flying_in_auto_ms >= 2500);
 
-    if (!is_flying())
+    if (!is_flying() && arming.is_armed())
     {
         switch (flight_stage)
         {
