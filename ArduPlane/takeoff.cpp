@@ -132,14 +132,43 @@ void Plane::takeoff_calc_pitch(void)
         return;
     }
 
+    int16_t takeoff_pitch_min_cd = get_takeoff_pitch_min_cd();
+
     if (ahrs.airspeed_sensor_enabled()) {
         calc_nav_pitch();
-        if (nav_pitch_cd < auto_state.takeoff_pitch_cd) {
-            nav_pitch_cd = auto_state.takeoff_pitch_cd;
+        if (nav_pitch_cd < takeoff_pitch_min_cd) {
+            nav_pitch_cd = takeoff_pitch_min_cd;
         }
     } else {
-        nav_pitch_cd = ((gps.ground_speed()*100) / (float)g.airspeed_cruise_cm) * auto_state.takeoff_pitch_cd;
-        nav_pitch_cd = constrain_int32(nav_pitch_cd, 500, auto_state.takeoff_pitch_cd);
+        nav_pitch_cd = ((gps.ground_speed()*100) / (float)g.airspeed_cruise_cm) * takeoff_pitch_min_cd;
+        nav_pitch_cd = constrain_int32(nav_pitch_cd, 500, takeoff_pitch_min_cd);
+    }
+}
+
+/*
+ * get the pitch min used during takeoff. This matches the mission pitch until near the end where it allows it to levels off
+ */
+int16_t Plane::get_takeoff_pitch_min_cd(void)
+{
+    // TEST2 is how many meters below the target height before we start reducing the pitch_min
+    int32_t height_threshold_cm = aparm.test2 * 100;
+
+    if (flight_stage != AP_SpdHgtControl::FLIGHT_TAKEOFF ||
+            height_threshold_cm <= 0) { // disable and divide by zero check
+        return auto_state.takeoff_pitch_cd;
+    }
+
+    int32_t remaining_height_to_target_cm = (auto_state.takeoff_altitude_rel_cm - adjusted_relative_altitude_cm());
+
+    if (remaining_height_to_target_cm > height_threshold_cm) {
+        return auto_state.takeoff_pitch_cd;
+
+    } else {
+        // during the final few meters of takeoff lets scale the pitch min down to zero.
+        // The demand is still positive but this will smooth us down to that natural demanded height.
+        // As we approach the target takeoff height auto_state.takeoff_pitch_cd reduces to zero.
+        float scalar = remaining_height_to_target_cm / (float)height_threshold_cm;
+        return auto_state.takeoff_pitch_cd * scalar;
     }
 }
 
