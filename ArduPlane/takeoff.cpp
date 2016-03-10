@@ -133,7 +133,6 @@ void Plane::takeoff_calc_pitch(void)
     }
 
     int16_t takeoff_pitch_min_cd = get_takeoff_pitch_min_cd();
-
     if (ahrs.airspeed_sensor_enabled()) {
         calc_nav_pitch();
         if (nav_pitch_cd < takeoff_pitch_min_cd) {
@@ -150,26 +149,52 @@ void Plane::takeoff_calc_pitch(void)
  */
 int16_t Plane::get_takeoff_pitch_min_cd(void)
 {
-    // TEST2 is how many meters below the target height before we start reducing the pitch_min
-    int32_t height_threshold_cm = aparm.test2 * 100;
-
-    if (flight_stage != AP_SpdHgtControl::FLIGHT_TAKEOFF ||
-            height_threshold_cm <= 0) { // disable and divide by zero check
+    if (flight_stage != AP_SpdHgtControl::FLIGHT_TAKEOFF) {
         return auto_state.takeoff_pitch_cd;
     }
 
-    int32_t remaining_height_to_target_cm = (auto_state.takeoff_altitude_rel_cm - adjusted_relative_altitude_cm());
+    int32_t relative_alt_cm = adjusted_relative_altitude_cm();
+    int32_t remaining_height_to_target_cm = (auto_state.takeoff_altitude_rel_cm - relative_alt_cm);
 
-    if (remaining_height_to_target_cm > height_threshold_cm) {
-        return auto_state.takeoff_pitch_cd;
+    // height to target method
+    if (aparm.test2 > 0) {
+        // TEST2 is how many meters below the target height before we start reducing the pitch_min
+        int32_t height_threshold_cm = aparm.test2 * 100;
+        if (remaining_height_to_target_cm > height_threshold_cm) {
+            return auto_state.takeoff_pitch_cd;
+        }
 
-    } else {
+        if (auto_state.height_below_takeoff_to_level_off_cm == 0) {
+            auto_state.height_below_takeoff_to_level_off_cm = remaining_height_to_target_cm;
+            gcs_send_text_fmt(MAV_SEVERITY_INFO, "Takeoff level-off starting at %dm", remaining_height_to_target_cm/100);
+        }
+
         // during the final few meters of takeoff lets scale the pitch min down to zero.
         // The demand is still positive but this will smooth us down to that natural demanded height.
         // As we approach the target takeoff height auto_state.takeoff_pitch_cd reduces to zero.
         float scalar = remaining_height_to_target_cm / (float)height_threshold_cm;
         return auto_state.takeoff_pitch_cd * scalar;
     }
+
+    // seconds to target alt method
+    if (aparm.test3 > 0) {
+        // if height-below-target has been initialized then use it to create and apply a scaler to the pitch_min
+        if (auto_state.height_below_takeoff_to_level_off_cm != 0) {
+            float scalar = remaining_height_to_target_cm / (float)auto_state.height_below_takeoff_to_level_off_cm;
+            return auto_state.takeoff_pitch_cd * scalar;
+        }
+
+        // are we entering the region where we want to start leveling off before we reach takeoff alt?
+        float sec_to_target = (remaining_height_to_target_cm * 0.01f) / (-auto_state.sink_rate);
+        if (sec_to_target > 0 &&
+            relative_alt_cm >= 10 &&
+            sec_to_target <= aparm.test3) {
+            // make a note of that altitude to use it as a start height for scaling
+            gcs_send_text_fmt(MAV_SEVERITY_INFO, "Takeoff level-off starting at %dm", remaining_height_to_target_cm/100);
+            auto_state.height_below_takeoff_to_level_off_cm = remaining_height_to_target_cm;
+        }
+    }
+    return auto_state.takeoff_pitch_cd;
 }
 
 /*

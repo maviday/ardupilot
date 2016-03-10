@@ -468,6 +468,9 @@ private:
         // Minimum pitch to hold during takeoff command execution.  Hundredths of a degree
         int16_t takeoff_pitch_cd;
 
+        // Begin leveling out the enforced takeoff pitch angle min at this height to reduce/eliminate overshoot
+        int32_t height_below_takeoff_to_level_off_cm;
+
         // the highest airspeed we have reached since entering AUTO. Used
         // to control ground takeoff
         float highest_airspeed;
