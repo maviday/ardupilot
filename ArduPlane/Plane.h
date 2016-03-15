@@ -117,8 +117,8 @@ class AP_Arming_Plane : public AP_Arming
 {
 public:
     AP_Arming_Plane(const AP_AHRS &ahrs_ref, const AP_Baro &baro, Compass &compass,
-                    const enum HomeState &home_set) :
-        AP_Arming(ahrs_ref, baro, compass, home_set) {
+                    const AP_BattMonitor &battery, const enum HomeState &home_set) :
+        AP_Arming(ahrs_ref, baro, compass, battery, home_set) {
             AP_Param::setup_object_defaults(this, var_info);
     }
     bool pre_arm_checks(bool report);
@@ -204,6 +204,7 @@ private:
         float initial_correction;
         uint32_t last_correction_time_ms;
         uint8_t in_range_count;
+        float height_estimate;
     } rangefinder_state;
 #endif
 
@@ -527,6 +528,11 @@ private:
     // this controls throttle suppression in auto modes
     bool throttle_suppressed;
 
+    // reduce throttle to eliminate battery over-current
+    int8_t  throttle_watt_limit_max;
+    int8_t  throttle_watt_limit_min; // for reverse thrust
+    uint32_t throttle_watt_limit_timer_ms;
+
     AP_SpdHgtControl::FlightStage flight_stage = AP_SpdHgtControl::FLIGHT_NORMAL;
 
     // probability of aircraft is currently in flight. range from 0 to
@@ -620,8 +626,6 @@ private:
     // For example in a change altitude command, it is the altitude to change to.
     int32_t condition_value;
 
-    // Sometimes there is a second condition required:
-    int32_t condition_value2;
     // A starting value used to check the status of a conditional command.
     // For example in a delay command the condition_start records that start time for the delay
     uint32_t condition_start;
@@ -703,7 +707,7 @@ private:
 #endif
 
     // Arming/Disarming mangement class
-    AP_Arming_Plane arming {ahrs, barometer, compass, home_is_set };
+    AP_Arming_Plane arming {ahrs, barometer, compass, battery, home_is_set };
 
     AP_Param param_loader {var_info};
 
@@ -824,6 +828,7 @@ private:
     bool verify_vtol_land(const AP_Mission::Mission_Command &cmd);
     void do_loiter_at_location();
     void do_take_picture();
+    bool verify_loiter_heading(bool init);
     void log_picture();
     void exit_mission_callback();
     void update_commands(void);
