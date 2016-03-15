@@ -14,6 +14,8 @@ AP_InertialSensor_Backend::AP_InertialSensor_Backend(AP_InertialSensor &imu) :
 
 void AP_InertialSensor_Backend::_rotate_and_correct_accel(uint8_t instance, Vector3f &accel) 
 {
+if (0)
+{
     /*
       accel calibration is always done in sensor frame with this
       version of the code. That means we apply the rotation after the
@@ -32,12 +34,48 @@ void AP_InertialSensor_Backend::_rotate_and_correct_accel(uint8_t instance, Vect
     // rotate to body frame
     accel.rotate(_imu._board_orientation);
 }
+else
+{
+    // New magic version.  By using funky matricies, everything can be done in one step :)
+    // Don't even need to do the sensor to body frame stuff, it's all done!
+    const Vector3f  accel_in     = accel;
+    const Vector3f &accel_cal_x  = _imu._accel_cal_x[instance].get();
+    const Vector3f &accel_cal_y  = _imu._accel_cal_y[instance].get();
+    const Vector3f &accel_cal_z  = _imu._accel_cal_z[instance].get();
+    const Vector3f &accel_offset = _imu._accel_offset[instance].get();
+
+    accel.x = accel_in.x*accel_cal_x.x + accel_in.y*accel_cal_x.y + accel_in.z*accel_cal_x.z + accel_offset.x;
+    accel.y = accel_in.x*accel_cal_y.x + accel_in.y*accel_cal_y.y + accel_in.z*accel_cal_y.z + accel_offset.y;
+    accel.z = accel_in.x*accel_cal_z.x + accel_in.y*accel_cal_z.y + accel_in.z*accel_cal_z.z + accel_offset.z;
+}
+}
 
 void AP_InertialSensor_Backend::_rotate_and_correct_gyro(uint8_t instance, Vector3f &gyro) 
 {
-    // gyro calibration is always assumed to have been done in sensor frame
-    gyro -= _imu._gyro_offset[instance];
-    gyro.rotate(_imu._board_orientation);
+    
+
+
+    if (0)  // The old way
+    {
+        // gyro calibration is always assumed to have been done in sensor frame
+        gyro -= _imu._gyro_offset[instance];
+        gyro.rotate(_imu._board_orientation);
+    }
+
+    else   // My new way
+    {
+        const Vector3f  gyro_in    = gyro;
+        const Vector3f &gyro_cal_x = _imu._gyro_cal_x[instance].get();
+        const Vector3f &gyro_cal_y = _imu._gyro_cal_y[instance].get();
+        const Vector3f &gyro_cal_z = _imu._gyro_cal_z[instance].get();
+
+        gyro.x = gyro_in.x*gyro_cal_x.x + gyro_in.y*gyro_cal_x.y + gyro_in.z*gyro_cal_x.z;
+        gyro.y = gyro_in.x*gyro_cal_y.x + gyro_in.y*gyro_cal_y.y + gyro_in.z*gyro_cal_y.z;
+        gyro.z = gyro_in.x*gyro_cal_z.x + gyro_in.y*gyro_cal_z.y + gyro_in.z*gyro_cal_z.z;
+        // Gyro offsets done before or after rotation of gyro data.... I think it's after the rotation.
+        gyro -= _imu._gyro_offset[instance];
+
+    }
 }
 
 /*

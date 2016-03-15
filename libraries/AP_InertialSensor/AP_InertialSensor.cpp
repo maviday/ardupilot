@@ -327,6 +327,35 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
       parameters check for conflicts carefully
      */
 
+    // @Param:ACC_CAL1
+    // ACC_CAL1_X gives ACC_X = ACC_CAL1_X.X * sensor.X + ACC_CAL1_X.Y * sensor.Y + ACC_CAL1_X.Z * sensor.Z + _accel_offset.X;
+    // ACC_CAL1_Y gives ACC_Y = ACC_CAL1_Y.X * sensor.X + ACC_CAL1_Y.Y * sensor.Y + ACC_CAL1_Y.Z * sensor.Z + _accel_offset.Y;
+    // ACC_CAL1_Z gives ACC_Z = ACC_CAL1_Z.X * sensor.X + ACC_CAL1_Z.Y * sensor.Y + ACC_CAL1_Z.Z * sensor.Z + _accel_offset.Z;
+    AP_GROUPINFO("ACC_CAL1_X",    27, AP_InertialSensor, _accel_cal_x[0],  0),
+    AP_GROUPINFO("ACC_CAL1_Y",    28, AP_InertialSensor, _accel_cal_y[0],  0),
+    AP_GROUPINFO("ACC_CAL1_Z",    29, AP_InertialSensor, _accel_cal_z[0],  0),
+    // INS 2
+    AP_GROUPINFO("ACC_CAL2_X",    30, AP_InertialSensor, _accel_cal_x[1],  0),
+    AP_GROUPINFO("ACC_CAL2_Y",    31, AP_InertialSensor, _accel_cal_y[1],  0),
+    AP_GROUPINFO("ACC_CAL2_Z",    32, AP_InertialSensor, _accel_cal_z[1],  0),
+    // INS 3
+    AP_GROUPINFO("ACC_CAL3_X",    33, AP_InertialSensor, _accel_cal_x[2],  0),
+    AP_GROUPINFO("ACC_CAL3_Y",    34, AP_InertialSensor, _accel_cal_y[2],  0),
+    AP_GROUPINFO("ACC_CAL3_Z",    35, AP_InertialSensor, _accel_cal_z[2],  0),
+    // GYR 1
+    // GYR_CAL1 gives GYR_X = GYR_CAL1_X.X * sensor.X + GYR_CAL1_X.Y * sensor.Y + GYR_CAL1_X.Z * sensor.Z + _gyro_offset.X;
+    AP_GROUPINFO("GYR_CAL1_X",      36, AP_InertialSensor, _gyro_cal_x[0],  0),
+    AP_GROUPINFO("GYR_CAL1_Y",      37, AP_InertialSensor, _gyro_cal_y[0],  0),
+    AP_GROUPINFO("GYR_CAL1_Z",      38, AP_InertialSensor, _gyro_cal_z[0],  0),
+    // GYR 2
+    AP_GROUPINFO("GYR_CAL2_X",      39, AP_InertialSensor, _gyro_cal_x[1],  0),
+    AP_GROUPINFO("GYR_CAL2_Y",      40, AP_InertialSensor, _gyro_cal_y[1],  0),
+    AP_GROUPINFO("GYR_CAL2_Z",      41, AP_InertialSensor, _gyro_cal_z[1],  0),
+    // GYR 3
+    AP_GROUPINFO("GYR_CAL3_X",      42, AP_InertialSensor, _gyro_cal_x[1],  0),
+    AP_GROUPINFO("GYR_CAL3_Y",      43, AP_InertialSensor, _gyro_cal_y[1],  0),
+    AP_GROUPINFO("GYR_CAL3_Z",      44, AP_InertialSensor, _gyro_cal_z[1],  0),
+
     AP_GROUPEND
 };
 
@@ -481,6 +510,18 @@ AP_InertialSensor::init(uint16_t sample_rate)
         if (_accel_scale[i].get().is_zero()) {
             _accel_scale[i].set(Vector3f(1,1,1));
         }
+    }
+
+    // initialise the accel and gyro matricies if need be.  This is needed
+    // as we can't define default non-zero values for vectors in AP_Param
+    for (uint8_t i=0; i<get_accel_count(); i++)
+    {
+        if (_accel_cal_x[i].get().is_zero()) { _accel_cal_x[i].set(Vector3f(1,0,0)); }
+        if (_accel_cal_y[i].get().is_zero()) { _accel_cal_y[i].set(Vector3f(0,1,0)); }
+        if (_accel_cal_z[i].get().is_zero()) { _accel_cal_z[i].set(Vector3f(0,0,1)); }
+        if (_gyro_cal_x[i].get().is_zero())  { _gyro_cal_x[i].set(Vector3f(1,0,0)); }
+        if (_gyro_cal_y[i].get().is_zero())  { _gyro_cal_y[i].set(Vector3f(0,1,0)); }
+        if (_gyro_cal_z[i].get().is_zero())  { _gyro_cal_z[i].set(Vector3f(0,0,1)); }
     }
 
     // calibrate gyros unless gyro calibration has been disabled
@@ -1459,4 +1500,138 @@ bool AP_InertialSensor::get_primary_accel_cal_sample_avg(uint8_t sample_num, Vec
     ret = avg;
     ret.rotate(_board_orientation);
     return true;
+}
+
+void AP_InertialSensor::run_calibrate()
+{
+    #define CALIBRATION_DIR "/root/APM/Calibration/"
+
+    Vector3f accel;
+    Vector3f gyro;
+
+    int n_accels;
+
+    n_accels = 2;
+
+    hal.console->printf("Entered calibration mode\n");
+
+    hal.console->printf("Making calibration file\n");
+
+    // Create the directory for things to be stored into
+    mkdir(CALIBRATION_DIR, 0777);
+
+    // Probably want something to make sure all the offsets and stuff are at zero
+    // Set each of the calibration parameters to the << calibration >> state.  This
+    // is also required for the gyros as they'll initialise to giving all zero
+    // results.
+    for (int ii = 0; ii<n_accels; ii++)
+    {
+        // Accelerometers
+        _accel_cal_x[ii].set_and_save(Vector3f(1,0,0));
+        _accel_cal_y[ii].set_and_save(Vector3f(0,1,0));
+        _accel_cal_z[ii].set_and_save(Vector3f(0,0,1));
+        _accel_offset[ii].set_and_save(Vector3f(0,0,0));
+        // Gyros
+        _gyro_cal_x[ii].set_and_save(Vector3f(1,0,0));
+        _gyro_cal_y[ii].set_and_save(Vector3f(0,1,0));
+        _gyro_cal_z[ii].set_and_save(Vector3f(0,0,1));
+    }
+
+    // Need six different positions
+    for (int jj = 0; jj<6; jj++)
+    {
+        // Open the file
+        char str_base[20];
+
+        switch(jj) {
+        case 0 :
+            hal.console->printf("Z_down\n");
+            sprintf(str_base, "%s", "Z_down.txt");
+            break;
+
+        case 1 :
+            hal.console->printf("Z_up\n");
+            sprintf(str_base, "%s", "Z_up.txt");
+            break;
+
+        case 2 :
+            hal.console->printf("Y_down\n");
+            sprintf(str_base, "%s", "Y_down.txt");
+            break;
+
+        case 3 :
+            hal.console->printf("Y_up\n");
+            sprintf(str_base, "%s", "Y_up.txt");
+            break;
+
+        case 4 :
+            hal.console->printf("X_down\n");
+            sprintf(str_base, "%s", "X_down.txt");
+            break;
+
+        case 5 :
+            hal.console->printf("X_up\n");
+            sprintf(str_base, "%s", "X_up.txt");
+            break;
+
+        default :
+            hal.console->printf("Iteration %d!\n",jj);
+            sprintf(str_base, "%d.txt", jj);
+        }
+
+        // Clear any user input buffer
+        while( hal.console->available() ) {
+            hal.console->read();
+        }
+
+        // Wait for user to confirm to take reading
+        hal.console->printf("Press < return > to continue\n");
+        while( !hal.console->available() ) {
+            hal.scheduler->delay(20);
+        }
+
+        hal.console->printf("Starting recording\n");
+
+        // Loop for each sensor
+        for (int kk = 0; kk<n_accels; kk++)
+        {
+
+            // Start the data collection
+            char str[20];
+            sprintf(str, "%s%d-%s",CALIBRATION_DIR,kk,str_base);
+            FILE *f = fopen(str,"w");
+
+            if (f == NULL)
+            {
+                printf("Error opening file!\n");
+                exit(1);
+            }
+
+            fprintf(f,"Accelerometer Calibration File\n");
+            fprintf(f,"=======================\n");
+
+            // Write data points
+            for (int ii = 0; ii<500; ii++)
+            {
+                // wait until we have a sample
+                wait_for_sample();
+
+                // read samples from ins
+                update();
+
+                accel = get_accel(kk);  // const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
+                gyro  = get_gyro(kk);
+
+                fprintf(f,"%f,%f,%f\n",accel.x, accel.y, accel.z);
+            }
+
+            fclose(f);
+        }
+
+        // Close the file
+        hal.console->printf("Done file %d!\n\n",jj);
+    }
+
+    // Return
+    return;
 }
