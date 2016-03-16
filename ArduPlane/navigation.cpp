@@ -142,7 +142,7 @@ void Plane::calc_gndspeed_undershoot()
 
 void Plane::update_loiter(uint16_t radius)
 {
-    if (radius == 0) {
+    if (radius <= 1) {
         radius = abs(g.loiter_radius);
     }
 
