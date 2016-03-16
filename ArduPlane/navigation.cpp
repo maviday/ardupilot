@@ -143,7 +143,9 @@ void Plane::calc_gndspeed_undershoot()
 void Plane::update_loiter(uint16_t radius)
 {
     if (radius <= 1) {
-        radius = abs(g.loiter_radius);
+        // if radius is <=1 then use the general loiter radius. if it's small, use default
+        radius = (abs(g.loiter_radius <= 1)) ? LOITER_RADIUS_DEFAULT : abs(g.loiter_radius);
+        loiter.direction = (g.loiter_radius < 0) ? -1 : 1;
     }
 
     if (control_mode == AUTO &&
@@ -151,13 +153,13 @@ void Plane::update_loiter(uint16_t radius)
         // if we've a little bit away from the waypoint then navigate like a normal waypoint
 
         if (loiter.start_time_ms == 0 &&
-                !auto_state.no_crosstrack &&
-                !location_passed_point(current_loc,prev_WP_loc, next_WP_loc)) {
+            !auto_state.no_crosstrack &&
+            !location_passed_point(current_loc,prev_WP_loc, next_WP_loc)) {
             // if we havn't reached loiter then navigate like a normal
             nav_controller->update_waypoint(prev_WP_loc, next_WP_loc);
         } else {
             // we've somehow passed the waypoint or we're not cross tracking,
-            // navigate from where we're at like a normal
+            // navigate from where we're at like normal
             nav_controller->update_waypoint(current_loc, next_WP_loc);
         }
     } else {
