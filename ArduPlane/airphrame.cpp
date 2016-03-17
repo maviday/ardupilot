@@ -71,7 +71,7 @@ void Plane::do_rotate_landing_direction(const AP_Mission::Mission_Command& cmd)
 
     if (!do_rotate_approach_Wp && cmd.content.rotate_landing.offset == 0) {
         // we're already landing into the wind and there's no offset to apply
-        gcs_send_text_fmt(MAV_SEVERITY_CRITICAL, "do_rotate_landing: nothing to do");
+        gcs_send_text_fmt(MAV_SEVERITY_CRITICAL, "do_rotate_landing: no change to landing");
         return;
     }
 
@@ -140,8 +140,8 @@ void Plane::do_rotate_landing_direction(const AP_Mission::Mission_Command& cmd)
     // -> overwrite nav_wp with temp_to
 
     // generate a land_cmd by rotating and offsetting it by itself
-    //location_update(land_cmd.content.location, approach_bearing, offset);
     offset_then_rotate(rotation_angle, approach_bearing, offset, land_cmd.content.location, land_cmd.content.location);
+    gcs_send_text_fmt(MAV_SEVERITY_CRITICAL, "do_rotate_landing: new bearing %.1f, offset %dm", (double)approach_bearing, offset);
 
     land_approach_rotation.start_index = index;
     land_approach_rotation.land_index = land_cmd.index;
