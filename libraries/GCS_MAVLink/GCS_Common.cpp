@@ -413,13 +413,13 @@ bool GCS_MAVLINK::have_flow_control(void)
         return false;
     }
 
-    if (chan == MAVLINK_COMM_0) {
-        // assume USB console has flow control
-        return hal.gpio->usb_connected() || mavlink_comm_port[chan]->get_flow_control() != AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE;
-    } else {
+//    if (chan == MAVLINK_COMM_0) {
+//        // assume USB console has flow control
+//        return hal.gpio->usb_connected() || mavlink_comm_port[chan]->get_flow_control() != AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE;
+//    } else {
         // all other channels
         return mavlink_comm_port[chan]->get_flow_control() != AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE;
-    }
+//    }
 }
 
 
