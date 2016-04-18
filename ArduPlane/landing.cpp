@@ -53,15 +53,17 @@ bool Plane::verify_land()
           rangefinder data (to prevent us keeping throttle on 
           after landing if we've had positive baro drift)
     */
-#if RANGEFINDER_ENABLED == ENABLED
-    bool rangefinder_in_range = rangefinder_state.in_range;
-#else
-    bool rangefinder_in_range = false;
-#endif
-    if (height <= g.land_flare_alt ||
-        (aparm.land_flare_sec > 0 && height <= auto_state.sink_rate * aparm.land_flare_sec) ||
-        (!rangefinder_in_range && location_passed_point(current_loc, prev_WP_loc, next_WP_loc)) ||
-        (fabsf(auto_state.sink_rate) < 0.2f && !is_flying())) {
+
+    bool on_approach_stage = (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH ||
+                              flight_stage == AP_SpdHgtControl::FLIGHT_LAND_PREFLARE);
+    bool below_flare_alt = (height <= g.land_flare_alt);
+    bool below_flare_sec = (aparm.land_flare_sec > 0 && height <= auto_state.sink_rate * aparm.land_flare_sec);
+    bool probably_crashed = (fabsf(auto_state.sink_rate) < 0.2f && !is_flying());
+
+    if ((on_approach_stage && below_flare_alt) ||
+        (on_approach_stage && below_flare_sec && (auto_state.wp_proportion > 0.5)) ||
+        (auto_state.wp_proportion >= 1) ||
+        probably_crashed) {
 
         if (!auto_state.land_complete) {
             auto_state.post_landing_stats = true;
