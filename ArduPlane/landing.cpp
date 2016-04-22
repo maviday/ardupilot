@@ -53,6 +53,18 @@ bool Plane::verify_land()
           rangefinder data (to prevent us keeping throttle on 
           after landing if we've had positive baro drift)
     */
+#if RANGEFINDER_ENABLED == ENABLED
+    bool rangefinder_in_range = rangefinder_state.in_range;
+#else
+    bool rangefinder_in_range = false;
+#endif
+
+    // flare check:
+    // 1) below flare alt/sec requires approach stage check because if sec/alt are set too
+    //    large, and we're on a hard turn to line up for approach, we'll prematurely flare by
+    //    skipping approach phase and the extreme roll limits will make it hard to line up with runway
+    // 2) passed land point and don't have an accurate AGL
+    // 3) probably crashed (ensures motor gets turned off)
 
     bool on_approach_stage = (flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH ||
                               flight_stage == AP_SpdHgtControl::FLIGHT_LAND_PREFLARE);
@@ -62,7 +74,7 @@ bool Plane::verify_land()
 
     if ((on_approach_stage && below_flare_alt) ||
         (on_approach_stage && below_flare_sec && (auto_state.wp_proportion > 0.5)) ||
-        (auto_state.wp_proportion >= 1) ||
+        (!rangefinder_in_range && auto_state.wp_proportion >= 1) ||
         probably_crashed) {
 
         if (!auto_state.land_complete) {
