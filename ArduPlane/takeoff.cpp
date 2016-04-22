@@ -132,15 +132,15 @@ void Plane::takeoff_calc_pitch(void)
         return;
     }
 
-    int16_t takeoff_pitch_min_cd = get_takeoff_pitch_min_cd();
     if (ahrs.airspeed_sensor_enabled()) {
+        int16_t takeoff_pitch_min_cd = get_takeoff_pitch_min_cd();
         calc_nav_pitch();
         if (nav_pitch_cd < takeoff_pitch_min_cd) {
             nav_pitch_cd = takeoff_pitch_min_cd;
         }
     } else {
-        nav_pitch_cd = ((gps.ground_speed()*100) / (float)g.airspeed_cruise_cm) * takeoff_pitch_min_cd;
-        nav_pitch_cd = constrain_int32(nav_pitch_cd, 500, takeoff_pitch_min_cd);
+        nav_pitch_cd = ((gps.ground_speed()*100) / (float)g.airspeed_cruise_cm) * auto_state.takeoff_pitch_cd;
+        nav_pitch_cd = constrain_int32(nav_pitch_cd, 500, auto_state.takeoff_pitch_cd);
     }
 }
 
