@@ -47,7 +47,7 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @Param: AUTO_SWITCH
     // @DisplayName: Automatic Switchover Setting
     // @Description: Automatic switchover to GPS reporting best lock
-    // @Values: 0:Disabled,1:Use the better lock,2:Treat GPS2 as backup
+    // @Values: 0:Disabled,1:Use the higher sat count,2:Switch on bad VZ
     // @User: Advanced
     AP_GROUPINFO("AUTO_SWITCH", 3, AP_GPS, _auto_switch, 1),
 
@@ -123,6 +123,13 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @Values: 0:Disables automatic configuration,1:Enable automatic configuration
     // @User: Advanced
     AP_GROUPINFO("AUTO_CONFIG", 13, AP_GPS, _auto_config, 1),
+
+    // @Param: VZ_SW_THR
+    // @DisplayName: Vert Velocity Switch Threshold
+    // @Description: When GPS_AUTO_SWITCH=2 this value sets the vertical velocity switching threshold. Vertical velocity is indicitive of a GPS signal that is about to lose lock. If the primary GPS's VZ is above this value, and the other GPS is under it, then switch.
+    // @Units: m/s
+    // @User: Advanced
+    AP_GROUPINFO("VZ_SW_THR", 14, AP_GPS, _vz_switch_threshold, 10.0f),
 
     AP_GROUPEND
 };
@@ -401,64 +408,63 @@ AP_GPS::update(void)
         update_instance(i);
     }
 
-    // work out how many sensors we have
-    uint8_t num_instances_temp = 0;
-    if (state[0].status != NO_GPS) {
-        num_instances_temp = 1;
-    }
-    if (state[1].status != NO_GPS) {
-        num_instances_temp = 2;
-    }
-    num_instances = num_instances_temp;
+    // work out which GPS is the primary, and how many sensors we have
+    for (uint8_t i=0; i<GPS_MAX_INSTANCES; i++) {
+        if (state[i].status != NO_GPS) {
+            num_instances = i+1;
+        }
+        if (i == primary_instance) {
+            continue;
+        }
 
-    // work out which GPS is the primary
-    if (now - _last_instance_swap_ms > 20000 ||
-            state[primary_instance].status < GPS_OK_FIX_3D) {
-        // don't allow switches any faster than every 20 seconds except if primary is in trouble
+        // work out which GPS is the primary
+        if (now - _last_instance_swap_ms < 20000 &&
+                state[primary_instance].status >= GPS_OK_FIX_3D) {
+            // don't allow switches too often except if primary is in trouble
+            continue;
+        }
 
         switch (_auto_switch) {
         default:
         case GPS_AUTO_SWITCH_DISABLED:
-            // auto-switch disabled, always use GPS1 as primary
-            primary_instance = 0;
             break;
 
-        case GPS_AUTO_SWITCH_BETTER_LOCK:
-            if (state[0].status > state[1].status && (state[0].num_sats >= state[1].num_sats + 2)) {
-                // there is a higher status lock or 2+ sats, change GPS
-                primary_instance_change_request = 0;
-            } else if (state[1].status > state[0].status && (state[1].num_sats >= state[0].num_sats + 2)) {
-                // there is a higher status lock or 2+ sats, change GPS
-                primary_instance_change_request = 1;
+        case GPS_AUTO_SWITCH_MORE_SATS:
+            if (state[i].status > state[primary_instance].status ||
+                (state[i].num_sats >= state[primary_instance].num_sats + 2)) {
+                // there is a higher status lock or 2+ sats
+                primary_instance_change_request = i;
             }
             break;
 
-        case GPS_AUTO_SWITCH_GPS2_AS_BACKUP:
-            if (state[0].status >= GPS_OK_FIX_3D || // GPS1 has a lock
-                    state[0].status >= state[1].status || // GPS1 lock >= GPS2 lock
-                    timing[0].last_fix_time_ms == 0) { // GPS1 has never locked before. GPS2 is an in-flight backup, not pre-flight backup.
-                primary_instance_change_request = 0;
-            } else {
-                primary_instance_change_request = 1;
-            }
+        case GPS_AUTO_SWITCH_VZ:
+            float pri = fabsf(state[primary_instance].velocity.z);
+            float sec = fabsf(state[i].velocity.z);
+            if (pri > _vz_switch_threshold && // above threshold
+                sec < _vz_switch_threshold && // below threshold
+                fabsf(pri - sec) > 0.1f && // diverged by >10%. A little bit of difference is normal so lets reject that
+                timing[primary_instance].last_fix_time_ms > 0 && // has locked before, keeps us from switching just after bootup
+                state[i].status >= GPS_OK_FIX_3D) { // sec is rdy
+                    primary_instance_change_request = i;
+                }
             break;
         } // switch
+    } // for i
 
-        // if primary index changed note the time to inhibit doing this too often with a 1000ms debounce
-        if (primary_instance_change_request != primary_instance) {
-            // to protect against glitches, require the instance change request to persist for 1000ms
-            if (primary_instance_change_debounce_ms == 0) {
-                primary_instance_change_debounce_ms = now;
-            } else if (now - primary_instance_change_debounce_ms >= 1000) {
-                // a change request has persisted, do the swap
-                _last_instance_swap_ms = now;
-                primary_instance = primary_instance_change_request;
-                primary_instance_change_debounce_ms = 0;
-            }
-        } else {
+    // if primary index changed then note the time to inhibit doing this too often
+    if (primary_instance_change_request != primary_instance) {
+        // to protect against glitches, require the instance change request to persist
+        if (primary_instance_change_debounce_ms == 0) {
+            primary_instance_change_debounce_ms = now;
+        } else if (now - primary_instance_change_debounce_ms >= 500) {
+            // a change request has persisted, do the swap
+            _last_instance_swap_ms = now;
+            primary_instance = primary_instance_change_request;
             primary_instance_change_debounce_ms = 0;
         }
-    } // if >10s
+    } else {
+        primary_instance_change_debounce_ms = 0;
+    }
 
 
 	// update notify with gps status. We always base this on the primary_instance
