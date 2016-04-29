@@ -19,6 +19,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Notify/AP_Notify.h>
+#include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL &hal;
 
@@ -461,6 +462,7 @@ AP_GPS::update(void)
             _last_instance_swap_ms = now;
             primary_instance = primary_instance_change_request;
             primary_instance_change_debounce_ms = 0;
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "GPS auto-switched to %d", primary_instance);
         }
     } else {
         primary_instance_change_debounce_ms = 0;
