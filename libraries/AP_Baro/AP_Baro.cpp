@@ -30,6 +30,7 @@
 #include "AP_Baro_PX4.h"
 #include "AP_Baro_qflight.h"
 #include "AP_Baro_QURT.h"
+#include "GCS_MAVLink/GCS.h"
 
 extern const AP_HAL::HAL& hal;
 
@@ -355,8 +356,13 @@ void AP_Baro::update(void)
         // If there's more than 1cm difference then slowly slew to it via LPF.
         // The EKF does not like step inputs so this keeps it happy.
         _alt_offset_active = (0.95f*_alt_offset_active) + (0.05f*_alt_offset);
+
+        if (fabsf(_alt_offset - _alt_offset_active) <= 0.01f) {
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_DEBUG,"AP_Baro: GND_ALT_OFFSET slew complete: %.1fs", (double)((AP_HAL::millis() - _timer) / 1000.0f));
+        }
     } else {
         _alt_offset_active = _alt_offset;
+        _timer = AP_HAL::millis();
     }
 
     if (!_hil_mode) {
