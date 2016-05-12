@@ -335,8 +335,6 @@ struct PACKED log_Sonar {
     float voltage;
     uint8_t count;
     float correction;
-    float corr_raw;
-    float corr_der;
 };
 
 // Write a sonar packet
@@ -355,8 +353,6 @@ void Plane::Log_Write_Sonar()
         voltage     : rangefinder.voltage_mv()*0.001f,
         count       : rangefinder_state.in_range_count,
         correction  : rangefinder_state.correction,
-        corr_raw    : rangefinder_state.correction_raw,
-        corr_der    : rangefinder_state.correction_derivitive,
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 
@@ -480,7 +476,7 @@ static const struct LogStructure log_structure[] = {
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),         
       "NTUN", "Qfcccfff",  "TimeUS,WpDist,TargBrg,NavBrg,AltErr,XT,XTi,ArspdErr" },
     { LOG_SONAR_MSG, sizeof(log_Sonar),             
-      "SONR", "QffBfff",   "TimeUS,Dist,Volt,Cnt,Corr,CorrRaw,CorrDt" },
+      "SONR", "QffBf",   "TimeUS,Dist,Volt,Cnt,Corr" },
     { LOG_ARM_DISARM_MSG, sizeof(log_Arm_Disarm),
       "ARM", "QBH", "TimeUS,ArmState,ArmChecks" },
     { LOG_ATRP_MSG, sizeof(AP_AutoTune::log_ATRP),

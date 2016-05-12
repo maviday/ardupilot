@@ -564,7 +564,6 @@ void Plane::rangefinder_height_update(void)
         if (!rangefinder_state.have_initial_reading) {
             rangefinder_state.have_initial_reading = true;
             rangefinder_state.initial_range = distance;
-            gcs_send_text_fmt(MAV_SEVERITY_INFO, "Rangefinder initial1 at %.2fm", (double)distance);
         }
         // correct the range for attitude (multiply by DCM.c.z, which
         // is cos(roll)*cos(pitch))
@@ -616,31 +615,15 @@ void Plane::rangefinder_height_update(void)
             rangefinder_state.correction = correction;
             rangefinder_state.initial_correction = correction;
             auto_state.initial_land_slope = auto_state.land_slope;
-            gcs_send_text_fmt(MAV_SEVERITY_INFO, "Rangefinder initial2 at %.2fm", (double)correction);
         } else {
-            //rangefinder_state.correction_derivitive = (correction - rangefinder_state.correction) / 0.02f;
-            rangefinder_state.correction_derivitive = (correction - rangefinder_state.correction) * 50; // (new - old) / dt
-            rangefinder_state.correction_raw = correction;
-
-//            const float object_width_m = rangefinder.get_object_rejection_width(); // in meters
-//            const uint32_t width_ms = 1000 * object_width_m / ahrs.groundspeed();
-//            const int32_t dt_trigger_to_freeze = rangefinder.get_object_rejection_width();
-//
-//            if (!dt_trigger_to_freeze fabsf(rangefinder_state.correction_derivitive) > dt_trigger_to_freeze) {
-//                rangefinder_state.freeze_correction_time_ms = now;
-//                gcs_send_text_fmt(MAV_SEVERITY_INFO, "Rangefinder freeze at %.2fm", (double)correction);
-//            }
-
-//            if (now - rangefinder_state.freeze_correction_time_ms > width_ms) {
-                rangefinder_state.correction = 0.8f*rangefinder_state.correction + 0.2f*correction;
-                if (fabsf(rangefinder_state.correction - rangefinder_state.initial_correction) > 30) {
-                    // the correction has changed by more than 30m, reset use of Lidar. We may have a bad lidar
-                    if (rangefinder_state.in_use) {
-                        gcs_send_text_fmt(MAV_SEVERITY_INFO, "Rangefinder disengaged at %.2fm", (double)height_estimate);
-                    }
-                    memset(&rangefinder_state, 0, sizeof(rangefinder_state));
+            rangefinder_state.correction = 0.8f*rangefinder_state.correction + 0.2f*correction;
+            if (fabsf(rangefinder_state.correction - rangefinder_state.initial_correction) > 30) {
+                // the correction has changed by more than 30m, reset use of Lidar. We may have a bad lidar
+                if (rangefinder_state.in_use) {
+                    gcs_send_text_fmt(MAV_SEVERITY_INFO, "Rangefinder disengaged at %.2fm", (double)height_estimate);
                 }
-  //          }
+                memset(&rangefinder_state, 0, sizeof(rangefinder_state));
+            }
         }
         rangefinder_state.last_correction_time_ms = now;
     }

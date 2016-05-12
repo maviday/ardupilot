@@ -202,8 +202,6 @@ private:
         bool in_use:1;
         float initial_range;
         float correction;
-        float correction_raw;
-        float correction_derivitive;
         float initial_correction;
         float last_stable_correction;
         uint32_t last_correction_time_ms;
