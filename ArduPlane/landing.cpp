@@ -180,9 +180,11 @@ void Plane::adjust_landing_slope_for_rangefinder_bump(void)
     float top_of_glide_slope_alt_m = total_distance_m * corrected_alt_m / auto_state.wp_distance;
     prev_WP_loc.alt = top_of_glide_slope_alt_m*100 + next_WP_loc.alt;
 
-    // re-calculate with updated prev_WP_loc
+    // re-calculate auto_state.land_slope with updated prev_WP_loc
     setup_landing_glide_slope();
-    GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, "Slope re-calculated");
+    float new_slope_deg = degrees(atan(auto_state.land_slope));
+
+    GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Landing glide slope re-calculated as %.1f degrees", (double)new_slope_deg);
 
     if (rangefinder_state.correction >= 0) { // we're too low or object is below us
         // correction positive means we're too low so we should continue on with
@@ -197,15 +199,10 @@ void Plane::adjust_landing_slope_for_rangefinder_bump(void)
 
         // calculate projected slope with projected alt
         float initial_slope_deg = degrees(atan(auto_state.initial_land_slope));
-        float new_slope_deg = degrees(atan(auto_state.land_slope));
-
-//        GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, "Slope Recalc: %.2f, %.2f",
-//                (double)initial_slope_deg,
-//                (double)new_slope_deg)
 
         // is projected slope too steep?
         if (new_slope_deg - initial_slope_deg > g.land_slope_recalc_steep_threshold_to_abort) {
-            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, "Slope re-calculated to be too steep, abort landing!");
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Slope re-calculated too steep, abort landing!");
             barometer.set_baro_drift_altitude(-1 * rangefinder_state.correction);
             auto_state.commanded_go_around = 1;
             g.land_slope_recalc_steep_threshold_to_abort = 0; // disable this feature so we only perform it once
@@ -262,7 +259,12 @@ void Plane::setup_landing_glide_slope(void)
         }
 
         // calculate slope to landing point
+        bool is_first_calc = is_zero(auto_state.land_slope);
         auto_state.land_slope = (sink_height - aim_height) / total_distance;
+        if (is_first_calc) {
+            gcs_send_text_fmt(MAV_SEVERITY_INFO, "Landing glide slope %.1f degrees", (double)degrees(atanf(auto_state.land_slope)));
+        }
+
 
         // time before landing that we will flare
         float flare_time = aim_height / SpdHgt_Controller->get_land_sinkrate();
