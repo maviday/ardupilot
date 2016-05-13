@@ -813,13 +813,16 @@ void DataFlash_Class::Log_Write_RSSI(AP_RSSI &rssi)
 void DataFlash_Class::Log_Write_Baro(AP_Baro &baro)
 {
     uint64_t time_us = AP_HAL::micros64();
+    float climbrate = baro.get_climb_rate();
+    float drift_offset = baro.get_baro_drift_offset();
     struct log_BARO pkt = {
         LOG_PACKET_HEADER_INIT(LOG_BARO_MSG),
         time_us       : time_us,
         altitude      : baro.get_altitude(0),
         pressure      : baro.get_pressure(0),
         temperature   : (int16_t)(baro.get_temperature(0) * 100),
-        climbrate     : baro.get_climb_rate()
+        climbrate     : climbrate,
+        drift_offset  : drift_offset,
     };
     WriteBlock(&pkt, sizeof(pkt));
 
@@ -830,7 +833,8 @@ void DataFlash_Class::Log_Write_Baro(AP_Baro &baro)
             altitude      : baro.get_altitude(1),
             pressure	  : baro.get_pressure(1),
             temperature   : (int16_t)(baro.get_temperature(1) * 100),
-            climbrate     : baro.get_climb_rate()
+            climbrate     : climbrate,
+            drift_offset  : drift_offset,
         };
         WriteBlock(&pkt2, sizeof(pkt2));        
     }
@@ -842,7 +846,8 @@ void DataFlash_Class::Log_Write_Baro(AP_Baro &baro)
             altitude      : baro.get_altitude(2),
             pressure	  : baro.get_pressure(2),
             temperature   : (int16_t)(baro.get_temperature(2) * 100),
-            climbrate     : baro.get_climb_rate()
+            climbrate     : climbrate,
+            drift_offset  : drift_offset,
         };
         WriteBlock(&pkt3, sizeof(pkt3));        
     }
