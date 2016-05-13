@@ -159,7 +159,6 @@ private:
     uint32_t                            _last_external_temperature_ms;
     DerivativeFilterFloat_Size7         _climb_rate_filter;
     bool                                _hil_mode:1;
-    uint32_t                            _timer = 0;
 
     // when did we last notify the GCS of new pressure reference?
     uint32_t                            _last_notify_ms;
