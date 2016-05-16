@@ -286,8 +286,6 @@ public:
         k_param_quadplane,
         k_param_rtl_radius,
         k_param_land_then_servos_neutral,
-        k_param_land_slope_recalc_shallow_threshold,
-        k_param_land_slope_recalc_steep_threshold_to_abort,
 
         //
         // 210: flight modes
@@ -300,6 +298,8 @@ public:
         k_param_flight_mode5,
         k_param_flight_mode6,
         k_param_initial_mode,
+        k_param_land_slope_recalc_shallow_threshold,
+        k_param_land_slope_recalc_steep_threshold_to_abort,
 
         //
         // 220: Waypoint data
