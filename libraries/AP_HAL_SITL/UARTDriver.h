@@ -59,7 +59,7 @@ public:
     // file descriptor, exposed so SITL_State::loop_hook() can use it
     int _fd;
 
-    enum flow_control get_flow_control(void) { return FLOW_CONTROL_DISABLE; }
+    enum flow_control get_flow_control(void) { return FLOW_CONTROL_ENABLE; }
 
     void _timer_tick(void);
     
