@@ -26,6 +26,20 @@ void Plane::update_is_flying_5Hz(void)
     // airspeed at least 75% of stall speed?
     bool airspeed_movement = ahrs.airspeed_estimate(&aspeed) && (aspeed >= (aparm.airspeed_min*0.75f));
 
+    Vector3f accel_peak_pos = ins.get_accel_peak_hold_pos();
+    Vector3f accel_peak_neg = ins.get_accel_peak_hold_neg();
+
+    // detect any worth-while peaks in the accel_peak data and set a flag to log it.
+    // z axis has a gravity offset and also peaks much more during a normal flight
+    const float interesting_peak_thresh = 0.5f * GRAVITY_MSS; // interesting means anything above 0.5G
+    bool accel_peak_data_looks_interesting = false;
+    accel_peak_data_looks_interesting |= accel_peak_pos.x > interesting_peak_thresh;
+    accel_peak_data_looks_interesting |= accel_peak_pos.y > interesting_peak_thresh;
+    accel_peak_data_looks_interesting |= accel_peak_pos.z > (2*interesting_peak_thresh) - GRAVITY_MSS;
+    accel_peak_data_looks_interesting |= accel_peak_neg.x < -interesting_peak_thresh;
+    accel_peak_data_looks_interesting |= accel_peak_neg.y < -interesting_peak_thresh;
+    accel_peak_data_looks_interesting |= accel_peak_neg.z < -(2*interesting_peak_thresh) - GRAVITY_MSS;
+
 
     if (quadplane.is_flying()) {
         is_flying_bool = true;
@@ -51,6 +65,9 @@ void Plane::update_is_flying_5Hz(void)
               make is_flying() more accurate during various auto modes
              */
 
+            // are we auto-landing?
+            accel_peak_data_looks_interesting |= auto_state.land_in_progress;
+
             // Detect X-axis deceleration for probable ground impacts.
             // Limit the max probability so it can decay faster. This
             // will not change the is_flying state, anything above 0.1
@@ -58,7 +75,7 @@ void Plane::update_is_flying_5Hz(void)
             // aren't flying using the normal schemes
             if (g.crash_accel_threshold == 0) {
                 crash_state.impact_detected = false;
-            } else if (ins.get_accel_peak_hold_neg().x < -(g.crash_accel_threshold)) {
+            } else if (accel_peak_neg.x < -(g.crash_accel_threshold)) {
                 // large deceleration detected, lets lower confidence VERY quickly
                 crash_state.impact_detected = true;
                 crash_state.impact_timer_ms = now_ms;
@@ -128,7 +145,7 @@ void Plane::update_is_flying_5Hz(void)
         // coef=0.15f @ 5Hz takes 3.0s to go from 100% down to 10% (or 0% up to 90%)
         isFlyingProbability = (0.85f * isFlyingProbability) + (0.15f * (float)is_flying_bool);
     }
-
+    
     /*
       update last_flying_ms so we always know how long we have not
       been flying for. This helps for crash detection and auto-disarm
@@ -155,6 +172,8 @@ void Plane::update_is_flying_5Hz(void)
     previous_is_flying = new_is_flying;
 
     crash_detection_update();
+
+    allow_accel_peak_mavlink_streaming = accel_peak_data_looks_interesting;
 
     if (should_log(MASK_LOG_MODE)) {
         Log_Write_Status();

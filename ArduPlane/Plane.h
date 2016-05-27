@@ -562,6 +562,9 @@ private:
     // time since started flying in any mode in milliseconds
     uint32_t started_flying_ms;
 
+    // flag to signify accel peak data looks interesting, useful to reduce excessive mavlink traffic
+    bool allow_accel_peak_mavlink_streaming;
+
     // Navigation control variables
     // The instantaneous desired bank angle.  Hundredths of a degree
     int32_t nav_roll_cd;
