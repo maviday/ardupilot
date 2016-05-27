@@ -229,8 +229,8 @@ public:
 
     // accel peak hold detector
     void set_accel_peak_hold(uint8_t instance, const Vector3f &accel);
-    Vector3f get_accel_peak_hold_neg() const { return _peak_hold_state.accel_peak_hold_neg; }
-    Vector3f get_accel_peak_hold_pos() const { return _peak_hold_state.accel_peak_hold_pos; }
+    const Vector3f &get_accel_peak_hold_neg() const { return _peak_hold_state.accel_peak_hold_neg; }
+    const Vector3f &get_accel_peak_hold_pos() const { return _peak_hold_state.accel_peak_hold_pos; }
 
     //Returns accel calibrator interface object pointer
     AP_AccelCal* get_acal() const { return _acal; }
