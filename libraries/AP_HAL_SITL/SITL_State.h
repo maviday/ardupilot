@@ -205,8 +205,7 @@ private:
     bool enable_gimbal;
     SITL::Gimbal *gimbal;
 
-    // simulated gimbal
-    bool enable_ADSB;
+    // simulated ADSb
     SITL::ADSB *adsb;
 
     // output socket for flightgear viewing
