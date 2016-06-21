@@ -16,14 +16,13 @@
 /*
  *   APM_Airspeed.cpp - airspeed (pitot) driver
  */
+#include "AP_Airspeed.h"
 
-
+#include <AP_ADC/AP_ADC.h>
+#include <AP_Common/AP_Common.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
-#include <AP_Common/AP_Common.h>
-#include <AP_ADC/AP_ADC.h>
-#include "AP_Airspeed.h"
-#include "GCS_MAVLink/GCS.h"
+#include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL& hal;
 
