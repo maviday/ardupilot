@@ -1100,9 +1100,7 @@ GCS_MAVLINK::data_stream_send(void)
         send_message(MSG_EKF_STATUS_REPORT);
         send_message(MSG_GIMBAL_REPORT);
         send_message(MSG_VIBRATION);
-        if (plane.allow_accel_peak_mavlink_streaming) {
-            send_message(MSG_ACCEL_PEAKS);
-        }
+        send_message(MSG_ACCEL_PEAKS);
     }
 
     if (stream_trigger(STREAM_ADSB)) {
