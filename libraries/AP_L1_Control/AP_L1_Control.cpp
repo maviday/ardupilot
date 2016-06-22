@@ -189,14 +189,14 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
 	// calculate distance to target track, for reporting
 	_crosstrack_error = A_air % AB;
 
-	//Determine if the aircraft is behind a +-135 degree degree arc centred on WP A
-	//and further than L1 distance from WP A. Then use WP A as the L1 reference point
+	//Determine if the aircraft is behind a +-135 degree degree arc centered on WP B
+	//and further than L1 distance from WP A. Then use WP B as the L1 reference point
 		//Otherwise do normal L1 guidance
 	float WP_A_dist = A_air.length();
 	float alongTrackDist = A_air * AB;
-	if (WP_A_dist > _L1_dist && alongTrackDist/MAX(WP_A_dist, 1.0f) < -0.7071f) 
+	if (WP_A_dist > _L1_dist && alongTrackDist/MAX(WP_A_dist, 1.0f) < -0.7071f)
     {
-		//Calc Nu to fly To WP A
+		//Calc Nu to fly To WP B
 		Vector2f A_air_unit = (A_air).normalized(); // Unit vector from WP A to aircraft
 		xtrackVel = _groundspeed_vector % (-A_air_unit); // Velocity across line
 		ltrackVel = _groundspeed_vector * (-A_air_unit); // Velocity along line
