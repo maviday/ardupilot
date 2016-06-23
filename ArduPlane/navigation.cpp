@@ -151,12 +151,7 @@ void Plane::calc_gndspeed_undershoot()
 		Vector2f yawVect = Vector2f(rotMat.a.x,rotMat.b.x);
 		yawVect.normalize();
 		float gndSpdFwd = yawVect * gndVel;
-
-		if (g.min_gndspeed_cm > 0) {
-            groundspeed_undershoot = (g.min_gndspeed_cm - gndSpdFwd*100);
-		} else {
-            groundspeed_undershoot = 0;
-		}
+        groundspeed_undershoot = (g.min_gndspeed_cm > 0) ? (g.min_gndspeed_cm - gndSpdFwd*100) : 0;
     }
 }
 
