@@ -1235,6 +1235,13 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("DSPOILER_AILMTCH", 21, ParametersG2, crow_flap_aileron_matching, 100),
 
+    // @Param: AIRBRK_IN_CH
+    // @DisplayName: RC channel used to manually set airbrake.
+    // @Description: This RC channel will override the automatically selected airbrake setting if it is larger.
+    // @Range: 1 8
+    // @User: User
+    AP_GROUPINFO("AIRBRK_IN_CH", 22, ParametersG2, airbrake_in_channel, 0),
+
     AP_GROUPEND
 };
 
