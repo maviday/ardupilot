@@ -703,6 +703,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("BAL_PITCH_TRIM", 40, ParametersG2, bal_pitch_trim, 0),
 
+    // @Group: ICE_
+    // @Path: ../libraries/AP_ICEngine/AP_ICEngine.cpp
+    AP_SUBGROUPINFO(ice_control, "ICE_", 41, ParametersG2, AP_ICEngine),
+
     AP_GROUPEND
 };
 
@@ -720,8 +724,8 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 // @Description: RC Channel to use for auxiliary functions including saving waypoints
 // @User: Advanced
 
-ParametersG2::ParametersG2(void)
-    :
+ParametersG2::ParametersG2(void) :
+    ice_control(rover.rpm_sensor),
 #if ADVANCED_FAILSAFE == ENABLED
     afs(rover.mission, rover.gps),
 #endif
