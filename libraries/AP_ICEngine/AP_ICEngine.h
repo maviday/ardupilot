@@ -25,6 +25,10 @@ public:
     // constructor
     AP_ICEngine(const AP_RPM &_rpm);
 
+    /* Do not allow copies */
+    AP_ICEngine(const AP_ICEngine &other) = delete;
+    AP_ICEngine &operator=(const AP_ICEngine&) = delete;
+
     static const struct AP_Param::GroupInfo var_info[];
 
     // update engine state. Should be called at 10Hz or more
