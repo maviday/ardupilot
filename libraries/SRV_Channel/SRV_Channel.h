@@ -144,6 +144,8 @@ public:
         k_scripting15           = 108,
         k_scripting16           = 109,
         k_airbrake              = 110,
+        k_crow_inner            = 111,
+        k_crow_outer            = 112,
         k_nr_aux_servo_functions         ///< This must be the last enum value (only add new values _before_ this one)
     } Aux_servo_function_t;
 
