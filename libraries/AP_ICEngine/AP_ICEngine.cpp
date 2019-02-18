@@ -419,6 +419,7 @@ void AP_ICEngine::update_temperature()
     }
 
     temperature.last_sample_ms = AP_HAL::millis();
+    send_temp();
 }
 
 bool AP_ICEngine::get_temperature(float& value) const
@@ -429,6 +430,52 @@ bool AP_ICEngine::get_temperature(float& value) const
     value = temperature.value;
     return true;
 }
+
+void AP_ICEngine::send_temp()
+{
+    const uint32_t now_ms = AP_HAL::millis();
+    if (now_ms - temperature.last_send_ms < 1000) {
+        // slow the send rate to 1Hz because temp doesn't change fast
+        return;
+    }
+    temperature.last_send_ms = now_ms;
+
+    for (uint8_t chan=0; chan<MAVLINK_COMM_NUM_BUFFERS; chan++) {
+        if (!GCS_MAVLINK::is_active_channel((mavlink_channel_t)chan) || !(HAVE_PAYLOAD_SPACE(chan, HIGH_LATENCY))) {
+            // unused datalink or output buffer is full
+            continue;
+        }
+
+       mavlink_msg_high_latency_send(
+               (mavlink_channel_t)chan,
+               0, //uint8_t base_mode,
+               0, //uint32_t custom_mode,
+               0, //uint8_t landed_state,
+               0, //int16_t roll,
+               0, //int16_t pitch,
+               0, //uint16_t heading,
+               0, //int8_t throttle,
+               0, //int16_t heading_sp,
+               0, //int32_t latitude,
+               0, //int32_t longitude,
+               0, //int16_t altitude_amsl,
+               0, //int16_t altitude_sp,
+               0, //uint8_t airspeed,
+               0, //uint8_t airspeed_sp,
+               0, //uint8_t groundspeed,
+               0, //int8_t climb_rate,
+               0, //uint8_t gps_nsat,
+               0, //uint8_t gps_fix_type,
+               0, //uint8_t battery_remaining,
+               (int8_t)temperature.value, //int8_t temperature,
+               0, //int8_t temperature_air,
+               0, //uint8_t failsafe,
+               0, //uint8_t wp_num,
+               0 //uint16_t wp_distance
+               );
+    }
+}
+
 
 
 // singleton instance. Should only ever be set in the constructor.

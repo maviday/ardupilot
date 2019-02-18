@@ -55,6 +55,7 @@ public:
     bool get_temperature(float& value) const;
     bool too_hot() const { return temperature.too_hot(); }
     bool too_cold() const { return temperature.too_cold(); }
+    void send_temp();
 
     static AP_ICEngine *get_singleton() { return _singleton; }
 
@@ -79,6 +80,7 @@ private:
         AP_HAL::AnalogSource *source;
         float value;
         uint32_t last_sample_ms;
+        uint32_t last_send_ms;
 
         bool is_healthy() const { return (pin > 0 && (AP_HAL::millis() - last_sample_ms < 1000) && !isinf(value)); }
         bool too_hot() const { return this->is_healthy() && (value > max); }
