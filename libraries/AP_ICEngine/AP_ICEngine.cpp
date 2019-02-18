@@ -116,6 +116,54 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Range: 0 100000
     AP_GROUPINFO("RPM_THRESH2", 19, AP_ICEngine, rpm_threshold_starting, 0),
 
+    // @Param: TEMP_PIN
+    // @DisplayName: Temperature analog feedback pin
+    // @Description: Temperature analog feedback pin. This is used to sample the engine temperature.
+    // @User: Advanced
+    AP_GROUPINFO("TEMP_PIN", 20, AP_ICEngine, temperature.pin, -1),
+
+    // @Param: TEMP_SCALER
+    // @DisplayName: Temperature scaler
+    // @Description: Temperature scaler to apply to analog input to convert voltage to degrees C
+    // @User: Advanced
+    AP_GROUPINFO("TEMP_SCALER", 21, AP_ICEngine, temperature.scaler, 1),
+
+    // @Param: TEMP_MAX
+    // @DisplayName: Temperature overheat
+    // @Description: Temperature limit that is considered overheating. When above this temperature the starting and throttle will be limited/inhibited. Use 0 to disable.
+    // @User: Advanced
+    // @Units: degC
+    AP_GROUPINFO("TEMP_MAX", 22, AP_ICEngine, temperature.max, 0),
+
+    // @Param: TEMP_MIN
+    // @DisplayName: Temperature minimum
+    // @Description: Temperature minimum that is considered too cold to run the engine. While under this temp the throttle will be inhibited. Use 0 to disable.
+    // @User: Advanced
+    // @Units: degC
+    AP_GROUPINFO("TEMP_MIN", 23, AP_ICEngine, temperature.min, 0),
+
+    // @Param: TEMP_RMETRIC
+    // @DisplayName: Temperature is Ratiometric
+    // @Description: This parameter sets whether an analog temperature is ratiometric. Most analog analog sensors are ratiometric, meaning that their output voltage is influenced by the supply voltage.
+    // @Values: 0:No,1:Yes
+    // @User: Advanced
+    AP_GROUPINFO("TEMP_RMETRIC", 24, AP_ICEngine, temperature.ratiometric, 1),
+
+    // @Param: TEMP_OFFSET
+    // @DisplayName: Temperature voltage offset
+    // @Description: Offset in volts for analog sensor.
+    // @Units: V
+    // @Increment: 0.001
+    // @User: Advanced
+    AP_GROUPINFO("TEMP_OFFSET", 25, AP_ICEngine, temperature.offset, 0),
+
+    // @Param: TEMP_FUNC
+    // @DisplayName: Temperature sensor function
+    // @Description: Control over what function is used to calculate temperature. For a linear function, the temp is (voltage-offset)*scaling. For a inverted function the temp is (offset-voltage)*scaling. For a hyperbolic function the temp is scaling/(voltage-offset).
+    // @Values: 0:Linear,1:Inverted,2:Hyperbolic
+    // @User: Standard
+    AP_GROUPINFO("TEMP_FUNC", 26, AP_ICEngine, temperature.function, 0),
+
     AP_GROUPEND    
 };
 
@@ -140,6 +188,8 @@ void AP_ICEngine::update(void)
     if (!enable) {
         return;
     }
+
+    update_temperature();
 
     determine_state();
 
@@ -171,7 +221,10 @@ void AP_ICEngine::determine_state()
     }
 
     bool should_run = false;
-    if (state == ICE_OFF && cvalue >= 1700) {
+
+    if (too_hot()) {
+        should_run = false;
+    } else if (state == ICE_OFF && cvalue >= 1700) {
         should_run = true;
     } else if (cvalue <= 1300) {
         should_run = false;
@@ -291,6 +344,10 @@ bool AP_ICEngine::throttle_override(uint8_t &percentage)
     if (!enable) {
         return false;
     }
+    if (too_cold() || too_hot()) {
+        percentage = 0;
+        return true;
+    }
     if (state == ICE_STARTING || state == ICE_START_DELAY) {
         percentage = (uint8_t)start_percent.get();
         return true;
@@ -328,10 +385,56 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
     return true;
 }
 
+void AP_ICEngine::update_temperature()
+{
+    if (temperature.pin <= 0) {
+        // disabled
+        temperature.value = 0;
+        return;
+    }
+
+    temperature.source->set_pin(temperature.pin);
+
+    float v;
+    if (temperature.ratiometric) {
+        v = temperature.source->voltage_average_ratiometric();
+    } else {
+        v = temperature.source->voltage_average();
+    }
+
+    switch ((AP_ICEngine::Temperature_Function)temperature.function.get()) {
+    case Temperature_Function::FUNCTION_LINEAR:
+        temperature.value = (v - temperature.offset) * temperature.scaler;
+        break;
+
+    case Temperature_Function::FUNCTION_INVERTED:
+        temperature.value = (temperature.offset - v) * temperature.scaler;
+        break;
+
+    case Temperature_Function::FUNCTION_HYPERBOLA:
+        if (v > temperature.offset) {
+            temperature.value = temperature.scaler / (v - temperature.offset);
+        }
+        break;
+    }
+
+    temperature.last_sample_ms = AP_HAL::millis();
+}
+
+bool AP_ICEngine::get_temperature(float& value) const
+{
+    if (!temperature.is_healthy()) {
+        return false;
+    }
+    value = temperature.value;
+    return true;
+}
+
+
 // singleton instance. Should only ever be set in the constructor.
 AP_ICEngine *AP_ICEngine::_singleton;
 namespace AP {
-AP_ICEngine *ice() {
+    AP_ICEngine *ice() {
         return AP_ICEngine::get_singleton();
     }
 }

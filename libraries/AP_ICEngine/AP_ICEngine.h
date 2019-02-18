@@ -51,6 +51,11 @@ public:
     // handle DO_ENGINE_CONTROL messages via MAVLink or mission
     bool engine_control(float start_control, float cold_start, float height_delay);
     
+    // Engine temperature status
+    bool get_temperature(float& value) const;
+    bool too_hot() const { return temperature.too_hot(); }
+    bool too_cold() const { return temperature.too_cold(); }
+
     static AP_ICEngine *get_singleton() { return _singleton; }
 
 private:
@@ -59,6 +64,34 @@ private:
     const AP_RPM &rpm;
 
     enum ICE_State state;
+
+    // engine temperature for feedback
+    struct {
+        AP_Int8 pin;
+        int8_t pin_prev; // check for changes at runtime
+        AP_Float scaler;
+        AP_Int16 min;
+        AP_Int16 max;
+        AP_Int8 ratiometric;
+        AP_Float offset;
+        AP_Int8 function;
+
+        AP_HAL::AnalogSource *source;
+        float value;
+        uint32_t last_sample_ms;
+
+        bool is_healthy() const { return (pin > 0 && (AP_HAL::millis() - last_sample_ms < 1000) && !isinf(value)); }
+        bool too_hot() const { return this->is_healthy() && (value > max); }
+        bool too_cold() const { return this->is_healthy() && (value < min); }
+    } temperature;
+
+    enum Temperature_Function {
+        FUNCTION_LINEAR    = 0,
+        FUNCTION_INVERTED  = 1,
+        FUNCTION_HYPERBOLA = 2
+    };
+
+    void update_temperature();
 
     void set_output_channels();
 
