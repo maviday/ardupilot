@@ -82,7 +82,7 @@ private:
         uint32_t last_sample_ms;
         uint32_t last_send_ms;
 
-        bool is_healthy() const { return (pin > 0 && (AP_HAL::millis() - last_sample_ms < 1000) && !isinf(value)); }
+        bool is_healthy() const { return (pin > 0 && last_sample_ms && (AP_HAL::millis() - last_sample_ms < 1000)); }
         bool too_hot() const { return this->is_healthy() && (value > max); }
         bool too_cold() const { return this->is_healthy() && (value < min); }
     } temperature;

@@ -387,15 +387,20 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
 
 void AP_ICEngine::update_temperature()
 {
+    if (temperature.source == nullptr) {
+        temperature.source = hal.analogin->channel(temperature.pin);
+        return;
+    }
     if (temperature.pin <= 0) {
         // disabled
         temperature.value = 0;
+        temperature.last_sample_ms = 0;
         return;
     }
 
     temperature.source->set_pin(temperature.pin);
 
-    float v;
+    float v, new_temp_value = 0;
     if (temperature.ratiometric) {
         v = temperature.source->voltage_average_ratiometric();
     } else {
@@ -404,22 +409,25 @@ void AP_ICEngine::update_temperature()
 
     switch ((AP_ICEngine::Temperature_Function)temperature.function.get()) {
     case Temperature_Function::FUNCTION_LINEAR:
-        temperature.value = (v - temperature.offset) * temperature.scaler;
+        new_temp_value = (v - temperature.offset) * temperature.scaler;
         break;
 
     case Temperature_Function::FUNCTION_INVERTED:
-        temperature.value = (temperature.offset - v) * temperature.scaler;
+        new_temp_value = (temperature.offset - v) * temperature.scaler;
         break;
 
     case Temperature_Function::FUNCTION_HYPERBOLA:
         if (v > temperature.offset) {
-            temperature.value = temperature.scaler / (v - temperature.offset);
+            new_temp_value = temperature.scaler / (v - temperature.offset);
         }
         break;
     }
 
-    temperature.last_sample_ms = AP_HAL::millis();
-    send_temp();
+    if (!isinf(new_temp_value)) {
+        temperature.value = new_temp_value;
+        temperature.last_sample_ms = AP_HAL::millis();
+        send_temp();
+    }
 }
 
 bool AP_ICEngine::get_temperature(float& value) const
