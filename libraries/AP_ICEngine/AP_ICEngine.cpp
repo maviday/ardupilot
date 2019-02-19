@@ -220,7 +220,7 @@ void AP_ICEngine::determine_state()
         cvalue = c->get_radio_in();
     }
 
-    bool should_run = false;
+    bool should_run = hal.util->get_soft_armed();
 
     if (too_hot()) {
         should_run = false;
