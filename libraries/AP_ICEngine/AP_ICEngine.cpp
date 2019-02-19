@@ -203,7 +203,7 @@ void AP_ICEngine::update(void)
             }
         } else if (state != ICE_OFF) {
             // force ignition off when disarmed
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine disarmed");
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine disarmed");
             state = ICE_OFF;
         }
     }
@@ -249,13 +249,13 @@ void AP_ICEngine::determine_state()
         Vector3f pos;
         if (!should_run) {
             state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped");
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped");
         } else if (AP::ahrs().get_relative_position_NED_origin(pos)) {
             if (height_pending) {
                 height_pending = false;
                 initial_height = -pos.z;
             } else if ((-pos.z) >= initial_height + height_required) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Engine starting height reached %.1f",
+                gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine starting height reached %.1f",
                                                  (double)(-pos.z - initial_height));
                 state = ICE_STARTING;
             }
@@ -266,9 +266,9 @@ void AP_ICEngine::determine_state()
     case ICE_START_DELAY:
         if (!should_run) {
             state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped");
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped", AP_HAL::millis());
         } else if (AP_HAL::millis() - starter_last_run_ms >= starter_delay*1000) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine starting for %.1fs", starter_delay);
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine starting for %.1fs", AP_HAL::millis(), starter_delay);
             state = ICE_STARTING;
         }
         break;
@@ -276,7 +276,7 @@ void AP_ICEngine::determine_state()
     case ICE_STARTING:
         if (!should_run) {
             state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped while starting");
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped while starting", AP_HAL::millis());
         } else if ((AP_HAL::millis() - starter_start_time_ms >= starter_time*1000) ||    // STARTER_TIME expired, assume we're running
                 (rpm_threshold_starting > 0 && current_rpm >= rpm_threshold_starting)) {    // RPM_THRESH2 exceeded, we know we're running
             // check RPM to see if we've started or if we'ved tried fo rlong enought. If so, skip to running
@@ -287,10 +287,10 @@ void AP_ICEngine::determine_state()
     case ICE_RUNNING:
         if (!should_run) {
             state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped while running");
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped while running", AP_HAL::millis());
         } else if (current_rpm > 0 && rpm_threshold_running > 0 && current_rpm < rpm_threshold_running) {
             // engine has stopped when it should be running
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine died while running");
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine died while running", AP_HAL::millis());
             state = ICE_START_DELAY;
         }
         break;
@@ -369,7 +369,7 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
     if (c != nullptr) {
         // get starter control channel
         if (c->get_radio_in() <= 1300) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine: start control disabled");
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine: start control disabled", AP_HAL::millis());
             return false;
         }
     }
