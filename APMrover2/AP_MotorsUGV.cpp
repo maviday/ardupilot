@@ -453,6 +453,8 @@ void AP_MotorsUGV::setup_pwm_type()
     motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_throttle);
     motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_throttleLeft);
     motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_throttleRight);
+    motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_starter);
+    motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_ignition);
     for (uint8_t i=0; i<_motors_num; i++) {
         motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channels::get_motor_function(i));
     }
