@@ -281,6 +281,7 @@ void AP_ICEngine::determine_state()
                 (rpm_threshold_starting > 0 && current_rpm >= rpm_threshold_starting)) {    // RPM_THRESH2 exceeded, we know we're running
             // check RPM to see if we've started or if we'ved tried fo rlong enought. If so, skip to running
             state = ICE_RUNNING;
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine running!", AP_HAL::millis());
         }
         break;
 
