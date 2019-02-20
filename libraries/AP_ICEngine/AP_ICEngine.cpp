@@ -164,6 +164,15 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("TEMP_FUNC", 26, AP_ICEngine, temperature.function, 0),
 
+    // @Param: PWR_UP_WAIT
+    // @DisplayName: Time to wait after applying acceessory
+    // @Description: Time to wait after applying acceessory before applying starter.
+    // @Units: s
+    // @Increment: 1
+    // @Range: 0 20
+    // @User: Standard
+    AP_GROUPINFO("PWR_UP_WAIT", 27, AP_ICEngine, power_up_time, 0),
+
     AP_GROUPEND    
 };
 
@@ -213,6 +222,8 @@ void AP_ICEngine::update(void)
 
 void AP_ICEngine::determine_state()
 {
+    uint32_t now_ms = AP_HAL::millis();
+
     uint16_t cvalue = 1500;
     RC_Channel *c = rc().channel(start_chan-1);
     if (c != nullptr) {
@@ -240,6 +251,7 @@ void AP_ICEngine::determine_state()
     // switch on current state to work out new state
     switch (state) {
     case ICE_OFF:
+        engine_power_up_wait_ms = 0;
         if (should_run) {
             state = ICE_START_DELAY;
         }
@@ -266,9 +278,24 @@ void AP_ICEngine::determine_state()
     case ICE_START_DELAY:
         if (!should_run) {
             state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped", AP_HAL::millis());
-        } else if (AP_HAL::millis() - starter_last_run_ms >= starter_delay*1000) {
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine starting for %.1fs", AP_HAL::millis(), (double)starter_delay);
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped", now_ms);
+            break;
+        }
+
+        if (power_up_time > 0) {
+            if (!engine_power_up_wait_ms) {
+                gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine waiting for %ds", now_ms, power_up_time);
+                engine_power_up_wait_ms = now_ms;
+                // linger in the current state
+                break;
+            } else if (now_ms - engine_power_up_wait_ms < power_up_time*1000) {
+                // linger in the current state
+                break;
+            }
+        }
+
+        if (now_ms - starter_last_run_ms >= starter_delay*1000) {
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine starting for %.1fs", now_ms, (double)starter_delay);
             state = ICE_STARTING;
         }
         break;

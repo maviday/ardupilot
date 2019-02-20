@@ -139,6 +139,10 @@ private:
     // Ignition state during starting. On or off.
     AP_Int8 ignition_during_start;
 
+    // Time to wait after applying acceessory before applying starter
+    AP_Int16 power_up_time;
+    uint32_t engine_power_up_wait_ms;
+
     // height when we enter ICE_START_HEIGHT_DELAY
     float initial_height;
 
