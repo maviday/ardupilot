@@ -223,7 +223,7 @@ void AP_ICEngine::update(void)
 
 void AP_ICEngine::determine_state()
 {
-    uint32_t now_ms = AP_HAL::millis();
+    const uint32_t now_ms = AP_HAL::millis();
 
     uint16_t cvalue = 1500;
     RC_Channel *c = rc().channel(start_chan-1);
@@ -232,16 +232,14 @@ void AP_ICEngine::determine_state()
         cvalue = c->get_radio_in();
     }
 
-    bool should_run = hal.util->get_soft_armed();
+    bool should_run;
 
-    if (too_hot()) {
+    if (too_hot() || (cvalue <= 1300) || !hal.util->get_soft_armed()) {
         should_run = false;
     } else if (state == ICE_OFF && cvalue >= 1700) {
         should_run = true;
-    } else if (cvalue <= 1300) {
-        should_run = false;
-    } else if (state != ICE_OFF) {
-        should_run = true;
+    } else {
+        should_run = hal.util->get_soft_armed();
     }
 
     //float current_rpm = -1;
