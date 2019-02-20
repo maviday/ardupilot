@@ -199,6 +199,7 @@ void AP_ICEngine::update(void)
     }
 
     update_temperature();
+    send_temp();
 
     determine_state();
 
@@ -243,9 +244,12 @@ void AP_ICEngine::determine_state()
         should_run = true;
     }
 
-    float current_rpm = -1;
+    //float current_rpm = -1;
     if (rpm_instance > 0 && rpm.healthy(rpm_instance-1)) {
+        //current_rpm = rpm.get_rpm(rpm_instance-1);
         current_rpm = rpm.get_rpm(rpm_instance-1);
+    } else {
+        current_rpm = -1;
     }
 
     // switch on current state to work out new state
@@ -369,7 +373,9 @@ void AP_ICEngine::set_output_channels()
  */
 bool AP_ICEngine::throttle_override(int8_t &percentage)
 {
-    const uint8_t percentage_old = percentage;
+    const int8_t percentage_old = percentage;
+
+    throttle_prev = percentage;
 
     if (!enable) {
         return false;
@@ -380,9 +386,13 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
     } else {
         return false;
     }
+    throttle_prev = percentage;
+
+    static enum ICE_State state_prev = state;
 
     const uint32_t now_ms = AP_HAL::millis();
-    if (now_ms - throttle_overrde_msg_last_ms > 1000) {
+    if (now_ms - throttle_overrde_msg_last_ms > 10000 || state_prev != state) {
+        state_prev = state;
         throttle_overrde_msg_last_ms = now_ms;
         gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine Throttle override from %d to %d", now_ms, percentage_old, percentage);
     }
@@ -461,7 +471,7 @@ void AP_ICEngine::update_temperature()
     if (!isinf(new_temp_value)) {
         temperature.value = new_temp_value;
         temperature.last_sample_ms = AP_HAL::millis();
-        send_temp();
+        //send_temp();
     }
 }
 
@@ -477,7 +487,7 @@ bool AP_ICEngine::get_temperature(float& value) const
 void AP_ICEngine::send_temp()
 {
     const uint32_t now_ms = AP_HAL::millis();
-    if (now_ms - temperature.last_send_ms < 1000) {
+    if (now_ms - temperature.last_send_ms < 100) {
         // slow the send rate to 1Hz because temp doesn't change fast
         return;
     }
@@ -491,26 +501,26 @@ void AP_ICEngine::send_temp()
 
        mavlink_msg_high_latency_send(
                (mavlink_channel_t)chan,
-               0, //uint8_t base_mode,
+               (uint8_t)state, //uint8_t base_mode,
                0, //uint32_t custom_mode,
                0, //uint8_t landed_state,
-               0, //int16_t roll,
-               0, //int16_t pitch,
+               (int16_t)current_rpm, //int16_t roll,
+               (int16_t)throttle_prev, //int16_t pitch,
                0, //uint16_t heading,
                0, //int8_t throttle,
                0, //int16_t heading_sp,
                0, //int32_t latitude,
                0, //int32_t longitude,
-               0, //int16_t altitude_amsl,
-               0, //int16_t altitude_sp,
-               0, //uint8_t airspeed,
-               0, //uint8_t airspeed_sp,
+               temperature.too_hot(), //int16_t altitude_amsl,
+              (int16_t)temperature.value, //int16_t altitude_sp,
+               temperature.is_healthy(), //uint8_t airspeed,
+               temperature.too_cold(), //uint8_t airspeed_sp,
                0, //uint8_t groundspeed,
                0, //int8_t climb_rate,
                0, //uint8_t gps_nsat,
                0, //uint8_t gps_fix_type,
                0, //uint8_t battery_remaining,
-               (int8_t)temperature.value, //int8_t temperature,
+               0, //int8_t temperature,
                0, //int8_t temperature_air,
                0, //uint8_t failsafe,
                0, //uint8_t wp_num,

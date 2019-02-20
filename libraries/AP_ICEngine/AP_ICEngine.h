@@ -83,8 +83,8 @@ private:
         uint32_t last_send_ms;
 
         bool is_healthy() const { return (pin > 0 && last_sample_ms && (AP_HAL::millis() - last_sample_ms < 1000)); }
-        bool too_hot() const { return this->is_healthy() && (value > max); }
-        bool too_cold() const { return this->is_healthy() && (value < min); }
+        bool too_hot() const {  return this->is_healthy() && (min < max) && (value > max); }
+        bool too_cold() const { return this->is_healthy() && (min < max) && (value < min); }
     } temperature;
 
     enum Temperature_Function {
@@ -155,6 +155,8 @@ private:
     // timestamp for periodic gcs msg regarding throttle_override
     uint32_t throttle_overrde_msg_last_ms;
 
+    int8_t throttle_prev;
+    float current_rpm = -1;
 };
 
 
