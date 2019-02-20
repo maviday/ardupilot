@@ -261,13 +261,13 @@ void AP_ICEngine::determine_state()
         Vector3f pos;
         if (!should_run) {
             state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped");
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped");
         } else if (AP::ahrs().get_relative_position_NED_origin(pos)) {
             if (height_pending) {
                 height_pending = false;
                 initial_height = -pos.z;
             } else if ((-pos.z) >= initial_height + height_required) {
-                gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine starting height reached %.1f",
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine starting height reached %.1f",
                                                  (double)(-pos.z - initial_height));
                 state = ICE_STARTING;
             }
@@ -303,22 +303,22 @@ void AP_ICEngine::determine_state()
     case ICE_STARTING:
         if (!should_run) {
             state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped while starting", AP_HAL::millis());
-        } else if ((AP_HAL::millis() - starter_start_time_ms >= starter_time*1000) ||    // STARTER_TIME expired, assume we're running
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped while starting", now_ms);
+        } else if ((now_ms - starter_start_time_ms >= starter_time*1000) ||    // STARTER_TIME expired, assume we're running
                 (rpm_threshold_starting > 0 && current_rpm >= rpm_threshold_starting)) {    // RPM_THRESH2 exceeded, we know we're running
             // check RPM to see if we've started or if we'ved tried fo rlong enought. If so, skip to running
             state = ICE_RUNNING;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine running!", AP_HAL::millis());
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine running!", now_ms);
         }
         break;
 
     case ICE_RUNNING:
         if (!should_run) {
             state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped while running", AP_HAL::millis());
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped while running", now_ms);
         } else if (current_rpm > 0 && rpm_threshold_running > 0 && current_rpm < rpm_threshold_running) {
             // engine has stopped when it should be running
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine died while running", AP_HAL::millis());
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine died while running", now_ms);
             state = ICE_START_DELAY;
         }
         break;
