@@ -147,6 +147,10 @@ private:
 
     // we are waiting for valid height data
     bool height_pending:1;
+
+    // timestamp for periodic gcs msg regarding throttle_override
+    uint32_t throttle_overrde_msg_last_ms;
+
 };
 
 

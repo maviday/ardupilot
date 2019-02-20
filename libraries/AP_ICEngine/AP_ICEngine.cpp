@@ -342,18 +342,25 @@ void AP_ICEngine::set_output_channels()
  */
 bool AP_ICEngine::throttle_override(uint8_t &percentage)
 {
+    const uint8_t percentage_old = percentage;
+
     if (!enable) {
         return false;
-    }
-    if (too_cold() || too_hot()) {
+    } else if (too_cold() || too_hot()) {
         percentage = 0;
-        return true;
-    }
-    if (state == ICE_STARTING || state == ICE_START_DELAY) {
+    } else if (state == ICE_STARTING || state == ICE_START_DELAY) {
         percentage = (uint8_t)start_percent.get();
-        return true;
+    } else {
+        return false;
     }
-    return false;
+
+    const uint32_t now_ms = AP_HAL::millis();
+    if (now_ms - throttle_overrde_msg_last_ms > 1000) {
+        throttle_overrde_msg_last_ms = now_ms;
+        gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine Throttle override from %d to %d", now_ms, percentage_old, percentage);
+    }
+
+    return true;
 }
 
 
