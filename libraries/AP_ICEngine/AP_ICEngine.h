@@ -35,7 +35,7 @@ public:
     void update(void);
 
     // check for throttle override
-    bool throttle_override(uint8_t &percent);
+    bool throttle_override(int8_t &percent);
 
     enum ICE_State {
         ICE_OFF=0,

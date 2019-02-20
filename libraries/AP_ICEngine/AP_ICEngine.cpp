@@ -340,7 +340,7 @@ void AP_ICEngine::set_output_channels()
   check for throttle override. This allows the ICE controller to force
   the correct starting throttle when starting the engine
  */
-bool AP_ICEngine::throttle_override(uint8_t &percentage)
+bool AP_ICEngine::throttle_override(int8_t &percentage)
 {
     const uint8_t percentage_old = percentage;
 
@@ -349,7 +349,7 @@ bool AP_ICEngine::throttle_override(uint8_t &percentage)
     } else if (too_cold() || too_hot()) {
         percentage = 0;
     } else if (state == ICE_STARTING || state == ICE_START_DELAY) {
-        percentage = (uint8_t)start_percent.get();
+        percentage = start_percent;
     } else {
         return false;
     }
