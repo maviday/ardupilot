@@ -234,7 +234,7 @@ void Rover::update_ahrs_flyforward()
 
 void Rover::set_throttle(float throttle)
 {
-    uint8_t ice_throttle_override_percent;
+    int8_t ice_throttle_override_percent;
     if (rover.g2.ice_control.throttle_override(ice_throttle_override_percent)) {
         // the ICE controller wants to override the throttle for starting
         throttle = ice_throttle_override_percent;
