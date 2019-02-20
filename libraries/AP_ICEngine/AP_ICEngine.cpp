@@ -268,7 +268,7 @@ void AP_ICEngine::determine_state()
             state = ICE_OFF;
             gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped", AP_HAL::millis());
         } else if (AP_HAL::millis() - starter_last_run_ms >= starter_delay*1000) {
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine starting for %.1fs", AP_HAL::millis(), starter_delay);
+            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine starting for %.1fs", AP_HAL::millis(), (double)starter_delay);
             state = ICE_STARTING;
         }
         break;
