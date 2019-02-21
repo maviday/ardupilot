@@ -17,9 +17,18 @@
 #include <SRV_Channel/SRV_Channel.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_AHRS/AP_AHRS.h>
+#include <AP_MATH/AP_Math.h> // for is_zero
 #include "AP_ICEngine.h"
 
 extern const AP_HAL::HAL& hal;
+
+#if APM_BUILD_TYPE(APM_BUILD_APMrover2)
+    #define AP_ICENGINE_TEMP_TOO_HOT_THROTTLE_REDUCTION_FACTOR_DEFAULT  0.25f
+#elif APM_BUILD_TYPE(APM_BUILD_ArduPlane)
+    #define AP_ICENGINE_TEMP_TOO_HOT_THROTTLE_REDUCTION_FACTOR_DEFAULT  0.75f
+#else
+    #define AP_ICENGINE_TEMP_TOO_HOT_THROTTLE_REDUCTION_FACTOR_DEFAULT  1 // no reduction
+#endif
 
 const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
 
@@ -133,14 +142,14 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Description: Temperature limit that is considered overheating. When above this temperature the starting and throttle will be limited/inhibited. Use 0 to disable.
     // @User: Advanced
     // @Units: degC
-    AP_GROUPINFO("TEMP_MAX", 22, AP_ICEngine, temperature.max, 0),
+    AP_GROUPINFO("TEMP_MAX", 22, AP_ICEngine, temperature.max, 105),
 
     // @Param: TEMP_MIN
     // @DisplayName: Temperature minimum
     // @Description: Temperature minimum that is considered too cold to run the engine. While under this temp the throttle will be inhibited. Use 0 to disable.
     // @User: Advanced
     // @Units: degC
-    AP_GROUPINFO("TEMP_MIN", 23, AP_ICEngine, temperature.min, 0),
+    AP_GROUPINFO("TEMP_MIN", 23, AP_ICEngine, temperature.min, 10),
 
     // @Param: TEMP_RMETRIC
     // @DisplayName: Temperature is Ratiometric
@@ -174,6 +183,13 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     AP_GROUPINFO("PWR_UP_WAIT", 27, AP_ICEngine, power_up_time, 0),
 
     AP_GROUPEND    
+    // @Param: TEMP_HOT_THR
+    // @DisplayName: Temperature overheat throttle behavior
+    // @Description: Throttle reduction factor during an overheat. Smaller
+    // @User: Advanced
+    // @Range: 0 1
+    AP_GROUPINFO("TEMP_HOT_THR", 29, AP_ICEngine, temperature.too_hot_throttle_reduction_factor, AP_ICENGINE_TEMP_TOO_HOT_THROTTLE_REDUCTION_FACTOR_DEFAULT),
+
 };
 
 
@@ -234,7 +250,7 @@ void AP_ICEngine::determine_state()
 
     bool should_run;
 
-    if (too_hot() || (cvalue <= 1300) || !hal.util->get_soft_armed()) {
+    if ((temperature.is_healthy() && temperature.too_hot()) || (cvalue <= 1300) || !hal.util->get_soft_armed()) {
         should_run = false;
     } else if (state == ICE_OFF && cvalue >= 1700) {
         should_run = true;
@@ -367,20 +383,23 @@ void AP_ICEngine::set_output_channels()
 
 /*
   check for throttle override. This allows the ICE controller to force
-  the correct starting throttle when starting the engine
+  the correct starting throttle when starting the engine or out of temp range
  */
 bool AP_ICEngine::throttle_override(int8_t &percentage)
 {
-    const int8_t percentage_old = percentage;
-
-    throttle_prev = percentage;
-
     if (!enable) {
         return false;
-    } else if (too_cold() || too_hot()) {
-        percentage = 0;
-    } else if (state == ICE_STARTING || state == ICE_START_DELAY) {
+    }
+
+    const int8_t percentage_old = percentage;
+    throttle_prev = percentage;
+
+    if (state == ICE_STARTING || state == ICE_START_DELAY) {
         percentage = start_percent;
+    } else if (too_cold()) {
+        percentage = 0;
+    } else if (too_hot()) {
+        percentage *= constrain_float(temperature.too_hot_throttle_reduction_factor,0,1);
     } else {
         return false;
     }
@@ -460,7 +479,7 @@ void AP_ICEngine::update_temperature()
         break;
 
     case Temperature_Function::FUNCTION_HYPERBOLA:
-        if (v > temperature.offset) {
+        if (!is_zero(v - temperature.offset)) {
             new_temp_value = temperature.scaler / (v - temperature.offset);
         }
         break;
@@ -510,7 +529,7 @@ void AP_ICEngine::send_temp()
                0, //int32_t latitude,
                0, //int32_t longitude,
                temperature.too_hot(), //int16_t altitude_amsl,
-              (int16_t)temperature.value, //int16_t altitude_sp,
+              (int16_t)(temperature.value*100), //int16_t altitude_sp,
                temperature.is_healthy(), //uint8_t airspeed,
                temperature.too_cold(), //uint8_t airspeed_sp,
                0, //uint8_t groundspeed,

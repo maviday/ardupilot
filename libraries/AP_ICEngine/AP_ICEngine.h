@@ -53,8 +53,8 @@ public:
     
     // Engine temperature status
     bool get_temperature(float& value) const;
-    bool too_hot() const { return temperature.too_hot(); }
-    bool too_cold() const { return temperature.too_cold(); }
+    bool too_hot() const { return temperature.is_healthy() && temperature.too_hot(); }
+    bool too_cold() const { return temperature.is_healthy() && temperature.too_cold(); }
     void send_temp();
 
     static AP_ICEngine *get_singleton() { return _singleton; }
@@ -76,6 +76,7 @@ private:
         AP_Int8 ratiometric;
         AP_Float offset;
         AP_Int8 function;
+        AP_Float too_hot_throttle_reduction_factor;
 
         AP_HAL::AnalogSource *source;
         float value;
@@ -83,8 +84,8 @@ private:
         uint32_t last_send_ms;
 
         bool is_healthy() const { return (pin > 0 && last_sample_ms && (AP_HAL::millis() - last_sample_ms < 1000)); }
-        bool too_hot() const {  return this->is_healthy() && (min < max) && (value > max); }
-        bool too_cold() const { return this->is_healthy() && (min < max) && (value < min); }
+        bool too_hot() const {  return (min < max) && (value > max); } // note, min == max will return false.
+        bool too_cold() const { return (min < max) && (value < min); } // note, min == max will return false.
     } temperature;
 
     enum Temperature_Function {
