@@ -119,8 +119,10 @@ private:
     // pwm values 
     AP_Int16 pwm_ignition_on;
     AP_Int16 pwm_ignition_off;
+    AP_Int16 pwm_ignition_during_start;
     AP_Int16 pwm_starter_on;
     AP_Int16 pwm_starter_off;
+    AP_Int16 pwm_starter_dis;
     
     // RPM above which engine is considered to be running
     AP_Int32 rpm_threshold_running;
@@ -136,9 +138,6 @@ private:
 
     // throttle percentage for engine start
     AP_Int8 start_percent;
-
-    // Ignition state during starting. On or off.
-    AP_Int8 ignition_during_start;
 
     // Time to wait after applying acceessory before applying starter
     AP_Int16 power_up_time;

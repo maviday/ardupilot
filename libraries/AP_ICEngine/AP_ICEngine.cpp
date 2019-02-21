@@ -111,12 +111,12 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Range: 0 100
     AP_GROUPINFO("START_PCT", 10, AP_ICEngine, start_percent, 5),
 
-    // @Param: IGN_START
+    // @Param: PWM_IGN_STRT
     // @DisplayName: Ignition state during starting
-    // @Description: Ignition state during starting. When set to 1, ignition (aka accessory) is active during starting. Set to 0 to disable ignition/accessory during starting
+    // @Description: This is the PWM value sent to the starter channel while starting. Can also use -1 for PWM minimum, 0 for ICE_PWM_IGN_OFF, 1 for ICE_PWM_IGN_ON.
     // @User: Advanced
-    // @Range: 0 1
-    AP_GROUPINFO("IGN_START", 18, AP_ICEngine, ignition_during_start, 1),
+    // @Range: -1 2000
+    AP_GROUPINFO("PWM_IGN_STRT", 17, AP_ICEngine, pwm_ignition_during_start, 1),
 
     // @Param: RPM_THRESH2
     // @DisplayName: RPM threshold 2 starting
@@ -179,10 +179,16 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Units: s
     // @Increment: 1
     // @Range: 0 20
-    // @User: Standard
+    // @User: Advanced
     AP_GROUPINFO("PWR_UP_WAIT", 27, AP_ICEngine, power_up_time, 0),
 
-    AP_GROUPEND    
+    // @Param: PWM_STRT_DIS
+    // @DisplayName: PWM value for starter disabled
+    // @Description: This is the PWM value sent to the starter channel when the system is in an off state. Can also use -1 for PWM minimum, 0 for ICE_PWM_STRT_OFF, 1 for ICE_PWM_STRT_ON.
+    // @User: Advanced
+    // @Range: -1 2000
+    AP_GROUPINFO("PWM_STRT_DIS", 28, AP_ICEngine, pwm_starter_dis, -1),
+
     // @Param: TEMP_HOT_THR
     // @DisplayName: Temperature overheat throttle behavior
     // @Description: Throttle reduction factor during an overheat. Smaller
@@ -190,6 +196,8 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Range: 0 1
     AP_GROUPINFO("TEMP_HOT_THR", 29, AP_ICEngine, temperature.too_hot_throttle_reduction_factor, AP_ICENGINE_TEMP_TOO_HOT_THROTTLE_REDUCTION_FACTOR_DEFAULT),
 
+
+    AP_GROUPEND
 };
 
 
@@ -349,7 +357,16 @@ void AP_ICEngine::set_output_channels()
     switch (state) {
     case ICE_OFF:
         SRV_Channels::set_output_pwm(SRV_Channel::k_ignition, pwm_ignition_off);
-        SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_off);
+
+        if (pwm_starter_dis < 0) {
+            SRV_Channels::set_output_scaled(SRV_Channel::k_starter,  0);
+        } else if (pwm_starter_dis == 0) {
+            SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_off);
+        } else if (pwm_starter_dis == 1) {
+            SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_on);
+        } else {
+            SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_dis);
+        }
         starter_start_time_ms = 0;
         break;
 
@@ -360,11 +377,16 @@ void AP_ICEngine::set_output_channels()
         break;
 
     case ICE_STARTING:
-        if (ignition_during_start) {
-            SRV_Channels::set_output_pwm(SRV_Channel::k_ignition, pwm_ignition_on);
+        if (pwm_ignition_during_start < 0) {
+            SRV_Channels::set_output_scaled(SRV_Channel::k_ignition,  0);
+        } else if (pwm_ignition_during_start == 0) {
+            SRV_Channels::set_output_pwm(SRV_Channel::k_ignition,  pwm_ignition_off);
+        } else if (pwm_ignition_during_start == 1) {
+            SRV_Channels::set_output_pwm(SRV_Channel::k_ignition,  pwm_ignition_on);
         } else {
-            SRV_Channels::set_output_pwm(SRV_Channel::k_ignition, pwm_ignition_off);
+            SRV_Channels::set_output_pwm(SRV_Channel::k_ignition,  pwm_ignition_during_start);
         }
+
         SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_on);
         if (starter_start_time_ms == 0) {
             starter_start_time_ms = AP_HAL::millis();
