@@ -196,6 +196,13 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Range: 0 1
     AP_GROUPINFO("TEMP_HOT_THR", 29, AP_ICEngine, temperature.too_hot_throttle_reduction_factor, AP_ICENGINE_TEMP_TOO_HOT_THROTTLE_REDUCTION_FACTOR_DEFAULT),
 
+    // @Param: ARM_REQ
+    // @DisplayName: Require vehicle to be armed
+    // @Description: Require vehicle to be armed to allow engine or accessory to be on
+    // @User: Advanced
+    // @Range: 0 1
+    AP_GROUPINFO("ARM_REQ", 30, AP_ICEngine, armed_is_required, 1),
+
 
     AP_GROUPEND
 };
@@ -235,9 +242,9 @@ void AP_ICEngine::update(void)
                 // reset initial height while disarmed
                 initial_height = -pos.z;
             }
-        } else if (state != ICE_OFF) {
+        } else if (state != ICE_OFF && armed_is_required) {
             // force ignition off when disarmed
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine disarmed");
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine disarmed");
             state = ICE_OFF;
         }
     }
@@ -247,48 +254,54 @@ void AP_ICEngine::update(void)
 
 void AP_ICEngine::determine_state()
 {
-    const uint32_t now_ms = AP_HAL::millis();
+    uint16_t cvalue;
 
-    uint16_t cvalue = 1500;
     RC_Channel *c = rc().channel(start_chan-1);
-    if (c != nullptr) {
-        // get starter control channel
-        cvalue = c->get_radio_in();
+    if (c == nullptr) {
+        if (state != ICE_OFF) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped, check starter input");
+        }
+        state = ICE_OFF;
+        return;
     }
 
-    bool should_run;
+    cvalue = c->get_radio_in();
 
-    if ((temperature.is_healthy() && temperature.too_hot()) || (cvalue <= 1300) || !hal.util->get_soft_armed()) {
-        should_run = false;
-    } else if (state == ICE_OFF && cvalue >= 1700) {
-        should_run = true;
-    } else {
-        should_run = hal.util->get_soft_armed();
+    // check for 2 or 3 position switch:
+    // low = off
+    // mid = accessory/run only
+    // high accessory/run + allow auto starting
+    const bool switch_position_off          = (cvalue <= 1300);
+    const bool switch_position_acc          = (cvalue > 1300) && (cvalue < 1700);
+    const bool switch_position_acc_start    = (cvalue >= 1700);
+    const uint32_t now_ms = AP_HAL::millis();
+    const bool system_should_be_off = switch_position_off || (armed_is_required && !hal.util->get_soft_armed());
+
+    if (system_should_be_off) {
+        if (state != ICE_OFF) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped");
+        }
+        state = ICE_OFF;
     }
 
-    //float current_rpm = -1;
-    if (rpm_instance > 0 && rpm.healthy(rpm_instance-1)) {
-        //current_rpm = rpm.get_rpm(rpm_instance-1);
-        current_rpm = rpm.get_rpm(rpm_instance-1);
-    } else {
-        current_rpm = -1;
+    int32_t current_rpm = -1;
+    if (rpm.healthy(rpm_instance)) {
+        current_rpm = (int32_t)rpm.get_rpm(rpm_instance-1);
     }
 
     // switch on current state to work out new state
     switch (state) {
     case ICE_OFF:
         engine_power_up_wait_ms = 0;
-        if (should_run) {
+        if (!system_should_be_off && (switch_position_acc || switch_position_acc_start)) {
             state = ICE_START_DELAY;
         }
         break;
 
     case ICE_START_HEIGHT_DELAY: {
+        // NOTE, this state can only be achieved via MAVLink command so the starter RCin is not checked
         Vector3f pos;
-        if (!should_run) {
-            state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped");
-        } else if (AP::ahrs().get_relative_position_NED_origin(pos)) {
+        if (AP::ahrs().get_relative_position_NED_origin(pos)) {
             if (height_pending) {
                 height_pending = false;
                 initial_height = -pos.z;
@@ -302,15 +315,14 @@ void AP_ICEngine::determine_state()
     }
 
     case ICE_START_DELAY:
-        if (!should_run) {
-            state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped", now_ms);
+        if (!switch_position_acc_start) {
+            // nothing to do, linger in this state forever
             break;
         }
 
         if (power_up_time > 0) {
             if (!engine_power_up_wait_ms) {
-                gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine waiting for %ds", now_ms, power_up_time);
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine waiting for %ds", power_up_time);
                 engine_power_up_wait_ms = now_ms;
                 // linger in the current state
                 break;
@@ -320,31 +332,43 @@ void AP_ICEngine::determine_state()
             }
         }
 
-        if (now_ms - starter_last_run_ms >= starter_delay*1000) {
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine starting for %.1fs", now_ms, (double)starter_delay);
+        if (starter_delay <= 0) {
+            state = ICE_STARTING;
+        } else if (!starter_last_run_ms || now_ms - starter_last_run_ms >= starter_delay*1000) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine starting for up to %.1fs", (double)starter_delay);
             state = ICE_STARTING;
         }
         break;
 
     case ICE_STARTING:
-        if (!should_run) {
-            state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped while starting", now_ms);
-        } else if ((now_ms - starter_start_time_ms >= starter_time*1000) ||    // STARTER_TIME expired, assume we're running
-                (rpm_threshold_starting > 0 && current_rpm >= rpm_threshold_starting)) {    // RPM_THRESH2 exceeded, we know we're running
+        if (switch_position_acc) {
+            // user abort
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped");
+            state = ICE_START_DELAY;
+        } else if (rpm_threshold_starting > 0 && current_rpm >= rpm_threshold_starting) {
+            // RPM_THRESH2 exceeded, we know we're running
             // check RPM to see if we've started or if we'ved tried fo rlong enought. If so, skip to running
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine running! Detected %d rpm", current_rpm);
             state = ICE_RUNNING;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine running!", now_ms);
+        } else if (now_ms - starter_start_time_ms >= starter_time*1000) {
+            // STARTER_TIME expired
+            if (rpm_threshold_starting > 0 && current_rpm < rpm_threshold_starting) {
+                // not running, start has failed.
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine start failed");
+                state = ICE_START_DELAY;
+            } else {
+                // without an rpm sensor we have to assume we're successful
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine running!");
+                state = ICE_RUNNING;
+            }
         }
         break;
 
     case ICE_RUNNING:
-        if (!should_run) {
-            state = ICE_OFF;
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine stopped while running", now_ms);
-        } else if (current_rpm > 0 && rpm_threshold_running > 0 && current_rpm < rpm_threshold_running) {
+        // switch position can be either acc or acc_start while in this state
+        if (current_rpm > 0 && rpm_threshold_running > 0 && current_rpm < rpm_threshold_running) {
             // engine has stopped when it should be running
-            gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine died while running", now_ms);
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine died while running: %d rpm", current_rpm);
             state = ICE_START_DELAY;
         }
         break;
@@ -368,7 +392,7 @@ void AP_ICEngine::set_output_channels()
             SRV_Channels::set_output_pwm(SRV_Channel::k_starter,  pwm_starter_dis);
         }
         starter_start_time_ms = 0;
-        break;
+       break;
 
     case ICE_START_HEIGHT_DELAY:
     case ICE_START_DELAY:
@@ -433,7 +457,7 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
     if (now_ms - throttle_overrde_msg_last_ms > 10000 || state_prev != state) {
         state_prev = state;
         throttle_overrde_msg_last_ms = now_ms;
-        gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine Throttle override from %d to %d", now_ms, percentage_old, percentage);
+        gcs().send_text(MAV_SEVERITY_INFO, "Engine Throttle override from %d to %d", percentage_old, percentage);
     }
 
     return true;
@@ -543,7 +567,7 @@ void AP_ICEngine::send_temp()
                (uint8_t)state, //uint8_t base_mode,
                0, //uint32_t custom_mode,
                0, //uint8_t landed_state,
-               (int16_t)current_rpm, //int16_t roll,
+               0, //int16_t roll,
                (int16_t)throttle_prev, //int16_t pitch,
                0, //uint16_t heading,
                0, //int8_t throttle,

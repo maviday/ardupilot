@@ -124,6 +124,9 @@ private:
     AP_Int16 pwm_starter_off;
     AP_Int16 pwm_starter_dis;
     
+    // Require vehicle to be armed to allow engine or accessory to be on
+    AP_Int8 armed_is_required;
+
     // RPM above which engine is considered to be running
     AP_Int32 rpm_threshold_running;
     
