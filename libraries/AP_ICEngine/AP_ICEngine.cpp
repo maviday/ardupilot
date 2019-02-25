@@ -556,14 +556,15 @@ void AP_ICEngine::send_temp()
     }
     temperature.last_send_ms = now_ms;
 
-    for (uint8_t chan=0; chan<MAVLINK_COMM_NUM_BUFFERS; chan++) {
-        if (!GCS_MAVLINK::is_active_channel((mavlink_channel_t)chan) || !(HAVE_PAYLOAD_SPACE(chan, HIGH_LATENCY))) {
-            // unused datalink or output buffer is full
+    const uint8_t chan_mask = GCS_MAVLINK::active_channel_mask();
+    for (uint8_t i=0; i<MAVLINK_COMM_NUM_BUFFERS; i++) {
+        if ((chan_mask & (1U<<i)) == 0) {
+            // not active
             continue;
         }
 
        mavlink_msg_high_latency_send(
-               (mavlink_channel_t)chan,
+               (mavlink_channel_t)i,
                (uint8_t)state, //uint8_t base_mode,
                0, //uint32_t custom_mode,
                0, //uint8_t landed_state,
