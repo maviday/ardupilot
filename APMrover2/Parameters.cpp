@@ -619,6 +619,12 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(scripting, "SCR_", 41, ParametersG2, AP_Scripting),
 #endif
 
+    // AION ROBOTICS In-House params
+    // -----------------------------
+    AP_GROUPINFO("FS_TIMEOUT2_MS", 55, ParametersG2, fs_timeout2_ms, 450),
+    // -----------------------------
+
+
     // @Param: STICK_MIXING
     // @DisplayName: Stick Mixing
     // @Description: When enabled, this adds steering user stick input in auto modes, allowing the user to have some degree of control without changing modes.

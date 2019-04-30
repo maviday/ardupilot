@@ -374,6 +374,13 @@ public:
     // Airspeed
     AP_Airspeed airspeed;
 
+
+    // AION ROBOTICS In-House params
+    // -----------------------------
+    AP_Int32 fs_timeout2_ms;
+    // -----------------------------
+
+
     // mission behave
     AP_Int8 mis_done_behave;
 
