@@ -263,6 +263,50 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @User: Standard
     AP_SUBGROUPINFO(_sailboat_heel_pid, "_SAIL_", 12, AR_AttitudeControl, AC_PID),
 
+
+    // @Param: _BRAKE_P
+    // @DisplayName: Brake control P gain
+    // @Description: Brake control P gain.
+    // @Range: 0.010 2.000
+    // @Increment: 0.01
+    // @User: Standard
+
+    // @Param: _BRAKE_I
+    // @DisplayName: Brake control I gain
+    // @Description: Brake control I gain.
+    // @Range: 0.000 2.000
+    // @User: Standard
+
+    // @Param: _BRAKE_IMAX
+    // @DisplayName: Brake control I gain maximum
+    // @Description: Brake control I gain maximum.
+    // @Range: 0.000 1.000
+    // @Increment: 0.01
+    // @User: Standard
+
+    // @Param: _BRAKE_D
+    // @DisplayName: Brake control D gain
+    // @Description: Brake control D gain.
+    // @Range: 0.000 0.400
+    // @Increment: 0.001
+    // @User: Standard
+
+    // @Param: _BRAKE_FF
+    // @DisplayName: Brake control feed forward
+    // @Description: Brake control feed forward
+    // @Range: 0.000 0.500
+    // @Increment: 0.001
+    // @User: Standard
+
+    // @Param: _BRAKE_FILT
+    // @DisplayName: Brake control filter frequency
+    // @Description: Brake control input filter.  Lower values reduce noise but add delay.
+    // @Range: 0.000 100.000
+    // @Increment: 0.1
+    // @Units: Hz
+    // @User: Standard
+    AP_SUBGROUPINFO(_brake_pid, "_BRAKE_", 13, AR_AttitudeControl, AC_PID),
+
     AP_GROUPEND
 };
 
@@ -272,7 +316,8 @@ AR_AttitudeControl::AR_AttitudeControl(AP_AHRS &ahrs) :
     _steer_rate_pid(AR_ATTCONTROL_STEER_RATE_P, AR_ATTCONTROL_STEER_RATE_I, AR_ATTCONTROL_STEER_RATE_D, AR_ATTCONTROL_STEER_RATE_IMAX, AR_ATTCONTROL_STEER_RATE_FILT, AR_ATTCONTROL_DT, AR_ATTCONTROL_STEER_RATE_FF),
     _throttle_speed_pid(AR_ATTCONTROL_THR_SPEED_P, AR_ATTCONTROL_THR_SPEED_I, AR_ATTCONTROL_THR_SPEED_D, AR_ATTCONTROL_THR_SPEED_IMAX, AR_ATTCONTROL_THR_SPEED_FILT, AR_ATTCONTROL_DT),
     _pitch_to_throttle_pid(AR_ATTCONTROL_PITCH_THR_P, AR_ATTCONTROL_PITCH_THR_I, AR_ATTCONTROL_PITCH_THR_D, AR_ATTCONTROL_PITCH_THR_IMAX, AR_ATTCONTROL_PITCH_THR_FILT, AR_ATTCONTROL_DT),
-    _sailboat_heel_pid(AR_ATTCONTROL_HEEL_SAIL_P, AR_ATTCONTROL_HEEL_SAIL_I, AR_ATTCONTROL_HEEL_SAIL_D, AR_ATTCONTROL_HEEL_SAIL_IMAX, AR_ATTCONTROL_HEEL_SAIL_FILT, AR_ATTCONTROL_DT)
+    _sailboat_heel_pid(AR_ATTCONTROL_HEEL_SAIL_P, AR_ATTCONTROL_HEEL_SAIL_I, AR_ATTCONTROL_HEEL_SAIL_D, AR_ATTCONTROL_HEEL_SAIL_IMAX, AR_ATTCONTROL_HEEL_SAIL_FILT, AR_ATTCONTROL_DT),
+    _brake_pid(AR_ATTCONTROL_BRAKE_P, AR_ATTCONTROL_BRAKE_I, AR_ATTCONTROL_BRAKE_D, AR_ATTCONTROL_BRAKE_IMAX, AR_ATTCONTROL_BRAKE_FILT, AR_ATTCONTROL_DT)
     {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -432,6 +477,39 @@ float AR_AttitudeControl::get_turn_rate_from_lat_accel(float lat_accel, float sp
     return lat_accel / speed;
 }
 
+float AR_AttitudeControl::calc_brake(const float target_speed, const float throttle, const float dt)
+{
+    (void)throttle;
+    (void)target_speed;
+
+    // get speed forward
+    float speed;
+    if (!get_forward_speed(speed)) {
+        // If we don't know how fast we're going, best not to mess with the brakes
+        return 0;
+    }
+
+    _brake_pid.set_dt(dt);
+    _brake_pid.set_input_filter_all(_speed_error>0 ? 0:_speed_error);
+    _brake_pid.set_desired_rate(_speed_error);
+
+    const float ff= _brake_pid.get_ff(_desired_speed);
+    const float p = _brake_pid.get_p();
+          float i = _brake_pid.get_integrator();
+    const float d = _brake_pid.get_d();
+
+    if (is_positive(_speed_error)) {
+        // positive speed_error means we are going too slow and want to speed up. No brakes
+        return 0;
+    } else {
+        // negative speed_error means we are going too fast and want to slow down
+        i = _throttle_speed_pid.get_i();
+    }
+
+    // calculate final output
+     return (ff + p + i + d);
+}
+
 // return a throttle output from -1 to +1 given a desired speed in m/s (use negative speeds to travel backwards)
 //   motor_limit should be true if motors have hit their upper or lower limits
 //   cruise speed should be in m/s, cruise throttle should be a number from -1 to +1
@@ -463,8 +541,9 @@ float AR_AttitudeControl::get_throttle_out_speed(float desired_speed, bool motor
     _throttle_speed_pid.set_dt(dt);
 
     // calculate speed error and pass to PID controller
-    const float speed_error = desired_speed - speed;
-    _throttle_speed_pid.set_input_filter_all(speed_error);
+    // positive means we want to go faster
+    _speed_error = desired_speed - speed;
+    _throttle_speed_pid.set_input_filter_all(_speed_error);
 
     // record desired speed for logging purposes only
     _throttle_speed_pid.set_desired_rate(desired_speed);
@@ -477,7 +556,7 @@ float AR_AttitudeControl::get_throttle_out_speed(float desired_speed, bool motor
 
     // get i unless moving at low speed or motors have hit a limit
     float i = _throttle_speed_pid.get_integrator();
-    if ((is_negative(speed_error) && !motor_limit_low && !_throttle_limit_low) || (is_positive(speed_error) && !motor_limit_high && !_throttle_limit_high)) {
+    if ((is_negative(_speed_error) && !motor_limit_low && !_throttle_limit_low) || (is_positive(_speed_error) && !motor_limit_high && !_throttle_limit_high)) {
         i = _throttle_speed_pid.get_i();
     }
 

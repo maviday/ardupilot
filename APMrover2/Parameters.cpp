@@ -636,6 +636,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Path: ../libraries/AR_WPNav/AR_WPNav.cpp
     AP_SUBGROUPINFO(wp_nav, "WP_", 43, ParametersG2, AR_WPNav),
 
+    // @Group: ICE_
+    // @Path: ../libraries/AP_ICEngine/AP_ICEngine.cpp
+    AP_SUBGROUPINFO(ice_control, "ICE_", 50, ParametersG2, AP_ICEngine),
+	
     // @Group: SAIL_
     // @Path: sailboat.cpp
     AP_SUBGROUPINFO(sailboat, "SAIL_", 44, ParametersG2, Sailboat),
@@ -707,6 +711,7 @@ ParametersG2::ParametersG2(void)
     afs(rover.mission, rover.gps),
 #endif
     beacon(rover.serial_manager),
+    ice_control(),
     motors(rover.ServoRelayEvents),
     wheel_rate_control(wheel_encoder),
     attitude_control(rover.ahrs),

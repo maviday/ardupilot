@@ -129,6 +129,9 @@ void SRV_Channel::aux_servo_function_setup(void)
     case k_throttle:
     case k_throttleLeft:
     case k_throttleRight:
+    case k_ignition:
+    case k_starter:
+    case k_brake:
         // fixed wing throttle
         set_range(100);
         break;
@@ -601,6 +604,26 @@ bool SRV_Channels::get_output_pwm(SRV_Channel::Aux_servo_function_t function, ui
     channels[chan].calc_pwm(functions[function].output_scaled);
     value = channels[chan].output_pwm;
     return true;
+}
+
+// set output pwm to min for the given function
+void SRV_Channels::set_output_to_min(SRV_Channel::Aux_servo_function_t function)
+{
+   for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
+        if (channels[i].function == function) {
+            channels[i].set_output_pwm(channels[i].servo_min);
+        }
+    }
+}
+
+// set output pwm to max for the given function
+void SRV_Channels::set_output_to_max(SRV_Channel::Aux_servo_function_t function)
+{
+   for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
+        if (channels[i].function == function) {
+            channels[i].set_output_pwm(channels[i].servo_max);
+        }
+    }
 }
 
 // set output pwm to trim for the given function

@@ -21,18 +21,32 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_RPM/AP_RPM.h>
 
+#define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION       (1<<0)
+#define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START          (1<<1)
+#define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (0)
+
+
 class AP_ICEngine {
 public:
     // constructor
-    AP_ICEngine(const AP_RPM &_rpm);
+    AP_ICEngine();
+
+    /* Do not allow copies */
+    AP_ICEngine(const AP_ICEngine &other) = delete;
+    AP_ICEngine &operator=(const AP_ICEngine&) = delete;
 
     static const struct AP_Param::GroupInfo var_info[];
 
     // update engine state. Should be called at 10Hz or more
     void update(void);
 
+    void init(const bool force_outut);
+
     // check for throttle override
-    bool throttle_override(uint8_t &percent);
+    bool throttle_override(int8_t &percent);
+
+    // check for brake override
+    bool brake_override(float &percentage);
 
     enum ICE_State {
         ICE_OFF=0,
@@ -48,14 +62,59 @@ public:
     // handle DO_ENGINE_CONTROL messages via MAVLink or mission
     bool engine_control(float start_control, float cold_start, float height_delay);
     
+    // Engine temperature status
+    bool get_temperature(float& value) const;
+    bool too_hot() const { return temperature.is_healthy() && temperature.too_hot(); }
+    bool too_cold() const { return temperature.is_healthy() && temperature.too_cold(); }
+    void send_temp();
+
     static AP_ICEngine *get_singleton() { return _singleton; }
 
 private:
     static AP_ICEngine *_singleton;
 
-    const AP_RPM &rpm;
-
     enum ICE_State state;
+
+    // engine temperature for feedback
+    struct {
+        AP_Int8 pin;
+        int8_t pin_prev; // check for changes at runtime
+        AP_Float scaler;
+        AP_Int16 min;
+        AP_Int16 max;
+        AP_Int8 ratiometric;
+        AP_Float offset;
+        AP_Int8 function;
+        AP_Float too_hot_throttle_reduction_factor;
+
+        AP_HAL::AnalogSource *source;
+        float value;
+        uint32_t last_sample_ms;
+        uint32_t last_send_ms;
+
+        bool is_healthy() const { return (pin > 0 && last_sample_ms && (AP_HAL::millis() - last_sample_ms < 1000)); }
+        bool too_hot() const {  return (min < max) && (value > max); } // note, min == max will return false.
+        bool too_cold() const { return (min < max) && (value < min); } // note, min == max will return false.
+    } temperature;
+
+    enum Temperature_Function {
+        FUNCTION_LINEAR    = 0,
+        FUNCTION_INVERTED  = 1,
+        FUNCTION_HYPERBOLA = 2
+    };
+
+    void update_temperature();
+
+    void set_output_channels();
+
+    void determine_state();
+
+    void set_outputs_off() const;
+
+    // bitmask options
+    AP_Int32 options;
+
+    AP_Int8 resarts_allowed;
 
     // enable library
     AP_Int8 enable;
@@ -72,15 +131,12 @@ private:
     // delay between start attempts (seconds)
     AP_Float starter_delay;
     
-    // pwm values 
-    AP_Int16 pwm_ignition_on;
-    AP_Int16 pwm_ignition_off;
-    AP_Int16 pwm_starter_on;
-    AP_Int16 pwm_starter_off;
-    
     // RPM above which engine is considered to be running
-    AP_Int32 rpm_threshold;
+    AP_Int32 rpm_threshold_running;
     
+    // RPM above which engine is considered to be running and remaining starting time should be skipped
+    AP_Int32 rpm_threshold_starting;
+
     // time when we started the starter
     uint32_t starter_start_time_ms;
 
@@ -93,6 +149,10 @@ private:
     // throttle percentage for engine idle
     AP_Int8 idle_percent;
 
+    // Time to wait after applying acceessory before applying starter
+    AP_Int16 power_up_time;
+    uint32_t engine_power_up_wait_ms;
+
     // height when we enter ICE_START_HEIGHT_DELAY
     float initial_height;
 
@@ -101,6 +161,20 @@ private:
 
     // we are waiting for valid height data
     bool height_pending:1;
+
+    // timestamp for periodic gcs msg regarding throttle_override
+    uint32_t throttle_overrde_msg_last_ms;
+
+    // store the previous throttle
+    int8_t throttle_prev;
+
+    // keep track of how many times we attempted to start. This will get conmpared to resarts_allowed
+    uint8_t starting_attempts;
+
+    // to know if we're running for the first time
+    bool run_once;
+
+    AP_Int8 master_output_enable_pin;
 };
 
 

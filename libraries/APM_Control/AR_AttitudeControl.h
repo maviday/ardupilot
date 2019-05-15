@@ -34,6 +34,11 @@
 #define AR_ATTCONTROL_HEEL_SAIL_IMAX    1.0f
 #define AR_ATTCONTROL_HEEL_SAIL_FILT    10.0f
 #define AR_ATTCONTROL_DT                0.02f
+#define AR_ATTCONTROL_BRAKE_P           0.20f
+#define AR_ATTCONTROL_BRAKE_I           0.20f
+#define AR_ATTCONTROL_BRAKE_IMAX        1.00f
+#define AR_ATTCONTROL_BRAKE_D           0.00f
+#define AR_ATTCONTROL_BRAKE_FILT        10.00f
 
 // throttle/speed control maximum acceleration/deceleration (in m/s) (_ACCEL_MAX parameter default)
 #define AR_ATTCONTROL_THR_ACCEL_MAX     2.00f
@@ -121,6 +126,7 @@ public:
     AC_PID& get_throttle_speed_pid() { return _throttle_speed_pid; }
     AC_PID& get_pitch_to_throttle_pid() { return _pitch_to_throttle_pid; }
     AC_PID& get_sailboat_heel_pid() { return _sailboat_heel_pid; }
+    AC_PID& get_brake_pid() { return _brake_pid; }
 
     // get forward speed in m/s (earth-frame horizontal velocity but only along vehicle x-axis).  returns true on success
     bool get_forward_speed(float &speed) const;
@@ -140,8 +146,14 @@ public:
     // get acceleration limited desired speed
     float get_desired_speed_accel_limited(float desired_speed, float dt) const;
 
+    // get latest speed error. For reporting purposes only
+    float get_speed_error() const { return _speed_error; }
+
     // get minimum stopping distance (in meters) given a speed (in m/s)
     float get_stopping_distance(float speed) const;
+
+    // calculate the necessary braking amount given throttle and target speed
+    float calc_brake(const float target_speed, const float throttle, const float dt);
 
     // relax I terms of throttle and steering controllers
     void relax_I();
@@ -164,6 +176,7 @@ private:
     AP_Float _throttle_accel_max;   // speed/throttle control acceleration (and deceleration) maximum in m/s/s.  0 to disable limits
     AP_Float _throttle_decel_max;    // speed/throttle control deceleration maximum in m/s/s. 0 to use ATC_ACCEL_MAX for deceleration
     AP_Int8  _brake_enable;         // speed control brake enable/disable. if set to 1 a reversed output to the motors to slow the vehicle.
+    AC_PID   _brake_pid;            // brake speed controller
     AP_Float _stop_speed;           // speed control stop speed.  Motor outputs to zero once vehicle speed falls below this value
     AP_Float _steer_accel_max;      // steering angle acceleration max in deg/s/s
     AP_Float _steer_rate_max;       // steering rate control maximum rate in deg/s
@@ -177,6 +190,7 @@ private:
     // throttle control
     uint32_t _speed_last_ms;        // system time of last call to get_throttle_out_speed
     float    _desired_speed;        // last recorded desired speed
+    float    _speed_error;          // last recorded speed error = (desired - actual)
     uint32_t _stop_last_ms;         // system time the vehicle was at a complete stop
     bool     _throttle_limit_low;   // throttle output was limited from going too low (used to reduce i-term buildup)
     bool     _throttle_limit_high;  // throttle output was limited from going too high (used to reduce i-term buildup)

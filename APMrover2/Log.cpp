@@ -204,6 +204,7 @@ struct PACKED log_Throttle {
     float desired_speed;
     float speed;
     float accel_y;
+    float speed_error;
 };
 
 // Write a throttle control packet
@@ -219,7 +220,8 @@ void Rover::Log_Write_Throttle()
         throttle_out    : g2.motors.get_throttle(),
         desired_speed   : g2.attitude_control.get_desired_speed(),
         speed           : speed,
-        accel_y         : accel.y
+        accel_y         : accel.y,
+        speed_error     : g2.attitude_control.get_speed_error(),
     };
     logger.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -287,7 +289,7 @@ const LogStructure Rover::log_structure[] = {
     { LOG_STARTUP_MSG, sizeof(log_Startup),
       "STRT", "QBH",        "TimeUS,SType,CTot", "s--", "F--" },
     { LOG_THR_MSG, sizeof(log_Throttle),
-      "THR", "Qhffff", "TimeUS,ThrIn,ThrOut,DesSpeed,Speed,AccY", "s--nno", "F--000" },
+      "THR", "Qhfffff", "TimeUS,ThrIn,ThrOut,DesSpeed,Speed,AccY,Err", "s--nno", "F--0000" },
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),
       "NTUN", "QfHHHf", "TimeUS,WpDist,WpBrg,DesYaw,Yaw,XTrack", "smdddm", "F0BBB0" },
     { LOG_RANGEFINDER_MSG, sizeof(log_Rangefinder),

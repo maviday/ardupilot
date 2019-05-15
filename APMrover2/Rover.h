@@ -34,6 +34,7 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_BoardConfig/AP_BoardConfig_CAN.h>
 #include <AP_Button/AP_Button.h>
+#include <AP_ICEngine/AP_ICEngine.h>                // Internal Combustion Engine Library
 #include <AP_Camera/AP_Camera.h>                    // Camera triggering
 #include <AP_Compass/AP_Compass.h>                  // ArduPilot Mega Magnetometer Library
 #include <AP_Declination/AP_Declination.h>          // Compass declination library
@@ -453,6 +454,7 @@ private:
 
     // system.cpp
     void set_throttle(float throttle);
+    void set_brake(float brake_percent);
     void init_ardupilot();
     void startup_ground(void);
     void update_ahrs_flyforward();

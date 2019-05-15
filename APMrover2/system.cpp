@@ -55,6 +55,8 @@ void Rover::init_ardupilot()
     BoardConfig_CAN.init();
 #endif
 
+    g2.ice_control.init(true);  // init ICE and set outputs
+
     // init gripper
 #if GRIPPER_ENABLED == ENABLED
     g2.gripper.init();
@@ -243,6 +245,24 @@ void Rover::set_throttle(float throttle)
     }
     g2.motors.set_throttle(throttle);
 }
+
+void Rover::set_brake(float brake_percent)
+{
+    float ice_brake_override_percent;
+    if (rover.g2.ice_control.brake_override(ice_brake_override_percent)) {
+        // the ICE controller wants to override the throttle for starting
+        brake_percent = ice_brake_override_percent;
+    }
+#if 1
+    if (g2.motors.get_throttle() <= 0) {
+        // if the throttle is zero, always apply at least a little bit of brake
+        #define A_LITTLE_BIT_OF_BRAKE   25
+        brake_percent = MIN(brake_percent,A_LITTLE_BIT_OF_BRAKE);
+    }
+#endif
+    g2.motors.set_brake(brake_percent);
+}
+
 
 bool Rover::set_mode(Mode &new_mode, mode_reason_t reason)
 {

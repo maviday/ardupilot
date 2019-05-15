@@ -206,6 +206,12 @@ void AP_MotorsUGV::set_mainsail(float mainsail)
     _mainsail = constrain_float(mainsail, 0.0f, 100.0f);
 }
 
+// set brake input as a value from 0 to 100
+void AP_MotorsUGV::set_brake(const float brake)
+{
+    _brake = constrain_float(brake, 0.0f, 100.0f);
+}
+
 // get slew limited throttle
 // used by manual mode to avoid bad steering behaviour during transitions from forward to reverse
 // same as private slew_limit_throttle method (see below) but does not update throttle state
@@ -236,6 +242,11 @@ bool AP_MotorsUGV::has_sail() const
 {
     return SRV_Channels::function_assigned(SRV_Channel::k_mainsail_sheet);
 }
+// true if the vehicle has brake
+bool AP_MotorsUGV::has_brake() const
+{
+    return SRV_Channels::function_assigned(SRV_Channel::k_brake);
+}
 
 void AP_MotorsUGV::output(bool armed, float ground_speed, float dt)
 {
@@ -262,6 +273,8 @@ void AP_MotorsUGV::output(bool armed, float ground_speed, float dt)
 
     // output to mainsail
     output_mainsail();
+
+    output_brake();
 
     // send values to the PWM timers for output
     SRV_Channels::calc_pwm();
@@ -451,6 +464,9 @@ void AP_MotorsUGV::setup_pwm_type()
     motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_throttle);
     motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_throttleLeft);
     motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_throttleRight);
+    motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_starter);
+    motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_ignition);
+    motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channel::k_steering);
     for (uint8_t i=0; i<_motors_num; i++) {
         motor_mask |= SRV_Channels::get_output_channel_mask(SRV_Channels::get_motor_function(i));
     }
@@ -795,6 +811,17 @@ void AP_MotorsUGV::output_mainsail()
 
     SRV_Channels::set_output_scaled(SRV_Channel::k_mainsail_sheet, _mainsail);
 }
+
+// output for brake
+void AP_MotorsUGV::output_brake()
+{
+    if (!has_brake()) {
+        return;
+    }
+
+    SRV_Channels::set_output_scaled(SRV_Channel::k_brake, _brake);
+}
+
 
 // slew limit throttle for one iteration
 void AP_MotorsUGV::slew_limit_throttle(float dt)
