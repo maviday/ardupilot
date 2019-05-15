@@ -182,7 +182,7 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
 
     // @Param: OUT_EN_PIN
     // @DisplayName: Output Enable Pin
-    // @Description: Master Output Enable Pin. Useful to completely disable system during bootup if you have systems that are sensative to PWM signals during boot. This is helpful to inhibit unintended startups if your output signals are set as reversed
+    // @Description: Master Output Enable Pin. Useful to completely disable system during bootup if you have systems that are sensitive to PWM signals during boot. This is helpful to inhibit unintended startups if your output signals are set as reversed
     // @Values: -1:Disabled,50:AUX1,51:AUX2,52:AUX3,53:AUX4,54:AUX5,55:AUX6
     // @User: Advanced
     AP_GROUPINFO("OUT_EN_PIN",  29, AP_ICEngine, master_output_enable_pin, -1),

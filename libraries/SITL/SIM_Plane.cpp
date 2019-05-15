@@ -80,7 +80,7 @@ Plane::Plane(const char *home_str, const char *frame_str) :
     }
 
     if (strstr(frame_str, "-ice")) {
-        ice_engine = true;
+        use_icengine = true;
     }
 }
 
@@ -302,7 +302,7 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     
     float thrust     = throttle;
 
-    if (ice_engine) {
+    if (use_icengine) {
         thrust = icengine.update(input);
     }
 

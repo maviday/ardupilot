@@ -97,7 +97,7 @@ protected:
     bool vtail;
     bool dspoilers;
     bool reverse_elevator_rudder;
-    bool ice_engine;
+    bool use_icengine;
     bool tailsitter;
     bool have_launcher;
     float launch_accel;
