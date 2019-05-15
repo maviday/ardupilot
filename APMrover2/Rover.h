@@ -452,6 +452,7 @@ private:
     void set_servos(void);
 
     // system.cpp
+    void set_throttle(float throttle);
     void init_ardupilot();
     void startup_ground(void);
     void update_ahrs_flyforward();
