@@ -62,6 +62,9 @@ public:
     // handle DO_ENGINE_CONTROL messages via MAVLink or mission
     bool engine_control(float start_control, float cold_start, float height_delay);
     
+    bool handle_message(const mavlink_message_t* msg);
+    bool handle_set_ice_transmission_state(const mavlink_message_t* msg);
+
     // Engine temperature status
     bool get_temperature(float& value) const;
     bool too_hot() const { return temperature.is_healthy() && temperature.too_hot(); }

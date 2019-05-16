@@ -33,10 +33,7 @@ SimRover::SimRover(const char *home_str, const char *frame_str) :
     skid_steering(false)
 {
 
-    if (strstr(frame_str, "-ice")) {
-        use_icengine = true;
-        printf("SITL: ICE is being used\n");
-    }
+    use_icengine = strstr(frame_str, "ice") != nullptr;
 
     skid_steering = strstr(frame_str, "skid") != nullptr;
 

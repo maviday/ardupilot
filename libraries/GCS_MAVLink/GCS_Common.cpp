@@ -3066,6 +3066,11 @@ void GCS_MAVLINK::handle_common_message(const mavlink_message_t &msg)
         handle_rc_channels_override(msg);
         break;
 
+    case MAVLINK_MSG_ID_SET_ICE_TRANSMISSION_STATE:
+        // TODO: add brake override
+        handle_ice(msg);
+        break;
+
     case MAVLINK_MSG_ID_OPTICAL_FLOW:
         handle_optical_flow(msg);
         break;
@@ -3470,6 +3475,19 @@ MAV_RESULT GCS_MAVLINK::handle_engine_control(const mavlink_command_long_t &pack
     }
 
     if (ice->engine_control(packet.param1, packet.param2, packet.param3)) {
+        return MAV_RESULT_ACCEPTED;
+    }
+    return MAV_RESULT_FAILED;
+}
+
+MAV_RESULT GCS_MAVLINK::handle_ice(const mavlink_message_t *msg)
+{
+    AP_ICEngine *ice = AP::ice();
+    if (ice == nullptr) {
+        return MAV_RESULT_UNSUPPORTED;
+    }
+
+    if (ice->handle_message(msg)) {
         return MAV_RESULT_ACCEPTED;
     }
     return MAV_RESULT_FAILED;

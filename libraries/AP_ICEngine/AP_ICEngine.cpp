@@ -520,6 +520,66 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
     return true;
 }
 
+bool AP_ICEngine::handle_message(const mavlink_message_t* msg)
+{
+    switch (msg->msgid) {
+    case MAVLINK_MSG_ID_SET_ICE_TRANSMISSION_STATE:
+        return handle_set_ice_transmission_state(msg);
+
+    case MAVLINK_MSG_ID_ICE_TRANSMISSION_STATE:
+    case MAVLINK_MSG_ID_ICE_FUEL_LEVEL:
+    case MAVLINK_MSG_ID_ICE_COOLANT_TEMP:
+        // unhandled, this is an outbound packet only
+        return false;
+    } // switch
+
+    // unhandled
+    return false;
+}
+
+bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_message_t* msg)
+{
+    if (!SRV_Channels::function_assigned(SRV_Channel::k_engine_gear)) {
+        return false;
+    }
+
+    mavlink_set_ice_transmission_state_t packet {};
+    mavlink_msg_set_ice_transmission_state_decode(msg, &packet);
+
+    uint16_t pwm_value = 0;
+
+    switch (packet.state) {
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
+            pwm_value = 1100;
+            break;
+
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
+            pwm_value = 1300;
+            break;
+
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
+            pwm_value = 1500;
+            break;
+
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
+            pwm_value = 1700;
+            break;
+
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
+            pwm_value = 1900;
+            break;
+
+        default:
+            // unhandled
+            return false;
+    }
+
+    SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, pwm_value);
+    return true;
+}
+
 void AP_ICEngine::update_temperature()
 {
     if (temperature.source == nullptr) {
@@ -577,7 +637,7 @@ bool AP_ICEngine::get_temperature(float& value) const
 void AP_ICEngine::send_temp()
 {
     const uint32_t now_ms = AP_HAL::millis();
-    if (now_ms - temperature.last_send_ms < 100) {
+    if (now_ms - temperature.last_send_ms < 1000) {
         // slow the send rate to 1Hz because temp doesn't change fast
         return;
     }
@@ -589,35 +649,57 @@ void AP_ICEngine::send_temp()
             // not active
             continue;
         }
+//
+//       mavlink_msg_high_latency_send(
+//               (mavlink_channel_t)i,
+//               (uint8_t)state, //uint8_t base_mode,
+//               0, //uint32_t custom_mode,
+//               0, //uint8_t landed_state,
+//               0, //int16_t roll,
+//               (int16_t)throttle_prev, //int16_t pitch,
+//               0, //uint16_t heading,
+//               0, //int8_t throttle,
+//               0, //int16_t heading_sp,
+//               0, //int32_t latitude,
+//               0, //int32_t longitude,
+//               temperature.too_hot(), //int16_t altitude_amsl,
+//              (int16_t)(temperature.value*100), //int16_t altitude_sp,
+//               temperature.is_healthy(), //uint8_t airspeed,
+//               temperature.too_cold(), //uint8_t airspeed_sp,
+//               0, //uint8_t groundspeed,
+//               0, //int8_t climb_rate,
+//               0, //uint8_t gps_nsat,
+//               0, //uint8_t gps_fix_type,
+//               0, //uint8_t battery_remaining,
+//               0, //int8_t temperature,
+//               0, //int8_t temperature_air,
+//               0, //uint8_t failsafe,
+//               0, //uint8_t wp_num,
+//               0 //uint16_t wp_distance
+//               );
 
-       mavlink_msg_high_latency_send(
-               (mavlink_channel_t)i,
-               (uint8_t)state, //uint8_t base_mode,
-               0, //uint32_t custom_mode,
-               0, //uint8_t landed_state,
-               0, //int16_t roll,
-               (int16_t)throttle_prev, //int16_t pitch,
-               0, //uint16_t heading,
-               0, //int8_t throttle,
-               0, //int16_t heading_sp,
-               0, //int32_t latitude,
-               0, //int32_t longitude,
-               temperature.too_hot(), //int16_t altitude_amsl,
-              (int16_t)(temperature.value*100), //int16_t altitude_sp,
-               temperature.is_healthy(), //uint8_t airspeed,
-               temperature.too_cold(), //uint8_t airspeed_sp,
-               0, //uint8_t groundspeed,
-               0, //int8_t climb_rate,
-               0, //uint8_t gps_nsat,
-               0, //uint8_t gps_fix_type,
-               0, //uint8_t battery_remaining,
-               0, //int8_t temperature,
-               0, //int8_t temperature_air,
-               0, //uint8_t failsafe,
-               0, //uint8_t wp_num,
-               0 //uint16_t wp_distance
-               );
-    }
+        MAV_ICE_TRANSMISSION_GEAR_STATE gear_state = MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD;
+        mavlink_msg_ice_transmission_state_send(
+                (mavlink_channel_t)i,
+                0, // index
+                gear_state);
+
+        const float level_pct = 50;
+        mavlink_msg_ice_fuel_level_send(
+                (mavlink_channel_t)i,
+                0, // index
+                MAV_ICE_FUEL_TYPE_GASOLINE,
+                MAV_ICE_FUEL_LEVEL_UNITS_PERCENT,
+                100, // max
+                level_pct);
+
+        mavlink_msg_ice_coolant_temp_send(
+                (mavlink_channel_t)i,
+                0, // index
+                temperature.value);
+
+            }
+
 }
 
 
