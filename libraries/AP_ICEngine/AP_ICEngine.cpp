@@ -514,7 +514,9 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
         gcs().send_text(MAV_SEVERITY_INFO, "Takeoff height set to %.1fm", (double)height_delay);
         return true;
     }
-    state = ICE_STARTING;
+    if (state != ICE_RUNNING) {
+        state = ICE_STARTING;
+    }
     return true;
 }
 
