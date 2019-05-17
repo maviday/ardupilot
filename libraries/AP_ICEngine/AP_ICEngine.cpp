@@ -649,7 +649,7 @@ void AP_ICEngine::send_temp()
             // not active
             continue;
         }
-//
+
 //       mavlink_msg_high_latency_send(
 //               (mavlink_channel_t)i,
 //               (uint8_t)state, //uint8_t base_mode,
@@ -684,6 +684,12 @@ void AP_ICEngine::send_temp()
                 0, // index
                 gear_state);
 
+        mavlink_msg_button_change_send(
+                (mavlink_channel_t)i,
+                now_ms,
+                now_ms,
+                123);
+
         const float level_pct = 50;
         mavlink_msg_ice_fuel_level_send(
                 (mavlink_channel_t)i,
@@ -692,6 +698,7 @@ void AP_ICEngine::send_temp()
                 MAV_ICE_FUEL_LEVEL_UNITS_PERCENT,
                 100, // max
                 level_pct);
+        //gcs().send_text(MAV_SEVERITY_DEBUG, "Fuel Level %d", int(level_pct));
 
         mavlink_msg_ice_coolant_temp_send(
                 (mavlink_channel_t)i,
