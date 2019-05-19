@@ -693,8 +693,7 @@ void GCS_MAVLINK_Rover::handleMessage(const mavlink_message_t &msg)
         if (packet.target != rover.g.sysid_this_mav) {
             break; // only accept control aimed at us
         }
-
-        uint32_t tnow = AP_HAL::millis();
+        const uint32_t tnow = AP_HAL::millis();
 
         manual_override(rover.channel_steer, packet.y, 1000, 2000, tnow);
         manual_override(rover.channel_throttle, packet.z, 1000, 2000, tnow);

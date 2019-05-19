@@ -2884,7 +2884,7 @@ void GCS_MAVLINK::handle_rc_channels_override(const mavlink_message_t &msg)
     for (uint8_t i=0; i<ARRAY_SIZE(override_data); i++) {
         // Per MAVLink spec a value of UINT16_MAX means to ignore this field.
         if (override_data[i] != UINT16_MAX) {
-            RC_Channels::set_override(i, override_data[i], tnow);
+            RC_Channels::set_override(i, override_data[i], MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE, tnow);
         }
     }
 }
@@ -4619,7 +4619,7 @@ void GCS_MAVLINK::manual_override(RC_Channel *c, int16_t value_in, const uint16_
     }
 
     const int16_t override_value = radio_min + (radio_max - radio_min) * (value_in + offset) / scaler;
-    c->set_override(override_value, tnow);
+    c->set_override(override_value, MAVLINK_MSG_ID_MANUAL_CONTROL, tnow);
 }
 
 GCS &gcs()
