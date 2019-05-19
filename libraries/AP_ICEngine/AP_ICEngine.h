@@ -62,8 +62,8 @@ public:
     // handle DO_ENGINE_CONTROL messages via MAVLink or mission
     bool engine_control(float start_control, float cold_start, float height_delay);
     
-    bool handle_message(const mavlink_message_t* msg);
-    bool handle_set_ice_transmission_state(const mavlink_message_t* msg);
+    bool handle_message(const mavlink_command_long_t &packt);
+    bool handle_set_ice_transmission_state(const mavlink_command_long_t &packet);
 
     // Engine temperature status
     bool get_temperature(float& value) const;
@@ -77,6 +77,9 @@ private:
     static AP_ICEngine *_singleton;
 
     enum ICE_State state;
+
+    enum MAV_ICE_TRANSMISSION_GEAR_STATE gear_state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+    uint16_t gear_pwm;
 
     // engine temperature for feedback
     struct {

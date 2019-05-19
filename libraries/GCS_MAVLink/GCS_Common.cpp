@@ -3066,11 +3066,6 @@ void GCS_MAVLINK::handle_common_message(const mavlink_message_t &msg)
         handle_rc_channels_override(msg);
         break;
 
-    case MAVLINK_MSG_ID_SET_ICE_TRANSMISSION_STATE:
-        // TODO: add brake override
-        handle_ice(msg);
-        break;
-
     case MAVLINK_MSG_ID_OPTICAL_FLOW:
         handle_optical_flow(msg);
         break;
@@ -3480,14 +3475,14 @@ MAV_RESULT GCS_MAVLINK::handle_engine_control(const mavlink_command_long_t &pack
     return MAV_RESULT_FAILED;
 }
 
-MAV_RESULT GCS_MAVLINK::handle_ice(const mavlink_message_t *msg)
+MAV_RESULT GCS_MAVLINK::handle_ice(const mavlink_command_long_t &packet)
 {
     AP_ICEngine *ice = AP::ice();
     if (ice == nullptr) {
         return MAV_RESULT_UNSUPPORTED;
     }
 
-    if (ice->handle_message(msg)) {
+    if (ice->handle_message(packet)) {
         return MAV_RESULT_ACCEPTED;
     }
     return MAV_RESULT_FAILED;
@@ -3602,6 +3597,13 @@ MAV_RESULT GCS_MAVLINK::handle_command_long_packet(const mavlink_command_long_t 
 
     case MAV_CMD_REQUEST_MESSAGE:
         result = handle_command_request_message(packet);
+        break;
+
+    case MAV_CMD_ICE_TRANSMISSION_STATE:
+    case MAV_CMD_ICE_SET_TRANSMISSION_STATE:
+    case MAV_CMD_ICE_FUEL_LEVEL:
+    case MAV_CMD_ICE_COOLANT_TEMP:
+        result = handle_ice(packet);
         break;
 
     case MAV_CMD_DO_ENGINE_CONTROL:

@@ -520,15 +520,15 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
     return true;
 }
 
-bool AP_ICEngine::handle_message(const mavlink_message_t* msg)
+bool AP_ICEngine::handle_message(const mavlink_command_long_t &packet)
 {
-    switch (msg->msgid) {
-    case MAVLINK_MSG_ID_SET_ICE_TRANSMISSION_STATE:
-        return handle_set_ice_transmission_state(msg);
+    switch (packet.command) {
+    case MAV_CMD_ICE_SET_TRANSMISSION_STATE:
+        return handle_set_ice_transmission_state(packet);
 
-    case MAVLINK_MSG_ID_ICE_TRANSMISSION_STATE:
-    case MAVLINK_MSG_ID_ICE_FUEL_LEVEL:
-    case MAVLINK_MSG_ID_ICE_COOLANT_TEMP:
+    case MAV_CMD_ICE_TRANSMISSION_STATE:
+    case MAV_CMD_ICE_FUEL_LEVEL:
+    case MAV_CMD_ICE_COOLANT_TEMP:
         // unhandled, this is an outbound packet only
         return false;
     } // switch
@@ -537,38 +537,45 @@ bool AP_ICEngine::handle_message(const mavlink_message_t* msg)
     return false;
 }
 
-bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_message_t* msg)
+bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t &packet)
 {
     if (!SRV_Channels::function_assigned(SRV_Channel::k_engine_gear)) {
         return false;
     }
+    //const uint8_t index = packet->param1; // unused
+    const uint8_t gearState = packet.param2;
+    const uint16_t pwm_value = packet.param3;
 
-    mavlink_set_ice_transmission_state_t packet {};
-    mavlink_msg_set_ice_transmission_state_decode(msg, &packet);
+    if (pwm_value > 0) {
+        // when populated, use this value directly
+        SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, pwm_value);
+        gear_pwm = pwm_value;
+        gear_state = MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE;
+        return true;
+    }
 
-    uint16_t pwm_value = 0;
-
-    switch (packet.state) {
+    // use the enum
+    switch (gearState) {
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
-            pwm_value = 1100;
+            gear_pwm = 1100;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
-            pwm_value = 1300;
+            gear_pwm = 1300;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
-            pwm_value = 1500;
+            gear_pwm = 1500;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
-            pwm_value = 1700;
+            gear_pwm = 1700;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
-            pwm_value = 1900;
+            gear_pwm = 1900;
             break;
 
         default:
@@ -576,7 +583,8 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_message_t* msg
             return false;
     }
 
-    SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, pwm_value);
+    gear_state = (MAV_ICE_TRANSMISSION_GEAR_STATE)gearState;
+    SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear_pwm);
     return true;
 }
 
@@ -644,8 +652,8 @@ void AP_ICEngine::send_temp()
     temperature.last_send_ms = now_ms;
 
     const uint8_t chan_mask = GCS_MAVLINK::active_channel_mask();
-    for (uint8_t i=0; i<MAVLINK_COMM_NUM_BUFFERS; i++) {
-        if ((chan_mask & (1U<<i)) == 0) {
+    for (uint8_t chan=0; chan<MAVLINK_COMM_NUM_BUFFERS; chan++) {
+        if ((chan_mask & (1U<<chan)) == 0) {
             // not active
             continue;
         }
@@ -678,35 +686,50 @@ void AP_ICEngine::send_temp()
 //               0 //uint16_t wp_distance
 //               );
 
-        MAV_ICE_TRANSMISSION_GEAR_STATE gear_state = MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD;
-        mavlink_msg_ice_transmission_state_send(
-                (mavlink_channel_t)i,
-                0, // index
-                gear_state);
+//        mavlink_msg_button_change_send(
+//                (mavlink_channel_t)i,
+//                now_ms,
+//                now_ms,
+//                123);
 
-        mavlink_msg_button_change_send(
-                (mavlink_channel_t)i,
-                now_ms,
-                now_ms,
-                123);
 
         const float level_pct = 50;
-        mavlink_msg_ice_fuel_level_send(
-                (mavlink_channel_t)i,
-                0, // index
-                MAV_ICE_FUEL_TYPE_GASOLINE,
-                MAV_ICE_FUEL_LEVEL_UNITS_PERCENT,
-                100, // max
-                level_pct);
-        //gcs().send_text(MAV_SEVERITY_DEBUG, "Fuel Level %d", int(level_pct));
+        if (HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+            mavlink_msg_command_long_send(
+                    (mavlink_channel_t)chan, 0, 0,
+                    MAV_CMD_ICE_TRANSMISSION_STATE,
+                    0,        // confirmation of zero means this is the first time this message has been sent
+                    0, // index
+                    gear_state,
+                    gear_pwm,
+                    0,0,0,0);
+        }
 
-        mavlink_msg_ice_coolant_temp_send(
-                (mavlink_channel_t)i,
-                0, // index
-                temperature.value);
+        if (HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+            mavlink_msg_command_long_send(
+                    (mavlink_channel_t)chan, 0, 0,
+                    MAV_CMD_ICE_FUEL_LEVEL,
+                    0,        // confirmation of zero means this is the first time this message has been sent
+                    0, // index
+                    MAV_ICE_FUEL_TYPE_GASOLINE,
+                    MAV_ICE_FUEL_LEVEL_UNITS_PERCENT,
+                    100, // max
+                    level_pct,
+                    0,0);
+        }
 
-            }
-
+        if (HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+            mavlink_msg_command_long_send(
+                    (mavlink_channel_t)chan, 0, 0,
+                    MAV_CMD_ICE_COOLANT_TEMP,
+                    0,        // confirmation of zero means this is the first time this message has been sent
+                    0, // index
+                    temperature.value,
+                    temperature.max,    // too hot
+                    temperature.min,    // too cold
+                    0,0,0);
+        }
+    } // for
 }
 
 
