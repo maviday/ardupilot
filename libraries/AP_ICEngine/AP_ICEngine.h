@@ -42,7 +42,7 @@ public:
 
     void init(const bool force_outut);
 
-    // check for throttle override
+    // check for  override
     bool throttle_override(int8_t &percent);
 
     // check for brake override
@@ -69,7 +69,9 @@ public:
     bool get_temperature(float& value) const;
     bool too_hot() const { return temperature.is_healthy() && temperature.too_hot(); }
     bool too_cold() const { return temperature.is_healthy() && temperature.too_cold(); }
-    void send_temp();
+    void send_status(const bool force);
+
+    void set_current_throttle(const float throttle) { current_throttle_percent = throttle; }
 
     static AP_ICEngine *get_singleton() { return _singleton; }
 
@@ -173,6 +175,9 @@ private:
 
     // store the previous throttle
     int8_t throttle_prev;
+
+    // as reported from motor library from -100 to 100%
+    float current_throttle_percent;
 
     // keep track of how many times we attempted to start. This will get conmpared to resarts_allowed
     uint8_t starting_attempts;
