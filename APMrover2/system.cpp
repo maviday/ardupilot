@@ -243,6 +243,7 @@ void Rover::set_throttle(float throttle)
         // the ICE controller wants to override the throttle for starting
         throttle = ice_throttle_override_percent;
     }
+    rover.g2.ice_control.set_current_throttle(throttle);
     g2.motors.set_throttle(throttle);
 }
 
