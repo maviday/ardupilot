@@ -113,6 +113,7 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Param: TEMP_PIN
     // @DisplayName: Temperature analog feedback pin
     // @Description: Temperature analog feedback pin. This is used to sample the engine temperature.
+    // @Values: -1:Disabled,50:AUX1,51:AUX2,52:AUX3,53:AUX4,54:AUX5,55:AUX6
     // @User: Advanced
     AP_GROUPINFO("TEMP_PIN", 13, AP_ICEngine, temperature.pin, -1),
 
