@@ -91,7 +91,8 @@ void Sailboat::init()
 {
     // sailboat defaults
     if (enabled()) {
-        rover.g2.crash_angle.set_default(0);
+        rover.g2.crash_angle_pitch.set_default(0);
+        rover.g2.crash_angle_roll.set_default(0);
         rover.g2.loit_type.set_default(1);
         rover.g2.loit_radius.set_default(5);
         rover.g2.wp_nav.set_default_overshoot(10);

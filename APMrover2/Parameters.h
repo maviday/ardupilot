@@ -346,7 +346,8 @@ public:
     AP_Float bal_pitch_max;
 
     // pitch/roll angle for crash check
-    AP_Int8 crash_angle;
+    AP_Int8 crash_angle_pitch;
+    AP_Int8 crash_angle_roll;
 
     // follow mode library
     AP_Follow follow;

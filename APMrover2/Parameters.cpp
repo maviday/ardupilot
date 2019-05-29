@@ -524,12 +524,12 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 
     // @Param: CRASH_ANGLE
     // @DisplayName: Crash Angle
-    // @Description: Pitch/Roll angle limit in degrees for crash check. Zero disables check
+    // @Description: Pitch angle limit in degrees for crash check. Zero disables check
     // @Units: deg
     // @Range: 0 60
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("CRASH_ANGLE", 22, ParametersG2, crash_angle, 0),
+    AP_GROUPINFO("CRASH_ANGLE", 22, ParametersG2, crash_angle_pitch, 0),
 
     // @Group: FOLL
     // @Path: ../libraries/AP_Follow/AP_Follow.cpp
@@ -622,6 +622,17 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // AION ROBOTICS In-House params
     // -----------------------------
     AP_GROUPINFO("FS_TIMEOUT2_MS", 55, ParametersG2, fs_timeout2_ms, 450),
+
+    // @Param: CRASH_ANGLE_ROLL
+    // @DisplayName: Crash Angle Roll
+    // @Description: Roll angle limit in degrees for crash check. Zero disables check
+    // @Units: deg
+    // @Range: 0 60
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("CRASH_ANGLE_ROLL", 56, ParametersG2, crash_angle_roll, 0),
+
+
     // -----------------------------
 
 
@@ -797,7 +808,8 @@ void Rover::load_parameters(void)
     SRV_Channels::set_default_function(CH_3, SRV_Channel::k_throttle);
 
     if (is_balancebot()) {
-        g2.crash_angle.set_default(30);
+        g2.crash_angle_pitch.set_default(30);
+        g2.crash_angle_roll.set_default(30);
     }
 
     const uint8_t old_rc_keys[14] = { Parameters::k_param_rc_1_old,  Parameters::k_param_rc_2_old,
