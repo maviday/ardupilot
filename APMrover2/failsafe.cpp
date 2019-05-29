@@ -38,6 +38,28 @@ void Rover::failsafe_check()
             arming.disarm();
         }
     }
+
+    // If our PID.I is at 95% of our PID.IMAX then something is wrong.
+    if (g2.fs_pid_i_steering > 0 && arming.is_armed()) {
+
+        const float i = g2.attitude_control.get_steering_rate_pid().get_integrator();
+        const float imax = g2.attitude_control.get_steering_rate_pid().imax();
+        if (i/imax > 0.95f) {
+            // our PID.I is at 95% of our PID.IMAX. Something is wrong.
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "FAILSAFE: Steering PID Integrator out of bounds");
+            arming.disarm();
+        }
+    }
+    if (g2.fs_pid_i_throttle > 0 && arming.is_armed()) {
+
+        const float i = g2.attitude_control.get_throttle_speed_pid().get_integrator();
+        const float imax = g2.attitude_control.get_throttle_speed_pid().imax();
+        if (i/imax > 0.95f) {
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "FAILSAFE: Throttle PID Integrator out of bounds");
+            arming.disarm();
+        }
+    }
+
 }
 
 /*
