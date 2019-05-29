@@ -31,6 +31,8 @@ extern const AP_HAL::HAL& hal;
 #endif
 
 #define AP_ICENGINE_TEMPERATURE_INVALID     -999;
+#define AP_ICENGINE_FUEL_LEVEL_INVALID      -1
+#define AP_ICENGINE_GEAR_PWM_INVALID        0
 
 #define AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK        1100;
 #define AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1    1300;
@@ -243,6 +245,7 @@ void AP_ICEngine::update(void)
     }
 
     update_temperature();
+    update_fuel();
 
     determine_state();
 
@@ -555,30 +558,30 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
 
     switch (gearState) {
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
-            gear_pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK;
+            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
-            gear_pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1;
+            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
-            gear_pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_NEUTRAL;
+            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_NEUTRAL;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
-            gear_pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD1;
+            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD1;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
-            gear_pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2;
+            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
             // use as-is
-            gear_pwm = pwm_value;
+            gear.pwm = pwm_value;
             break;
 
         default:
@@ -586,11 +589,34 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
             return false;
     }
 
-    gear_state = (MAV_ICE_TRANSMISSION_GEAR_STATE)gearState;
-    SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear_pwm);
+    gear.state = (MAV_ICE_TRANSMISSION_GEAR_STATE)gearState;
+    SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear.pwm);
     send_status(true);
 
     return true;
+}
+
+
+void AP_ICEngine::update_fuel()
+{
+    #define AP_ICENGINE_FUEL_LEVEL_BATTERY_INSTANCE 1
+
+    if (!AP::battery().healthy(AP_ICENGINE_FUEL_LEVEL_BATTERY_INSTANCE)) {
+        fuel.value = 0;
+        return;
+    }
+
+    const uint32_t now_ms = AP_HAL::millis();
+
+    const float new_value = fuel.offset + AP::battery().voltage(AP_ICENGINE_FUEL_LEVEL_BATTERY_INSTANCE);
+
+    if (fuel.last_sample_ms == 0 || (fuel.last_sample_ms - now_ms > 5000)) {
+        // jump to it immediately on first or stale
+        fuel.value = new_value;
+    }
+    // Low Pass filter, very slow
+    fuel.value = 0.1f*fuel.value + 0.9f*new_value;
+    fuel.last_sample_ms = now_ms;
 }
 
 void AP_ICEngine::update_temperature()
@@ -639,7 +665,7 @@ void AP_ICEngine::update_temperature()
 
     if (!isinf(new_temp_value)) {
         const uint32_t now_ms = AP_HAL::millis();
-        if (temperature.last_sample_ms == 0 || (temperature.last_sample_ms - now_ms > 10000)) {
+        if (temperature.last_sample_ms == 0 || (temperature.last_sample_ms - now_ms > 5000)) {
             // jump to it immediately on first or stale
             temperature.value = new_temp_value;
         }
@@ -661,12 +687,8 @@ bool AP_ICEngine::get_temperature(float& value) const
 void AP_ICEngine::send_status(const bool force)
 {
     const uint32_t now_ms = AP_HAL::millis();
-    if (!force && now_ms - temperature.last_send_ms < 1000) {
-        // slow the send rate to 1Hz because temp doesn't change fast
-        return;
-    }
-    temperature.last_send_ms = now_ms;
-    const float current_temp = temperature.is_healthy() ? temperature.value : AP_ICENGINE_TEMPERATURE_INVALID;
+
+    bool temp_sent = false, fuel_sent = false, gear_sent = false;
 
     const uint8_t chan_mask = GCS_MAVLINK::active_channel_mask();
     for (uint8_t chan=0; chan<MAVLINK_COMM_NUM_BUFFERS; chan++) {
@@ -675,7 +697,12 @@ void AP_ICEngine::send_status(const bool force)
             continue;
         }
 
-        if (HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+        const bool send_temp = force || (now_ms - temperature.last_send_ms >= 1000);
+        if (send_temp && HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+
+            temp_sent = true;
+            const float current_temp = temperature.is_healthy() ? temperature.value : AP_ICENGINE_TEMPERATURE_INVALID;
+
             mavlink_msg_command_long_send(
                     (mavlink_channel_t)chan, 0, 0,
                     MAV_CMD_ICE_COOLANT_TEMP,
@@ -687,18 +714,30 @@ void AP_ICEngine::send_status(const bool force)
                     0,0,0);
         }
 
-        if (HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+        const bool send_gear = force || (now_ms - gear.last_send_ms >= 1000);
+        if (send_gear && HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+
+            gear_sent = true;
+            uint16_t current_gear_pwm = AP_ICENGINE_GEAR_PWM_INVALID;
+            SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, current_gear_pwm);
+
             mavlink_msg_command_long_send(
                     (mavlink_channel_t)chan, 0, 0,
                     MAV_CMD_ICE_TRANSMISSION_STATE,
                     0, // confirmation is unused
                     0, // index
-                    gear_state,
-                    gear_pwm,
+                    gear.state,
+                    current_gear_pwm,
                     0,0,0,0);
         }
 
-        if (HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+
+        const bool send_fuel = force || (now_ms - fuel.last_send_ms >= 1000);
+        if (send_fuel && HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+
+            fuel_sent = true;
+            const float current_fuel = AP::battery().healthy() ? fuel.value : AP_ICENGINE_FUEL_LEVEL_INVALID;
+
             mavlink_msg_command_long_send(
                     (mavlink_channel_t)chan, 0, 0,
                     MAV_CMD_ICE_FUEL_LEVEL,
@@ -707,10 +746,22 @@ void AP_ICEngine::send_status(const bool force)
                     MAV_ICE_FUEL_TYPE_GASOLINE,
                     MAV_ICE_FUEL_LEVEL_UNITS_PERCENT,
                     100, // max
-                    current_throttle_percent,
+                    current_fuel,
                     0,0);
         }
     } // for
+
+
+    if (temp_sent) {
+        temperature.last_send_ms = now_ms;
+    }
+    if (gear_sent) {
+        gear.last_send_ms = now_ms;
+    }
+    if (fuel_sent) {
+        fuel.last_send_ms = now_ms;
+    }
+
 }
 
 

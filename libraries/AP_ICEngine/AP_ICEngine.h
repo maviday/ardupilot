@@ -80,8 +80,19 @@ private:
 
     enum ICE_State state;
 
-    enum MAV_ICE_TRANSMISSION_GEAR_STATE gear_state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
-    uint16_t gear_pwm;
+    struct {
+        enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+        uint16_t pwm;
+        uint32_t last_send_ms;
+    } gear;
+
+    void update_fuel();
+    struct {
+        float offset;
+        float value;
+        uint32_t last_sample_ms;
+        uint32_t last_send_ms;
+    } fuel;
 
     // engine temperature for feedback
     struct {
