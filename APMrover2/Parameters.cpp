@@ -631,6 +631,8 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("CRASH_ANGLE_ROLL", 56, ParametersG2, crash_angle_roll, 0),
+    AP_GROUPINFO("FS_PID_I_STEER", 57, ParametersG2, fs_pid_i_steering, 0),
+    AP_GROUPINFO("FS_PID_I_THR", 58, ParametersG2, fs_pid_i_throttle, 0),
 
 
     // -----------------------------

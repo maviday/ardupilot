@@ -349,6 +349,10 @@ public:
     AP_Int8 crash_angle_pitch;
     AP_Int8 crash_angle_roll;
 
+    // failsafe to check integrator wind-up
+    AP_Float fs_pid_i_steering;
+    AP_Float fs_pid_i_throttle;
+
     // follow mode library
     AP_Follow follow;
 

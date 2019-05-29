@@ -88,7 +88,7 @@ private:
 
     void update_fuel();
     struct {
-        float offset;
+        AP_Float offset;
         float value;
         uint32_t last_sample_ms;
         uint32_t last_send_ms;

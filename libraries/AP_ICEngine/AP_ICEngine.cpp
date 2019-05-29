@@ -198,6 +198,12 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("OUT_EN_PIN",  29, AP_ICEngine, master_output_enable_pin, -1),
 
+    // @Param: FUEL_OFFSET
+    // @DisplayName: Fuel Level Offset
+    // @Description: This makes up for a lack of voltage offset in the battery monitor which only has scaling.
+    // @User: Advanced
+    AP_GROUPINFO("FUEL_OFFSET",  30, AP_ICEngine, fuel.offset, 0),
+
     AP_GROUPEND
 };
 
