@@ -608,7 +608,7 @@ void AP_ICEngine::update_fuel()
     #define AP_ICENGINE_FUEL_LEVEL_BATTERY_INSTANCE 1
 
     if (!AP::battery().healthy(AP_ICENGINE_FUEL_LEVEL_BATTERY_INSTANCE)) {
-        fuel.value = 0;
+        fuel.value = AP_ICENGINE_FUEL_LEVEL_INVALID;
         return;
     }
 
