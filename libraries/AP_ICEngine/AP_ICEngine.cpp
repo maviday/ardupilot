@@ -626,7 +626,7 @@ void AP_ICEngine::update_fuel()
 
     const uint32_t now_ms = AP_HAL::millis();
 
-    const float new_value = fuel.offset + AP::battery().voltage(AP_ICENGINE_FUEL_LEVEL_BATTERY_INSTANCE);
+    const float new_value = AP::battery().capacity_remaining_pct(AP_ICENGINE_FUEL_LEVEL_BATTERY_INSTANCE);
 
     if (fuel.last_sample_ms == 0 || (fuel.last_sample_ms - now_ms > 5000)) {
         // jump to it immediately on first or stale
