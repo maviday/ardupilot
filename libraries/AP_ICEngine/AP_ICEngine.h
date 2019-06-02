@@ -69,7 +69,7 @@ public:
     bool get_temperature(float& value) const;
     bool too_hot() const { return temperature.is_healthy() && temperature.too_hot(); }
     bool too_cold() const { return temperature.is_healthy() && temperature.too_cold(); }
-    void send_status(const bool force);
+    void send_status();
 
     void set_current_throttle(const float throttle) { current_throttle_percent = throttle; }
 
@@ -195,6 +195,9 @@ private:
 
     // to know if we're running for the first time
     bool run_once;
+
+    // force sending status over malvink, bypassing timers. This allows for a snappy response when something gets updated
+    bool force_send_status;
 
     AP_Int8 master_output_enable_pin;
 };

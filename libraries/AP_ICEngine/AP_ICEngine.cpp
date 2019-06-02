@@ -257,7 +257,7 @@ void AP_ICEngine::update(void)
 
     set_output_channels();
 
-    send_status(false);
+    send_status();
 }
 
 void AP_ICEngine::determine_state()
@@ -446,6 +446,19 @@ void AP_ICEngine::set_output_channels()
         SRV_Channels::set_output_scaled(SRV_Channel::k_starter,0);
         break;
     } // switch
+
+    if (!SRV_Channels::function_assigned(SRV_Channel::k_engine_gear)) {
+        // if we don't have a gear then set it to a known invalid state
+        gear.pwm = AP_ICENGINE_GEAR_PWM_INVALID;
+        gear.state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+    } else if (gear.state == MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN) {
+        // on boot or in an unknown state, set gear to trim and find out what that value is
+        SRV_Channels::set_output_to_trim(SRV_Channel::k_engine_gear);
+        SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, gear.pwm);
+    } else {
+        // normal operation, set the output
+        SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear.pwm);
+    }
 }
 
 /*
@@ -596,8 +609,7 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
     }
 
     gear.state = (MAV_ICE_TRANSMISSION_GEAR_STATE)gearState;
-    SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear.pwm);
-    send_status(true);
+    force_send_status = true;
 
     return true;
 }
@@ -690,9 +702,11 @@ bool AP_ICEngine::get_temperature(float& value) const
     return true;
 }
 
-void AP_ICEngine::send_status(const bool force)
+void AP_ICEngine::send_status()
 {
     const uint32_t now_ms = AP_HAL::millis();
+    const bool force = force_send_status;
+    force_send_status = false;
 
     bool temp_sent = false, fuel_sent = false, gear_sent = false;
 
@@ -720,12 +734,12 @@ void AP_ICEngine::send_status(const bool force)
                     0,0,0);
         }
 
+        uint16_t current_gear_pwm = AP_ICENGINE_GEAR_PWM_INVALID;
+        const bool hasGear = SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, current_gear_pwm);
         const bool send_gear = force || (now_ms - gear.last_send_ms >= 1000);
-        if (send_gear && HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
+        if (hasGear && send_gear && HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
 
             gear_sent = true;
-            uint16_t current_gear_pwm = AP_ICENGINE_GEAR_PWM_INVALID;
-            SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, current_gear_pwm);
 
             mavlink_msg_command_long_send(
                     (mavlink_channel_t)chan, 0, 0,
