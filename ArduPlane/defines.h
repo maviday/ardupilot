@@ -66,6 +66,7 @@ enum mode_reason_t {
     MODE_REASON_UNAVAILABLE,
     MODE_REASON_SOARING_ALT_TOO_HIGH,
     MODE_REASON_SOARING_ALT_TOO_LOW,
+    MODE_REASON_SOARING_DRIFT_EXCEEDED,
 };
 
 // type of stick mixing enabled
