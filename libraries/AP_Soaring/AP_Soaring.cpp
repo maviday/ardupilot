@@ -220,7 +220,7 @@ SoaringController::LoiterStatus SoaringController::check_cruise_criteria()
             if (result != _cruise_criteria_msg_last) {
                 gcs().send_text(MAV_SEVERITY_INFO, "Not climbing");
             }
-        } else if (max_drift && (powf(position.x - _thermal_start_pos.x, 2) + powf(position.y - _thermal_start_pos.y, 2)) > powf(max_drift,2)) {
+        } else if ((max_drift > 0) && (powf(position.x - _thermal_start_pos.x, 2) + powf(position.y - _thermal_start_pos.y, 2)) > powf(max_drift,2)) {
             result = DRIFT_EXCEEDED;
             if (result != _cruise_criteria_msg_last) {
                 gcs().send_text(MAV_SEVERITY_INFO, "Drifted too far");
