@@ -38,8 +38,8 @@ class SoaringController {
     // store time thermal was entered for hysteresis
     unsigned long _thermal_start_time_us;
 
-    // store altitude thermal was entered as a backup check
-    float _thermal_start_alt;
+    // store position thermal was entered as a backup check
+    Vector3f _thermal_start_pos;
 
     // store time cruise was entered for hysteresis
     unsigned long _cruise_start_time_us;
@@ -67,6 +67,8 @@ protected:
     AP_Float alt_max;
     AP_Float alt_min;
     AP_Float alt_cutoff;
+    AP_Float max_drift;
+
 
 public:
     SoaringController(AP_AHRS &ahrs, AP_SpdHgtControl &spdHgt, const AP_Vehicle::FixedWing &parms);
@@ -77,6 +79,7 @@ public:
         ALT_TOO_LOW,
         THERMAL_WEAK,
         ALT_LOST,
+        DEVIATION_EXCEEDED,
         THERMAL_GOOD_TO_KEEP_LOITERING
     } LoiterStatus;
 
