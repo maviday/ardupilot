@@ -289,7 +289,7 @@ const LogStructure Rover::log_structure[] = {
     { LOG_STARTUP_MSG, sizeof(log_Startup),
       "STRT", "QBH",        "TimeUS,SType,CTot", "s--", "F--" },
     { LOG_THR_MSG, sizeof(log_Throttle),
-      "THR", "Qhfffff", "TimeUS,ThrIn,ThrOut,DesSpeed,Speed,AccY,Err", "s--nno", "F--0000" },
+      "THR", "Qhfffff", "TimeUS,ThrIn,ThrOut,DesSpeed,Speed,AccY,Err", "s--nno-", "F--0000" },
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),
       "NTUN", "QfHHHf", "TimeUS,WpDist,WpBrg,DesYaw,Yaw,XTrack", "smdddm", "F0BBB0" },
     { LOG_RANGEFINDER_MSG, sizeof(log_Rangefinder),
