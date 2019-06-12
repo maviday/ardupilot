@@ -34,11 +34,6 @@ extern const AP_HAL::HAL& hal;
 #define AP_ICENGINE_FUEL_LEVEL_INVALID      -1
 #define AP_ICENGINE_GEAR_PWM_INVALID        0
 
-#define AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK        1100;
-#define AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1    1300;
-#define AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_NEUTRAL     1500;
-#define AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD1    1700;
-#define AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2    1900;
 
 const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
 
@@ -452,9 +447,10 @@ void AP_ICEngine::set_output_channels()
         gear.pwm = AP_ICENGINE_GEAR_PWM_INVALID;
         gear.state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
     } else if (gear.state == MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN) {
-        // on boot or in an unknown state, set gear to trim and find out what that value is
+        // on boot or in an unknown state, set gear to trim and find out what that value is and set to that state
         SRV_Channels::set_output_to_trim(SRV_Channel::k_engine_gear);
         SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, gear.pwm);
+        gear.state = convertPwmToGearState(gear.pwm);
     } else {
         // normal operation, set the output
         SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear.pwm);
@@ -507,8 +503,6 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
         return false;
     }
     throttle_prev = percentage;
-
-    static enum ICE_State state_prev = state;
 
     const uint32_t now_ms = AP_HAL::millis();
     if (now_ms - throttle_overrde_msg_last_ms > 10000 || state_prev != state) {
@@ -785,6 +779,33 @@ void AP_ICEngine::send_status()
 }
 
 
+MAV_ICE_TRANSMISSION_GEAR_STATE AP_ICEngine::convertPwmToGearState(const uint16_t pwm)
+{
+    const uint16_t margin = 100;
+    const uint16_t margin_edge = 200;
+
+    if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2 + margin_edge) {
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+    }
+    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2 - margin) {
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2;
+    }
+    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD1 - margin) {
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1;
+    }
+    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_NEUTRAL - margin) {
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL;
+    }
+    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1 - margin) {
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE;
+    }
+    else if (pwm >= MAV_ICE_TRANSMISSION_GEAR_STATE_PARK - margin_edge) {
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_PARK;
+    }
+    else {
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+    }
+}
 
 // singleton instance. Should only ever be set in the constructor.
 AP_ICEngine *AP_ICEngine::_singleton;

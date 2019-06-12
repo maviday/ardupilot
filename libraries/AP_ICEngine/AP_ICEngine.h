@@ -78,13 +78,21 @@ public:
 private:
     static AP_ICEngine *_singleton;
 
+    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK      = 1100;
+    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1  = 1300;
+    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_NEUTRAL   = 1500;
+    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD1  = 1700;
+    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2  = 1900;
+
     enum ICE_State state;
+    enum ICE_State state_prev;
 
     struct {
         enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
         uint16_t pwm;
         uint32_t last_send_ms;
     } gear;
+    static MAV_ICE_TRANSMISSION_GEAR_STATE convertPwmToGearState(const uint16_t pwm);
 
     void update_fuel();
     struct {
