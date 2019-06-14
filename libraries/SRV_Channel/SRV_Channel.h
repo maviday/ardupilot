@@ -40,6 +40,11 @@ public:
 
     static const struct AP_Param::GroupInfo var_info[];
 
+    enum OptionsMask {
+        RCIN_PASSTHROUGH_DEFAULT_IS_TRIM                        = (1<<0),   // If set then init output to trim, else init to zero
+    };
+
+
     typedef enum
     {
         k_none                  = 0,            ///< disabled
@@ -197,6 +202,9 @@ public:
 
     // return true if function is for anything that should be stopped in a e-stop situation, ie is dangerous
     static bool should_e_stop(SRV_Channel::Aux_servo_function_t function);
+
+    // return true if function is rcin passthrough channel 1 through 16
+    static bool is_rcin_passthrough(SRV_Channel::Aux_servo_function_t function);
 
     // return the function of a channel
     SRV_Channel::Aux_servo_function_t get_function(void) const {
@@ -535,6 +543,7 @@ private:
 
     AP_Int8 auto_trim;
     AP_Int16 default_rate;
+    AP_Int32 _options;
 
     // return true if passthrough is disabled
     static bool passthrough_disabled(void) {
