@@ -91,7 +91,7 @@ public:
     void get_target(Location & wp);
     bool suppress_throttle();
     bool check_thermal_criteria();
-    LoiterStatus check_cruise_criteria();
+    LoiterStatus check_cruise_criteria(Vector2f prev_wp, Vector2f next_wp);
     void init_thermalling();
     void init_cruising();
     void update_thermalling();
@@ -110,6 +110,8 @@ public:
     }
 
     void update_vario();
+
+    bool check_drift(Vector2f prev_wp, Vector2f next_wp);
 
 private:
     // slow down messages if they are the same. During loiter we could smap the same message. Only show new messages during loiters
