@@ -634,7 +634,7 @@ void AP_TECS::_update_throttle_with_airspeed(void)
     }
     else if (_flags.is_gliding)
     {
-        _throttle_dem = 0.0f;
+        _throttle_dem = constrain_float(_throttle_dem, -1.0f, 0.0f);
     }
     else
     {
@@ -752,7 +752,7 @@ void AP_TECS::_update_throttle_without_airspeed(int16_t throttle_nudge)
 
     if (_flags.is_gliding)
     {
-        _throttle_dem = 0.0f;
+        _throttle_dem = constrain_float(_throttle_dem, -1.0f, 0.0f);
     }
 
     // Calculate additional throttle for turn drag compensation including throttle nudging
