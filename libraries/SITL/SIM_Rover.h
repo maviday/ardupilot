@@ -45,7 +45,6 @@ private:
     float turning_circle;
     float skid_turn_rate;
     bool skid_steering;
-    bool use_icengine;
 
     const uint8_t throttle_servo = 2;
     const int8_t choke_servo = 14;

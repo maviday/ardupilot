@@ -36,12 +36,19 @@ public:
         ignition_servo(_ignition),
         starter_servo(_starter),
         slew_rate(_slew_rate)
-    {}
+    {
+        enum ap_var_type ptype;
+        param_ice_enable = (AP_Int8 *)AP_Param::find("ICE_ENABLE", &ptype);
+    }
+
+    bool enabled() { return param_ice_enable != nullptr && (param_ice_enable->get() != 0); }
 
     // update motor state
     float update(const struct sitl_input &input);
 
 private:
+    AP_Int8* param_ice_enable;
+
     float last_output;
     uint64_t start_time_us;
     uint64_t last_update_us;
