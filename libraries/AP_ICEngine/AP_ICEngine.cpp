@@ -19,6 +19,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_MATH/AP_Math.h> // for is_zero
 #include "AP_ICEngine.h"
+#include <AP_BattMonitor/AP_BattMonitor.h>
 
 extern const AP_HAL::HAL& hal;
 
