@@ -170,6 +170,10 @@ const AP_Param::GroupInfo SITL::var_info2[] = {
 
     AP_GROUPINFO("GPS_HDG",     43, SITL,  gps_hdg_enabled, 0),
 
+    // @Group: ICE_
+    // @Path: ./SIM_ICEngine.cpp
+    AP_SUBGROUPINFO(icengine_sim, "ICE_", 44, SITL, ICEngine),
+
     AP_GROUPEND
 
 };

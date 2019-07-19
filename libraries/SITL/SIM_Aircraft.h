@@ -28,6 +28,7 @@
 #include "SIM_Gripper_EPM.h"
 #include "SIM_Parachute.h"
 #include "SIM_Precland.h"
+#include "SIM_ICEngine.h"
 #include <Filter/Filter.h>
 
 namespace SITL {
@@ -119,6 +120,7 @@ public:
     void set_gripper_servo(Gripper_Servo *_gripper) { gripper = _gripper; }
     void set_gripper_epm(Gripper_EPM *_gripper_epm) { gripper_epm = _gripper_epm; }
     void set_precland(SIM_Precland *_precland);
+    void set_icengine(ICEngine *_icengine)  { icengine = _icengine; }
 
 protected:
     SITL *sitl;
@@ -263,11 +265,13 @@ private:
 
     LowPassFilterFloat servo_filter[4];
 
+protected:
     Sprayer *sprayer;
     Gripper_Servo *gripper;
     Gripper_EPM *gripper_epm;
     Parachute *parachute;
     SIM_Precland *precland;
+    ICEngine *icengine;
 };
 
 } // namespace SITL

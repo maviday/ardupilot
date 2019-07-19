@@ -92,6 +92,7 @@ float SimRover::calc_lat_accel(float steering_angle, float speed)
  */
 void SimRover::update(const struct sitl_input &input)
 {
+    // if you have brakes, assume you need them!
     if (SRV_Channels::function_assigned(SRV_Channel::k_brake)) {
         mass = 4.0f;
     }
@@ -110,10 +111,7 @@ void SimRover::update(const struct sitl_input &input)
         throttle = 2*((input.servos[2]-1000)/1000.0f - 0.5f);
     }
     
-    throttle = icengine.update(input);
-
-    // simulate engine RPM
-    rpm1 = throttle * 7000;
+    icengine->update(input, throttle);
 
     // how much time has passed?
     float delta_time = frame_time_us * 1.0e-6f;

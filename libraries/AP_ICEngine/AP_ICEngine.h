@@ -73,6 +73,9 @@ public:
 
     void set_current_throttle(const float throttle) { current_throttle_percent = throttle; }
 
+    bool enabled() const { return (enable != 0); }
+    int8_t get_channel_starter() const { return start_chan; }
+
     static AP_ICEngine *get_singleton() { return _singleton; }
 
 private:

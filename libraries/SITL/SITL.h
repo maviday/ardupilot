@@ -9,6 +9,7 @@
 #include "SIM_Gripper_EPM.h"
 #include "SIM_Parachute.h"
 #include "SIM_Precland.h"
+#include "SIM_ICEngine.h"
 
 namespace SITL {
 
@@ -273,6 +274,7 @@ public:
 
     Gripper_Servo gripper_sim;
     Gripper_EPM gripper_epm_sim;
+    ICEngine icengine_sim;
 
     Parachute parachute_sim;
     SIM_Precland precland_sim;
