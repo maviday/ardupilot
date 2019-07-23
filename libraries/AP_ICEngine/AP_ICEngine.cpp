@@ -800,7 +800,7 @@ MAV_ICE_TRANSMISSION_GEAR_STATE AP_ICEngine::convertPwmToGearState(const uint16_
     else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1 - margin) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE;
     }
-    else if (pwm >= MAV_ICE_TRANSMISSION_GEAR_STATE_PARK - margin_edge) {
+    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK - margin_edge) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_PARK;
     }
     else {
