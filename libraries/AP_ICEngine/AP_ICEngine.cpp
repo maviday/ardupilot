@@ -33,7 +33,6 @@ extern const AP_HAL::HAL& hal;
 
 #define AP_ICENGINE_TEMPERATURE_INVALID     -999;
 #define AP_ICENGINE_FUEL_LEVEL_INVALID      -1
-#define AP_ICENGINE_GEAR_PWM_INVALID        0
 
 
 const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
@@ -452,7 +451,7 @@ void AP_ICEngine::set_output_channels()
 
     if (!SRV_Channels::function_assigned(SRV_Channel::k_engine_gear)) {
         // if we don't have a gear then set it to a known invalid state
-        gear.pwm = AP_ICENGINE_GEAR_PWM_INVALID;
+        gear.pwm = ICE_Gear_State_PRM::INVALID;
         gear.state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
     } else if (gear.state == MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN) {
         // on boot or in an unknown state, set gear to trim and find out what that value is and set to that state
@@ -471,7 +470,11 @@ the brake when starting the engine
 */
 bool AP_ICEngine::brake_override(float &percentage)
 {
-    if (enable && (state == ICE_STARTING)) {
+    if (!enable) {
+        return false;
+    }
+
+    if (state == ICE_STARTING || state == ICE_START_DELAY) {
         // when starting, apply full brake
         percentage = 100;
         return true;
@@ -579,25 +582,25 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
 
     switch (gearState) {
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
-            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK;
+            gear.pwm = ICE_Gear_State_PRM::PARK;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
-            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1;
+            gear.pwm = ICE_Gear_State_PRM::REVERSE1;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
-            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_NEUTRAL;
+            gear.pwm = ICE_Gear_State_PRM::NEUTRAL;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
-            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD1;
+            gear.pwm = ICE_Gear_State_PRM::FORWARD1;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
-            gear.pwm = AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2;
+            gear.pwm = ICE_Gear_State_PRM::FORWARD2;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
@@ -736,7 +739,7 @@ void AP_ICEngine::send_status()
                     0,0,0);
         }
 
-        uint16_t current_gear_pwm = AP_ICENGINE_GEAR_PWM_INVALID;
+        uint16_t current_gear_pwm = ICE_Gear_State_PRM::INVALID;
         const bool hasGear = SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, current_gear_pwm);
         const bool send_gear = force || (now_ms - gear.last_send_ms >= 1000);
         if (hasGear && send_gear && HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
@@ -792,22 +795,22 @@ MAV_ICE_TRANSMISSION_GEAR_STATE AP_ICEngine::convertPwmToGearState(const uint16_
     const uint16_t margin = 100;
     const uint16_t margin_edge = 200;
 
-    if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2 + margin_edge) {
+    if (pwm >= ICE_Gear_State_PRM::FORWARD2 + margin_edge) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
     }
-    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2 - margin) {
+    else if (pwm >= ICE_Gear_State_PRM::FORWARD2 - margin) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2;
     }
-    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD1 - margin) {
+    else if (pwm >= ICE_Gear_State_PRM::FORWARD1 - margin) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1;
     }
-    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_NEUTRAL - margin) {
+    else if (pwm >= ICE_Gear_State_PRM::NEUTRAL - margin) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL;
     }
-    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1 - margin) {
+    else if (pwm >= ICE_Gear_State_PRM::REVERSE1 - margin) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE;
     }
-    else if (pwm >= AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK - margin_edge) {
+    else if (pwm >= ICE_Gear_State_PRM::PARK - margin_edge) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_PARK;
     }
     else {

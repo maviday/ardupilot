@@ -55,6 +55,14 @@ public:
         ICE_STARTING=3,
         ICE_RUNNING=4
     };
+    enum ICE_Gear_State_PRM {
+        INVALID     = 0,
+        PARK        = 1100,
+        REVERSE1    = 1300,
+        NEUTRAL     = 1500,
+        FORWARD1    = 1700,
+        FORWARD2    = 1900,
+    };
 
     // get current engine control state
     ICE_State get_state(void) const { return state; }
@@ -78,14 +86,12 @@ public:
 
     static AP_ICEngine *get_singleton() { return _singleton; }
 
+    MAV_ICE_TRANSMISSION_GEAR_STATE get_transmission_gear_state() const { return gear.state; }
+
+
 private:
     static AP_ICEngine *_singleton;
 
-    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_PARK      = 1100;
-    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_REVERSE1  = 1300;
-    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_NEUTRAL   = 1500;
-    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD1  = 1700;
-    static const uint16_t AP_ICENGINE_TRANSMISSION_GEAR_STATE_PWM_FORWARD2  = 1900;
 
     enum ICE_State state;
     enum ICE_State state_prev;
