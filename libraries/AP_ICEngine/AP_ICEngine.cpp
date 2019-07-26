@@ -473,6 +473,9 @@ bool AP_ICEngine::brake_override(float &percentage)
     if (!enable) {
         return false;
     }
+    if (!(options & AP_ICENGINE_OPTIONS_MASK_GEAR_CAN_OVERRIDE_BRAKE)) {
+        return false;
+    }
 
     if (state == ICE_STARTING || state == ICE_START_DELAY) {
         // when starting, apply full brake
