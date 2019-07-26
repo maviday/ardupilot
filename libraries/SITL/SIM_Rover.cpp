@@ -92,12 +92,6 @@ float SimRover::calc_lat_accel(float steering_angle, float speed)
  */
 void SimRover::update(const struct sitl_input &input)
 {
-    // if you have brakes, assume you need them!
-    if (SRV_Channels::function_assigned(SRV_Channel::k_brake)) {
-        mass = 4.0f;
-    }
-
-
     float steering, throttle;
 
     // if in skid steering mode the steering and throttle values are used for motor1 and motor2
@@ -139,7 +133,15 @@ void SimRover::update(const struct sitl_input &input)
 
 
     // if braking is configured, apply it assuming 1G
-    const float braking = MAX(0,GRAVITY_MSS * (SRV_Channels::get_output_scaled(SRV_Channel::k_brake) * 0.001f));
+    float braking = 0;
+    float rolling_friction = 1.0f;
+    if (SRV_Channels::function_assigned(SRV_Channel::k_brake)) {
+        braking = MAX(0,GRAVITY_MSS * (SRV_Channels::get_output_scaled(SRV_Channel::k_brake) * 0.001f));
+
+        // if you have brakes, assume you need them!
+        mass = 4.0f;
+        rolling_friction = 2.0f;
+    }
 
     // accel in body frame due to motor minus brake
     accel_body = Vector3f(accel - braking, 0, 0);
@@ -148,11 +150,10 @@ void SimRover::update(const struct sitl_input &input)
     accel_body /= mass;
 
     // apply rolling friction
-    const float rolling_friction = 1.0f;
     accel_body.x /= rolling_friction;
 
     // add in accel due to direction change
-    accel_body.y += radians(yaw_rate) * speed * mass;
+    accel_body.y += radians(yaw_rate) * speed;
 
     // now in earth frame
     Vector3f accel_earth = dcm * accel_body;
