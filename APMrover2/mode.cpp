@@ -282,13 +282,6 @@ void Mode::calc_throttle(float target_speed, bool avoidance_enabled)
         throttle_out = 100.0f * attitude_control.get_throttle_out_speed(target_speed, g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt);
     }
 
-
-    // if available, apply brakes when necessary
-    if (g2.motors.has_brake()) {
-        const float brake_out = attitude_control.calc_brake(target_speed, throttle_out, rover.G_Dt);
-        rover.set_brake(brake_out);
-    }
-
     // if vehicle is balance bot, calculate actual throttle required for balancing
     if (rover.is_balancebot()) {
         rover.balancebot_pitch_control(throttle_out);
@@ -299,6 +292,13 @@ void Mode::calc_throttle(float target_speed, bool avoidance_enabled)
 
     // send to motor
     rover.set_throttle(throttle_out);
+
+    // if available, apply brakes when necessary
+    if (g2.motors.has_brake()) {
+        //const float brake_out = attitude_control.calc_brake(target_speed, throttle_out, rover.G_Dt);
+        float brake_out = 10;
+        rover.set_brake(brake_out);
+    }
 }
 
 // performs a controlled stop with steering centered

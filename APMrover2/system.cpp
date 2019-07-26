@@ -309,13 +309,14 @@ void Rover::set_brake(float brake_percent)
             break;
     }
 
-
+#if 1
     const uint32_t now_ms = AP_HAL::millis();
     static uint32_t last_send_ms = 0;
     if (now_ms - last_send_ms >= 1000) {
         last_send_ms = now_ms;
-        hal.console->printf("Brake percent: %f\n", brake_percent);
+        hal.console->printf("%d Brake: output %d%%\n", now_ms, (int)brake_percent);
     }
+#endif
 
 #if 0
     if (throttle <= 0) {
