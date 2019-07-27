@@ -148,6 +148,9 @@ public:
     // get latest speed error. For reporting purposes only
     float get_speed_error() const { return _speed_error; }
 
+    // get brake gain. Used by non-throttle modes to handle braking
+    float get_brake_gain() const { return _brake_gain; }
+
     // get minimum stopping distance (in meters) given a speed (in m/s)
     float get_stopping_distance(float speed) const;
 

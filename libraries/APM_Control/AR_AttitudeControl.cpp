@@ -507,7 +507,8 @@ void AR_AttitudeControl::get_throttle_and_brake_out_speed(float desired_speed, b
     if (throttle_out > 0) {
         brake_out = 0;
     } else {
-        brake_out = -1*throttle_out * _brake_gain;
+        // braking is like negative thrust!
+        brake_out = -1 * throttle_out * _brake_gain;
     }
 
 

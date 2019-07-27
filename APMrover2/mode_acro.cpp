@@ -11,6 +11,12 @@ void ModeAcro::update()
         get_pilot_desired_steering_and_throttle(desired_steering, desired_throttle);
         // no valid speed, just use the provided throttle
         rover.set_throttle(desired_throttle);
+        if (desired_throttle > 0) {
+            rover.set_brake(0.0f);
+        } else {
+            // add a little if no throttle
+            rover.set_brake(10 * attitude_control.get_brake_gain());
+        }
     } else {
         float desired_speed;
         // convert pilot stick input into desired steering and speed
