@@ -279,21 +279,6 @@ void GCS_MAVLINK_Rover::send_pid_tuning()
             return;
         }
     }
-
-    // brakes
-    if (g.gcs_pid_mask & 64) {
-        pid_info = &g2.attitude_control.get_brake_pid().get_pid_info();
-        mavlink_msg_pid_tuning_send(chan, 9,
-                                    pid_info->desired,
-                                    pid_info->actual,
-                                    pid_info->FF,
-                                    pid_info->P,
-                                    pid_info->I,
-                                    pid_info->D);
-        if (!HAVE_PAYLOAD_SPACE(chan, PID_TUNING)) {
-            return;
-        }
-    }
 }
 
 void Rover::send_wheel_encoder_distance(const mavlink_channel_t chan)

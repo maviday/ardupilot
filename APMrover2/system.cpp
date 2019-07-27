@@ -249,16 +249,10 @@ void Rover::set_throttle(float throttle)
 
 void Rover::set_brake(float brake_percent)
 {
-    const float speed = ahrs.groundspeed();
-    const float throttle = g2.motors.get_throttle();
-    bool disarmed_and_neutral_brake_override = false;
-
-    RC_Channel *c = rc().channel(5-1); // (RC5)
-    if (c != nullptr) {
-        const uint16_t pwm = c->get_radio_in();
-        if (pwm >= 900 && pwm <= 2100) {
-            disarmed_and_neutral_brake_override = (pwm >= 1500);
-        }
+    float ice_brake_override_percent;
+    if (rover.g2.ice_control.brake_override(ice_brake_override_percent)) {
+        // the ICE controller wants to override the brake, usually for starting
+        brake_percent = ice_brake_override_percent;
     }
 
     switch (rover.g2.ice_control.get_transmission_gear_state()) {
@@ -276,28 +270,27 @@ void Rover::set_brake(float brake_percent)
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_7:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_8:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9:
-            if (!hal.util->get_soft_armed()) {
-                // disarmed
+            {
+            float speed;
+            if (!hal.util->get_soft_armed() || (g2.attitude_control.get_forward_speed(speed) && speed < 0.1f)) {
+                // disarmed or not moving.
                 brake_percent = 100;
-
-            } else if (throttle > 0 || speed > 0.5f) {
-                // If throttle or moving X min speed - Dynamic Braking
-                float target_speed = 0;
-                const float pid_offset = rover.g2.attitude_control.calc_brake(target_speed, throttle, rover.G_Dt);
-                brake_percent = constrain_float((brake_percent+pid_offset), 0.0f ,100.0f);
-
-            } else if (throttle <= 0) {
-                // If no throttle
-                brake_percent = 100;
+            }
             }
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL:
             if (hal.util->get_soft_armed()) {
                 brake_percent = 100;
-            } else if (!disarmed_and_neutral_brake_override) {
-                // User can override brake – Brake OFF to push vehicle - Brake "Off"override check box in Admin panel.
-                brake_percent = 100;
+            } else {
+                RC_Channel *c = rc().channel(5-1); // (RC5)
+                if (c != nullptr) {
+                    const uint16_t pwm = c->get_radio_in();
+                    if (pwm >= 900 && pwm <= 1500) {
+                        // User can override brake – Brake OFF to push vehicle - Brake "Off"override check box in Admin panel.
+                        brake_percent = 100;
+                    }
+                }
             }
             break;
 
@@ -305,26 +298,14 @@ void Rover::set_brake(float brake_percent)
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
         default:
-            // unhandled
+            // unhandled, no brake management
             break;
     }
 
-#if 1
-    const uint32_t now_ms = AP_HAL::millis();
-    static uint32_t last_send_ms = 0;
-    if (now_ms - last_send_ms >= 1000) {
-        last_send_ms = now_ms;
-        hal.console->printf("%d Brake: output %d%%\n", now_ms, (int)brake_percent);
+    // master overrider. If we're ever giving throttle we must always turn off the brake
+    if (g2.motors.get_throttle() > 0) {
+        brake_percent = 0;
     }
-#endif
-
-#if 0
-    if (throttle <= 0) {
-        // if the throttle is zero, always apply at least a little bit of brake
-        #define A_LITTLE_BIT_OF_BRAKE   25
-        brake_percent = MAX(brake_percent, A_LITTLE_BIT_OF_BRAKE);
-    }
-#endif
 
     g2.motors.set_brake(brake_percent);
 }

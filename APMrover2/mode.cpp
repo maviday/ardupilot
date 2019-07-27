@@ -273,18 +273,24 @@ void Mode::calc_throttle(float target_speed, bool avoidance_enabled)
 
     // call throttle controller and convert output to -100 to +100 range
     float throttle_out;
+    float brake_out;
 
     // call speed or stop controller
     if (is_zero(target_speed) && !rover.is_balancebot()) {
         bool stopped;
-        throttle_out = 100.0f * attitude_control.get_throttle_out_stop(g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt, stopped);
+        attitude_control.get_throttle_and_brake_out_stop(g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt, stopped, throttle_out, brake_out);
     } else {
-        throttle_out = 100.0f * attitude_control.get_throttle_out_speed(target_speed, g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt);
+        attitude_control.get_throttle_and_brake_out_speed(target_speed, g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt, throttle_out, brake_out);
     }
+
+    // convert range (-1 +1) to a percent (-100 +100)
+    throttle_out *= 100.0f;
+    brake_out *= 100.0f;
 
     // if vehicle is balance bot, calculate actual throttle required for balancing
     if (rover.is_balancebot()) {
         rover.balancebot_pitch_control(throttle_out);
+        brake_out = 0;
     }
 
     // update mainsail position if present
@@ -292,13 +298,7 @@ void Mode::calc_throttle(float target_speed, bool avoidance_enabled)
 
     // send to motor
     rover.set_throttle(throttle_out);
-
-    // if available, apply brakes when necessary
-    if (g2.motors.has_brake()) {
-        //const float brake_out = attitude_control.calc_brake(target_speed, throttle_out, rover.G_Dt);
-        float brake_out = 10;
-        rover.set_brake(brake_out);
-    }
+    rover.set_brake(brake_out);
 }
 
 // performs a controlled stop with steering centered
@@ -307,13 +307,22 @@ bool Mode::stop_vehicle()
     // call throttle controller and convert output to -100 to +100 range
     bool stopped = false;
     float throttle_out;
+    float brake_out;
 
     // if vehicle is balance bot, calculate throttle required for balancing
     if (rover.is_balancebot()) {
-        throttle_out = 100.0f * attitude_control.get_throttle_out_speed(0, g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt);
-        rover.balancebot_pitch_control(throttle_out);
+        attitude_control.get_throttle_and_brake_out_speed(0, g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt, throttle_out, brake_out);
     } else {
-        throttle_out = 100.0f * attitude_control.get_throttle_out_stop(g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt, stopped);
+        attitude_control.get_throttle_and_brake_out_stop(g2.motors.limit.throttle_lower, g2.motors.limit.throttle_upper, g.speed_cruise, g.throttle_cruise * 0.01f, rover.G_Dt, stopped, throttle_out, brake_out);
+    }
+
+    // convert range (-1 +1) to a percent (-100 +100)
+    throttle_out *= 100.0f;
+    brake_out *= 100.0f;
+
+    if (rover.is_balancebot()) {
+        rover.balancebot_pitch_control(throttle_out);
+        brake_out = 0;
     }
 
     // relax mainsail if present
@@ -321,6 +330,7 @@ bool Mode::stop_vehicle()
 
     // send to motor
     rover.set_throttle(throttle_out);
+    rover.set_brake(brake_out);
 
     // do not attempt to steer
     g2.motors.set_steering(0.0f);
