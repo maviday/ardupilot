@@ -282,12 +282,9 @@ void Rover::set_brake(float brake_percent)
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL:
             if (hal.util->get_soft_armed()) {
                 brake_percent = 100;
-            } else {
-                RC_Channel *c = rc().channel(5-1); // (RC5)
-                if (c != nullptr && c->get_radio_in() >= 1500 && c->get_radio_in() <= 2100) {
-                    // User can override brake - Brake OFF to push vehicle - Brake "Off" override check box in Admin panel.
-                    brake_percent = 0;
-                }
+            } else if (g2.ice_control.get_brakeReleaseAllowedIn_Neutral_and_Disarmed()) {
+                // User can override brake - Brake OFF to push vehicle - Brake "Off" override check box in Admin panel.
+                brake_percent = 0;
             }
             break;
 

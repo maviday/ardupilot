@@ -91,10 +91,12 @@ public:
 
     MAV_ICE_TRANSMISSION_GEAR_STATE get_transmission_gear_state() const { return gear.state; }
 
+    bool get_brakeReleaseAllowedIn_Neutral_and_Disarmed() const { return brakeReleaseAllowedIn_Neutral_and_Disarmed; }
 
 private:
     static AP_ICEngine *_singleton;
 
+    bool brakeReleaseAllowedIn_Neutral_and_Disarmed;
 
     enum ICE_State state;
     enum ICE_State state_prev;
