@@ -297,8 +297,9 @@ void AP_ICEngine::determine_state()
     }
 
     int32_t current_rpm = -1;
-    if (AP::rpm()->healthy(rpm_instance)) {
-        current_rpm = (int32_t)AP::rpm()->get_rpm(rpm_instance-1);
+    AP_RPM *rpm = AP::rpm();
+    if (rpm_instance > 0 && rpm != nullptr) {
+        current_rpm = (int32_t)rpm->get_rpm(rpm_instance-1);
     }
 
     // switch on current state to work out new state
@@ -378,14 +379,18 @@ void AP_ICEngine::determine_state()
             state = ICE_RUNNING;
         } else if (now_ms - starter_start_time_ms >= starter_time*1000) {
             // STARTER_TIME expired
-            if (rpm_threshold_starting > 0 && current_rpm < rpm_threshold_starting) {
-                // not running, start has failed.
-                gcs().send_text(MAV_SEVERITY_INFO, "Engine start failed");
-                state = ICE_START_DELAY;
-            } else {
+            if (rpm_threshold_starting <= 0) {
                 // without an rpm sensor we have to assume we're successful
-                gcs().send_text(MAV_SEVERITY_INFO, "Engine running!");
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine running! (No rpm feedback)");
                 state = ICE_RUNNING;
+            } else if (current_rpm < 0) {
+                // we're expecting an rpm but never saw it, lets sanity check it
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine start failed. Check rpm configuration");
+                state = ICE_OFF;
+            } else if (current_rpm < rpm_threshold_starting) {
+                // not running, start has failed.
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine start failed. Detected %d rpm", current_rpm);
+                state = ICE_START_DELAY;
             }
         }
         break;
@@ -399,7 +404,9 @@ void AP_ICEngine::determine_state()
         }
 
         // switch position can be either acc or acc_start while in this state
-        if (current_rpm > 0 && rpm_threshold_running > 0 && current_rpm < rpm_threshold_running) {
+
+        if (rpm_threshold_running > 0 && current_rpm >= 0 && current_rpm < rpm_threshold_running) {
+            // we're expecting an rpm, have a valid rpm, and the rpm is too low.
             // engine has stopped when it should be running
             gcs().send_text(MAV_SEVERITY_INFO, "Engine died while running: %d rpm", current_rpm);
             state = ICE_START_DELAY;
