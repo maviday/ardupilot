@@ -224,13 +224,6 @@ void AP_ICEngine::init(const bool inhibit_outputs)
         hal.gpio->write(master_output_enable_pin, inhibit_outputs);
     }
     set_output_channels();
-
-    RC_Channel *c = rc().channel(start_chan-1);
-    if (c != nullptr) {
-        //set initial PWM input state is OFF
-        c->set_radio_in(1100);
-        c->set_override(1100, MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE, AP_HAL::millis());
-    }
 }
 
 /*
