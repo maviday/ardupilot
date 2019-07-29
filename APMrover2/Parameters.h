@@ -410,6 +410,9 @@ public:
 
     // object avoidance path planning
     AP_OAPathPlanner oa;
+
+    // mechanical emergency brake channel number
+    AP_Int8 ebrake_rc_channel;
 };
 
 extern const AP_Param::Info var_info[];

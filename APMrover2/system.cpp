@@ -243,6 +243,10 @@ void Rover::set_throttle(float throttle)
         // the ICE controller wants to override the throttle for starting
         throttle = ice_throttle_override_percent;
     }
+
+    if (get_emergency_brake() > 0) {
+        throttle = 0;
+    }
     rover.g2.ice_control.set_current_throttle(throttle);
     g2.motors.set_throttle(throttle);
 }
@@ -301,7 +305,23 @@ void Rover::set_brake(float brake_percent)
         brake_percent = 0;
     }
 
+    brake_percent = MAX(brake_percent, get_emergency_brake());
+
     g2.motors.set_brake(brake_percent);
+}
+
+float Rover::get_emergency_brake()
+{
+    if (g2.ebrake_rc_channel <= 0) {
+        return 0;
+    }
+    RC_Channel *c = rc().channel(g2.ebrake_rc_channel-1);
+    if (c == nullptr) {
+        return 0;
+    }
+
+    c->set_range(100);
+    return c->get_control_in();
 }
 
 

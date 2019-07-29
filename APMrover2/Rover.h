@@ -455,6 +455,7 @@ private:
     // system.cpp
     void set_throttle(float throttle);
     void set_brake(float brake_percent);
+    float get_emergency_brake();
     void init_ardupilot();
     void startup_ground(void);
     void update_ahrs_flyforward();

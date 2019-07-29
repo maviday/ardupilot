@@ -661,6 +661,13 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Path: ../libraries/AC_Avoidance/AP_OAPathPlanner.cpp
     AP_SUBGROUPINFO(oa, "OA_", 45, ParametersG2, AP_OAPathPlanner),
 
+    // @Param: EBRAKE_CH
+    // @DisplayName: Emergency Brake Channel
+    // @Description: Emergency Brake RC Input Channel number. Use 0 to disable, else 1 maps to RC1 and 16 maps to RC16
+    // @Range: 0 16
+    // @User: Advanced
+    AP_GROUPINFO("EBRAKE_CH", 46, ParametersG2, ebrake_rc_channel, 0),
+
     AP_GROUPEND
 };
 
