@@ -254,6 +254,8 @@ void Rover::set_throttle(float throttle)
 
 void Rover::set_brake(float brake_percent)
 {
+    float speed;
+
     float ice_brake_override_percent;
     if (rover.g2.ice_control.brake_override(ice_brake_override_percent)) {
         // the ICE controller wants to override the brake, usually for starting
@@ -275,17 +277,21 @@ void Rover::set_brake(float brake_percent)
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_7:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_8:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9:
-            {
-            float speed;
-            if (!hal.util->get_soft_armed() || (g2.attitude_control.get_forward_speed(speed) && speed < 0.1f)) {
-                // disarmed or not moving.
+            if (!hal.util->get_soft_armed()) {
+                // disarmed
                 brake_percent = 100;
-            }
+
+            } else if (g2.attitude_control.get_desired_speed() <= 0 &&
+                    g2.attitude_control.get_forward_speed(speed) &&
+                    speed < 0.05f)
+            {
+                // we want speed=0 and we are about speed=0
+                brake_percent = 100;
             }
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL:
-            if (hal.util->get_soft_armed()) {
+            if (!hal.util->get_soft_armed()) {
                 brake_percent = 100;
             } else if (g2.ice_control.get_brakeReleaseAllowedIn_Neutral_and_Disarmed()) {
                 // User can override brake - Brake OFF to push vehicle - Brake "Off" override check box in Admin panel.

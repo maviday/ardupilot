@@ -23,10 +23,9 @@
 
 #define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION       (1<<0)
 #define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START          (1<<1)
-#define AP_ICENGINE_OPTIONS_MASK_GEAR_CAN_OVERRIDE_BRAKE        (1<<2)
+#define AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED     (1<<2)
 #define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION |        \
-                                                                AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START |            \
-                                                                AP_ICENGINE_OPTIONS_MASK_GEAR_CAN_OVERRIDE_BRAKE)
+                                                                AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START)
 
 
 class AP_ICEngine {

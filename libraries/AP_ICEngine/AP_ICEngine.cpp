@@ -397,9 +397,10 @@ void AP_ICEngine::determine_state()
 
     case ICE_RUNNING:
         engine_power_up_wait_ms = 0;
-        if (!arming_OK_to_start_or_run && idle_percent <= 0) {
-            // with idle_percent == 0 we stay running as an idle. Otherwise, kill the motor
+        if (!is_soft_armed && idle_percent <= 0 && !(options & AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED)) {
+            // turn off when disarmed unless we need to idle or if we think it's OK to keep running while disarmed
             state = ICE_OFF;
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped, disarmed");
             break;
         }
 
