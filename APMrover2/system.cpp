@@ -244,7 +244,8 @@ void Rover::set_throttle(float throttle)
         throttle = ice_throttle_override_percent;
     }
 
-    if (get_emergency_brake() > 0) {
+    // master overrider. If we're ever applying brakes we must always turn off the throttle
+    if (g2.motors.get_brake() > 0) {
         throttle = 0;
     }
     rover.g2.ice_control.set_current_throttle(throttle);
@@ -298,11 +299,6 @@ void Rover::set_brake(float brake_percent)
         default:
             // unhandled, no brake management
             break;
-    }
-
-    // master overrider. If we're ever giving throttle we must always turn off the brake
-    if (g2.motors.get_throttle() > 0) {
-        brake_percent = 0;
     }
 
     brake_percent = MAX(brake_percent, get_emergency_brake());
