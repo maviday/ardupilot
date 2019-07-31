@@ -224,6 +224,13 @@ void AP_ICEngine::init(const bool inhibit_outputs)
         hal.gpio->write(master_output_enable_pin, inhibit_outputs);
     }
     set_output_channels();
+
+    RC_Channel *c = rc().channel(start_chan-1);
+    if (c != nullptr) {
+        const uint16_t boot_up_value = c->get_radio_trim();
+        c->set_override(boot_up_value, MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE, AP_HAL::millis());
+        c->set_radio_in(boot_up_value);
+    }
 }
 
 /*
