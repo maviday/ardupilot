@@ -99,6 +99,7 @@ private:
 
     enum ICE_State state;
     enum ICE_State state_prev;
+    enum ICE_State state_prev2;
 
     struct {
         enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
