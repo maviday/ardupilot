@@ -480,15 +480,12 @@ bool AP_ICEngine::brake_override(float &percentage)
     if (!enable) {
         return false;
     }
-    if (!(options & AP_ICENGINE_OPTIONS_MASK_GEAR_CAN_OVERRIDE_BRAKE)) {
-        return false;
-    }
 
-    if (state == ICE_STARTING || state == ICE_START_DELAY) {
-        // when starting, apply full brake
-        percentage = 100;
-        return true;
-    }
+//    if (state == ICE_STARTING || state == ICE_START_DELAY) {
+//        // when starting, apply full brake
+//        percentage = 100;
+//        return true;
+//    }
     return false;
 }
 
@@ -498,9 +495,12 @@ bool AP_ICEngine::brake_override(float &percentage)
  */
 bool AP_ICEngine::throttle_override(int8_t &percentage)
 {
+    bool result = false;
+
     if (!enable) {
-        return false;
+        return result;
     }
+    const int8_t percentage_old = percentage;
 
     if (state == ICE_RUNNING &&
         idle_percent > 0 &&
@@ -508,31 +508,30 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
         (int16_t)idle_percent > SRV_Channels::get_output_scaled(SRV_Channel::k_throttle))
     {
         percentage = (uint8_t)idle_percent;
-        return true;
-    }
-
-    const int8_t percentage_old = percentage;
-    throttle_prev = percentage;
-
-    if (state == ICE_STARTING || state == ICE_START_DELAY) {
+        result = true;
+    }  else if (state == ICE_STARTING || state == ICE_START_DELAY) {
         percentage = start_percent;
+        result = true;
     } else if (too_cold()) {
         percentage = 0;
+        result = true;
     } else if (too_hot()) {
         percentage *= constrain_float(temperature.too_hot_throttle_reduction_factor,0,1);
-    } else {
-        return false;
+        result = true;
     }
-    throttle_prev = percentage;
 
     const uint32_t now_ms = AP_HAL::millis();
-    if (now_ms - throttle_overrde_msg_last_ms > 10000 || state_prev != state) {
+    if (result &&
+            (percentage_old != percentage) &&
+            (throttle_prev != percentage) &&
+            (now_ms - throttle_overrde_msg_last_ms > 5000 || state_prev != state)) {
         state_prev = state;
         throttle_overrde_msg_last_ms = now_ms;
+        throttle_prev = percentage;
         gcs().send_text(MAV_SEVERITY_INFO, "Engine Throttle override from %d to %d", percentage_old, percentage);
     }
 
-    return true;
+    return result;
 }
 
 
