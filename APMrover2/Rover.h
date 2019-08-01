@@ -395,6 +395,7 @@ private:
 
     // failsafe.cpp
     void failsafe_trigger(uint8_t failsafe_type, bool on);
+    const char* failsafe_to_string(const uint8_t failsafe_type);
     void handle_battery_failsafe(const char* type_str, const int8_t action);
 #if ADVANCED_FAILSAFE == ENABLED
     void afs_fs_check(void);

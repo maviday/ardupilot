@@ -62,6 +62,19 @@ void Rover::failsafe_check()
 
 }
 
+const char* Rover::failsafe_to_string(const uint8_t failsafe_type)
+{
+    switch (failsafe_type) {
+    case FAILSAFE_EVENT_THROTTLE:
+        return "Throttle";
+    case FAILSAFE_EVENT_GCS:
+        return "GCS";
+    case (FAILSAFE_EVENT_THROTTLE | FAILSAFE_EVENT_GCS):
+        return "Throttle and GCS";
+    }
+    return "Unknown Type";
+}
+
 /*
   called to set/unset a failsafe event.
  */
@@ -90,7 +103,7 @@ void Rover::failsafe_trigger(uint8_t failsafe_type, bool on)
         control_mode != &mode_rtl &&
         control_mode != &mode_hold) {
         failsafe.triggered = failsafe.bits;
-        gcs().send_text(MAV_SEVERITY_WARNING, "Failsafe trigger 0x%x", static_cast<uint32_t>(failsafe.triggered));
+        gcs().send_text(MAV_SEVERITY_WARNING, "Failsafe trigger: %s", failsafe_to_string(failsafe.triggered));
 
         // clear rc overrides
         RC_Channels::clear_overrides();
