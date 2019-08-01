@@ -15,7 +15,7 @@ void ModeAcro::update()
             rover.set_brake(0.0f);
         } else {
             // add a little if no throttle
-            rover.set_brake(10 * attitude_control.get_brake_gain());
+            rover.set_brake(rover.g2.attitude_control.get_brake_manual_pct() * attitude_control.get_brake_gain());
         }
     } else {
         float desired_speed;

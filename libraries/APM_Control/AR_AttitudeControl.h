@@ -151,6 +151,9 @@ public:
     // get brake gain. Used by non-throttle modes to handle braking
     float get_brake_gain() const { return _brake_gain; }
 
+    // get brake gain. Used by non-throttle modes to handle braking
+    uint8_t get_brake_manual_pct() const { return (uint8_t)constrain_int16(_brake_manual_percent,0,100); }
+
     // get minimum stopping distance (in meters) given a speed (in m/s)
     float get_stopping_distance(float speed) const;
 
@@ -176,6 +179,7 @@ private:
     AP_Float _throttle_decel_max;    // speed/throttle control deceleration maximum in m/s/s. 0 to use ATC_ACCEL_MAX for deceleration
     AP_Int8  _brake_enable;         // speed control brake enable/disable. if set to 1 a reversed output to the motors to slow the vehicle.
     AP_Float _brake_gain;           // brake speed controller P gain
+    AP_Int8  _brake_manual_percent; // brake percent when zero throttle in MANAUAL mode
     AP_Float _stop_speed;           // speed control stop speed.  Motor outputs to zero once vehicle speed falls below this value
     AP_Float _steer_accel_max;      // steering angle acceleration max in deg/s/s
     AP_Float _steer_rate_max;       // steering rate control maximum rate in deg/s

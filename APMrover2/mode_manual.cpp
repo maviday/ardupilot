@@ -19,7 +19,7 @@ void ModeManual::update()
 
     } else if (desired_throttle <= 0) {
         // with no throttle, add in a little brake just to have something
-        brake = 10;
+        brake = rover.g2.attitude_control.get_brake_manual_pct();
     }
 
     // set sailboat mainsail from throttle position

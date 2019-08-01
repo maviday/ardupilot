@@ -271,6 +271,15 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_BRAKE_GAIN", 14, AR_AttitudeControl, _brake_gain, 1.0f),
 
+    // @Param: _BRAKE_MANUAL
+    // @DisplayName: Speed control MANUAL brake percent
+    // @Description: Speed control percent applied to brakes in MANUAL mode while zero throttle is applied
+    // @Range: 0 100
+    // @Unit: percent
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("_BRAKE_MANUAL", 15, AR_AttitudeControl, _brake_manual_percent, 0),
+
     AP_GROUPEND
 };
 
