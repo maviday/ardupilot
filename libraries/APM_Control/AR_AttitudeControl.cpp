@@ -346,6 +346,8 @@ float AR_AttitudeControl::get_turn_rate_from_heading(float heading_rad, float ra
 // desired yaw rate in radians/sec. Positive yaw is to the right.
 float AR_AttitudeControl::get_steering_out_rate(float desired_rate, bool motor_limit_left, bool motor_limit_right, float dt)
 {
+    static uint32_t gcs_send_last[10] = {};
+
     // sanity check dt
     dt = constrain_float(dt, 0.0f, 1.0f);
 
@@ -358,6 +360,11 @@ float AR_AttitudeControl::get_steering_out_rate(float desired_rate, bool motor_l
     }
     _steer_turn_last_ms = now;
 
+    if (now - gcs_send_last[2] >= 500) {
+        gcs_send_last[2] = now;
+        gcs().send_text(MAV_SEVERITY_DEBUG,"2A: _desired_turn_rate:%.2f", _desired_turn_rate);
+    }
+
     // acceleration limit desired turn rate
     if (is_positive(_steer_accel_max)) {
         const float change_max = radians(_steer_accel_max) * dt;
@@ -365,15 +372,30 @@ float AR_AttitudeControl::get_steering_out_rate(float desired_rate, bool motor_l
     }
     _desired_turn_rate = desired_rate;
 
+    if (now - gcs_send_last[3] >= 500) {
+        gcs_send_last[3] = now;
+        gcs().send_text(MAV_SEVERITY_DEBUG,"2B: _desired_turn_rate:%.2f", _desired_turn_rate);
+    }
+
     // rate limit desired turn rate
     if (is_positive(_steer_rate_max)) {
         const float steer_rate_max_rad = radians(_steer_rate_max);
         _desired_turn_rate = constrain_float(_desired_turn_rate, -steer_rate_max_rad, steer_rate_max_rad);
     }
 
+    if (now - gcs_send_last[4] >= 500) {
+        gcs_send_last[4] = now;
+        gcs().send_text(MAV_SEVERITY_DEBUG,"2C: _desired_turn_rate:%.2f", _desired_turn_rate);
+    }
+
     // Calculate the steering rate error (rad/sec)
     // We do this in earth frame to allow for rover leaning over in hard corners
     const float rate_error = (_desired_turn_rate - _ahrs.get_yaw_rate_earth());
+
+    if (now - gcs_send_last[5] >= 500) {
+        gcs_send_last[5] = now;
+        gcs().send_text(MAV_SEVERITY_DEBUG,"2D: rate_error:%.2f", rate_error);
+    }
 
     // set PID's dt
     _steer_rate_pid.set_dt(dt);
