@@ -175,7 +175,7 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Param: OPTIONS
     // @DisplayName: Internal Combustion Engine options bitmask
     // @Description: Bitmask of what options to use for internal combustion engines.
-    // @Bitmask: 0:Arming required for ignition,1:Arming required for starting,2:Continue running if disarmed
+    // @Bitmask: 0:Arming required for ignition,1:Arming required for starting,2:Continue running if disarmed,3:All AUTO modes override ICE_START_CHAN input to always run
     // @User: Advanced
     AP_GROUPINFO("OPTIONS",  22, AP_ICEngine, options, AP_ICENGINE_OPTIONS_MASK_DEFAULT),
 
@@ -269,16 +269,22 @@ void AP_ICEngine::update(void)
 
 void AP_ICEngine::determine_state()
 {
-    RC_Channel *c = rc().channel(start_chan-1);
-    if (c == nullptr) {
-        if (state != ICE_OFF) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped, check starter input");
+    uint16_t cvalue;
+
+    if (is_in_auto_mode && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_CONTROLS_IGNITION)) {
+        cvalue = 1900;
+    } else {
+        RC_Channel *c = rc().channel(start_chan-1);
+        if (c == nullptr) {
+            if (state != ICE_OFF) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped, check starter input");
+            }
+            state = ICE_OFF;
+            return;
         }
-        state = ICE_OFF;
-        return;
+        cvalue = c->get_radio_in();
     }
 
-    const uint16_t cvalue = c->get_radio_in();
 
     // check for 2 or 3 position switch:
     // low = off
@@ -553,8 +559,9 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
         state = ICE_OFF;
         return true;
     }
+
     RC_Channel *c = rc().channel(start_chan-1);
-    if (c != nullptr) {
+    if (!is_in_auto_mode && c != nullptr) {
         // get starter control channel
         if (c->get_radio_in() <= 1300) {
             gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine: start control disabled", AP_HAL::millis());
