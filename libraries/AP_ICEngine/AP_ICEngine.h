@@ -92,6 +92,8 @@ public:
 
     bool get_brakeReleaseAllowedIn_Neutral_and_Disarmed() const { return brakeReleaseAllowedIn_Neutral_and_Disarmed; }
 
+    void set_is_in_auto_mode(bool modeIsAuto) { is_in_auto_mode = modeIsAuto; }
+
 private:
     static AP_ICEngine *_singleton;
 
@@ -194,6 +196,7 @@ private:
     AP_Int16 power_up_time;
     uint32_t engine_power_up_wait_ms;
 
+#if !APM_BUILD_TYPE(APM_BUILD_APMrover2)
     // height when we enter ICE_START_HEIGHT_DELAY
     float initial_height;
 
@@ -202,6 +205,7 @@ private:
 
     // we are waiting for valid height data
     bool height_pending:1;
+#endif
 
     // timestamp for periodic gcs msg regarding throttle_override
     uint32_t throttle_overrde_msg_last_ms;
@@ -222,6 +226,8 @@ private:
     bool force_send_status;
 
     AP_Int8 master_output_enable_pin;
+
+    bool is_in_auto_mode;
 };
 
 

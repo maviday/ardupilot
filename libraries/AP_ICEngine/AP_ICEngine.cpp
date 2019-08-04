@@ -310,12 +310,14 @@ void AP_ICEngine::determine_state()
     // switch on current state to work out new state
     switch (state) {
     case ICE_OFF:
+    default:
         starting_attempts = 0;
         if (!system_should_be_off && (switch_position_acc || switch_position_acc_start)) {
             state = ICE_START_DELAY;
         }
         break;
 
+#if !APM_BUILD_TYPE(APM_BUILD_APMrover2)
     case ICE_START_HEIGHT_DELAY: {
         // NOTE, this state can only be achieved via MAVLink command so the starter RCin is not checked
         Vector3f pos;
@@ -334,6 +336,7 @@ void AP_ICEngine::determine_state()
         }
         break;
     }
+#endif
 
     case ICE_START_DELAY:
         if (!switch_position_acc_start || !arming_OK_to_start_or_run) {
@@ -558,6 +561,8 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
             return false;
         }
     }
+
+#if !APM_BUILD_TYPE(APM_BUILD_APMrover2)
     if (height_delay > 0) {
         height_pending = true;
         initial_height = 0;
@@ -566,6 +571,7 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
         gcs().send_text(MAV_SEVERITY_INFO, "Takeoff height set to %.1fm", (double)height_delay);
         return true;
     }
+#endif
     if (state != ICE_RUNNING) {
         state = ICE_STARTING;
     }
