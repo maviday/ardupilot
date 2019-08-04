@@ -175,7 +175,7 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Param: OPTIONS
     // @DisplayName: Internal Combustion Engine options bitmask
     // @Description: Bitmask of what options to use for internal combustion engines.
-    // @Bitmask: 0:Arming required for ignition,1:Arming required for starting
+    // @Bitmask: 0:Arming required for ignition,1:Arming required for starting,2:Continue running if disarmed
     // @User: Advanced
     AP_GROUPINFO("OPTIONS",  22, AP_ICEngine, options, AP_ICENGINE_OPTIONS_MASK_DEFAULT),
 
