@@ -227,11 +227,7 @@ float Mode::get_speed_default(bool rtl) const
         return g2.rtl_speed;
     }
 
-    if (is_positive(g2.wp_nav.get_default_speed())) {
-        return g2.wp_nav.get_default_speed();
-    }
-
-    return g.speed_cruise;
+    return g2.wp_nav.get_default_speed();
 }
 
 // restore desired speed to default from parameter values (WP_SPEED)
