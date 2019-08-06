@@ -238,11 +238,6 @@ void AP_ICEngine::init(const bool inhibit_outputs)
  */
 void AP_ICEngine::update(void)
 {
-    if (state_prev2 != state) {
-        gcs().send_text(MAV_SEVERITY_INFO, "ICE state change from %d to %d", state_prev2, state);
-        state_prev2 = state;
-    }
-
     if (!enable) {
         state = ICE_OFF;
         if (run_once) {
