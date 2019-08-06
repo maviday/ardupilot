@@ -242,6 +242,7 @@ void Rover::set_throttle(float throttle)
     if (rover.g2.ice_control.throttle_override(ice_throttle_override_percent)) {
         // the ICE controller wants to override the throttle for starting
         throttle = ice_throttle_override_percent;
+        g2.attitude_control.get_throttle_speed_pid().freeze_integrator(1000);
     }
 
     // master overrider. If we're ever applying brakes we must always turn off the throttle
