@@ -172,8 +172,8 @@ public:
 
     // DO_ENGINE_CONTROL support
     struct PACKED Do_Engine_Control {
-        bool start_control; // start or stop engine
-        bool cold_start; // use cold start procedure
+        float start_control; // Off, Ignition, Run
+        float unused;
         uint16_t height_delay_cm; // height delay for start
     };
 

@@ -24,7 +24,9 @@
 #define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION       (1<<0)
 #define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START          (1<<1)
 #define AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED     (1<<2)
-#define AP_ICENGINE_OPTIONS_MASK_AUTO_CONTROLS_IGNITION         (1<<3)
+#define AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART          (1<<3)
+#define AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS    (1<<4) //NOTE: This blocks both external mavlink msgs and "internal" auto mission cmds
+
 #define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION |        \
                                                                 AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START)
 
@@ -71,7 +73,7 @@ public:
     ICE_State get_state(void) const { return state; }
 
     // handle DO_ENGINE_CONTROL messages via MAVLink or mission
-    bool engine_control(float start_control, float cold_start, float height_delay);
+    bool engine_control(float start_control, float unused, float height_delay);
     
     bool handle_message(const mavlink_command_long_t &packt);
     bool handle_set_ice_transmission_state(const mavlink_command_long_t &packet);
@@ -93,7 +95,7 @@ public:
 
     bool get_brakeReleaseAllowedIn_Neutral_and_Disarmed() const { return brakeReleaseAllowedIn_Neutral_and_Disarmed; }
 
-    void set_is_in_auto_mode(bool modeIsAuto) { is_in_auto_mode = modeIsAuto; }
+    void set_is_in_auto_mode(bool modeIsAnyAutoNav, bool isAuto) { auto_mode.is_active = modeIsAnyAutoNav; if (!isAuto) { auto_mode.mission_start_chan_value = 0; }}
 
 private:
     static AP_ICEngine *_singleton;
@@ -227,7 +229,10 @@ private:
 
     AP_Int8 master_output_enable_pin;
 
-    bool is_in_auto_mode;
+    struct {
+        bool is_active;
+        uint16_t mission_start_chan_value;
+    }auto_mode;
 };
 
 

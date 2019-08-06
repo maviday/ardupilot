@@ -17,7 +17,7 @@
 #include <SRV_Channel/SRV_Channel.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_AHRS/AP_AHRS.h>
-#include <AP_MATH/AP_Math.h> // for is_zero
+#include <AP_MATH/AP_Math.h> // for is_zero, is_equal
 #include "AP_ICEngine.h"
 #include <AP_BattMonitor/AP_BattMonitor.h>
 
@@ -266,9 +266,16 @@ void AP_ICEngine::determine_state()
 {
     uint16_t cvalue;
 
-    if (is_in_auto_mode && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_CONTROLS_IGNITION)) {
+    if (auto_mode.is_active && auto_mode.mission_start_chan_value > 0) {
+        // we're executing missions and the mission has set the starter/ignition channels
+        cvalue = auto_mode.mission_start_chan_value;
+
+    } else if (auto_mode.is_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART)) {
+        // we're in an auto nav mode and we're configured to always auto-start
         cvalue = 1900;
+
     } else {
+        // else, listen to RC control
         RC_Channel *c = rc().channel(start_chan-1);
         if (c == nullptr) {
             if (state != ICE_OFF) {
@@ -548,17 +555,17 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
 /*
   handle DO_ENGINE_CONTROL messages via MAVLink or mission
 */
-bool AP_ICEngine::engine_control(float start_control, float cold_start, float height_delay)
+bool AP_ICEngine::engine_control(float start_control, float unused, float height_delay)
 {
-    if (start_control <= 0) {
-        state = ICE_OFF;
-        return true;
+    if (options & AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS) {
+        gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine: external starter commands are blocked", AP_HAL::millis());
+        return false;
     }
 
-    RC_Channel *c = rc().channel(start_chan-1);
-    if (!is_in_auto_mode && c != nullptr) {
-        // get starter control channel
-        if (c->get_radio_in() <= 1300) {
+    if (!(auto_mode.is_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART))) {
+        // Allow RC input to block engine control commands if we're not in any autoNav mode and options flag says the autonav always autostarts
+        RC_Channel *c = rc().channel(start_chan-1);
+        if (c != nullptr && c->get_radio_in() <= 1300) {
             gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine: start control disabled", AP_HAL::millis());
             return false;
         }
@@ -571,12 +578,19 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
         height_required = height_delay;
         state = ICE_START_HEIGHT_DELAY;
         gcs().send_text(MAV_SEVERITY_INFO, "Takeoff height set to %.1fm", (double)height_delay);
-        return true;
     }
 #endif
-    if (state != ICE_RUNNING) {
-        state = ICE_STARTING;
+
+    if (is_equal(start_control, 0.0f)) {
+        auto_mode.mission_start_chan_value = 1000;
+    } else if (is_equal(start_control, 1.0f)) {
+        auto_mode.mission_start_chan_value = 1500;
+    } else if (is_equal(start_control, 2.0f)) {
+        auto_mode.mission_start_chan_value = 2000;
+    } else {
+        auto_mode.mission_start_chan_value = 0;
     }
+
     return true;
 }
 
