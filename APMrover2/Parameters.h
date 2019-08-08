@@ -382,13 +382,6 @@ public:
     // Airspeed
     AP_Airspeed airspeed;
 
-
-    // AION ROBOTICS In-House params
-    // -----------------------------
-    AP_Int32 fs_timeout2_ms;
-    // -----------------------------
-
-
     // mission behave
     AP_Int8 mis_done_behave;
 
@@ -410,6 +403,8 @@ public:
 
     // object avoidance path planning
     AP_OAPathPlanner oa;
+
+    AP_Float    fs_throttle_timeout;
 
     // mechanical emergency brake channel number
     AP_Int8 ebrake_rc_channel;

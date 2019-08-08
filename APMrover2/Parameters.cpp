@@ -619,10 +619,6 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(scripting, "SCR_", 41, ParametersG2, AP_Scripting),
 #endif
 
-    // AION ROBOTICS In-House params
-    // -----------------------------
-    AP_GROUPINFO("FS_TIMEOUT2_MS", 55, ParametersG2, fs_timeout2_ms, 450),
-
     // @Param: CRASH_ANGLE_ROLL
     // @DisplayName: Crash Angle Roll
     // @Description: Roll angle limit in degrees for crash check. Zero disables check
@@ -661,12 +657,19 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Path: ../libraries/AC_Avoidance/AP_OAPathPlanner.cpp
     AP_SUBGROUPINFO(oa, "OA_", 45, ParametersG2, AP_OAPathPlanner),
 
+    // @Param: FS_THR_TIMEOUT
+    // @DisplayName: Throttle Failsafe Timeout
+    // @Description: The throttle failsafe timeout time in seconds. If no RC update occurs for this amount of time then throttle and steering demands are set to zero but no other action is taken. If this condition continues for another FS_TIMEOUT then a throttle failsafe will occur. This is useful for system failures where the RC input disappears or your are controlled only by MAVLink commands.
+    // @Units: s
+    // @User: Standard
+    AP_GROUPINFO("FS_THR_TIMEOUT", 46, ParametersG2, fs_throttle_timeout, 0.5f),
+
     // @Param: EBRAKE_CH
     // @DisplayName: Emergency Brake Channel
     // @Description: Emergency Brake RC Input Channel number. Use 0 to disable, else 1 maps to RC1 and 16 maps to RC16
     // @Range: 0 16
     // @User: Advanced
-    AP_GROUPINFO("EBRAKE_CH", 46, ParametersG2, ebrake_rc_channel, 0),
+    AP_GROUPINFO("EBRAKE_CH", 51, ParametersG2, ebrake_rc_channel, 0),
 
     AP_GROUPEND
 };
