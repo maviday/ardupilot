@@ -359,6 +359,9 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
             // if stopping point is even further from home (i.e. in wrong direction) then adjust speed to zero
             // otherwise user is backing away from fence so do not apply limits
             if (stopping_point_plus_margin_dist_from_home >= dist_from_home) {
+                if (!desired_vel_cms.is_zero()) {
+                    gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Stopped vehicle!");
+                }
                 desired_vel_cms.zero();
             }
         } else {
@@ -368,7 +371,13 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
                 const float distance_to_target = MAX((intersection - position_xy).length() - margin_cm, 0.0f);
                 const float max_speed = get_max_speed(kP, accel_cmss, distance_to_target, dt);
                 if (max_speed < desired_speed) {
+                    if (!stop_state) {
+                        gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
+                        stop_state = 1;
+                    }
                     desired_vel_cms *= MAX(max_speed, 0.0f) / desired_speed;
+                } else {
+                    stop_state = 0;
                 }
             }
         }
