@@ -2189,6 +2189,7 @@ MAV_RESULT GCS_MAVLINK::handle_command_set_message_interval(const mavlink_comman
         interval_ms = interval_us / 1000;
     }
     if (set_mavlink_message_id_interval(msg_id, interval_ms)) {
+        set_message_interval_has_been_received = true;
         return MAV_RESULT_ACCEPTED;
     }
 
