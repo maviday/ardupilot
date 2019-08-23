@@ -1715,7 +1715,7 @@ void GCS_MAVLINK::send_sensor_offsets()
                                     mag_offsets.z,
                                     compass.get_declination(),
                                     barometer.get_pressure(),
-                                    barometer.get_temperature()*100,
+                                    ins.get_temperature(0)*100,
                                     gyro_offsets.x,
                                     gyro_offsets.y,
                                     gyro_offsets.z,
