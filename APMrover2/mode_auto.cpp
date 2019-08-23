@@ -169,7 +169,7 @@ int32_t ModeAuto::checkStickMixing()
             _submode_previous = _submode;
             _submode = Auto_StickMixingOverride;
         }
-    } else if (_submode == Auto_StickMixingOverride && now_ms - stick_mixing_time_start_ms > 1000) {
+    } else if (_submode == Auto_StickMixingOverride && now_ms - stick_mixing_time_start_ms > 100) {
         // stop
         _submode = _submode_previous;
     }
