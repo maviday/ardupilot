@@ -34,6 +34,7 @@ extern const AP_HAL::HAL& hal;
 #define AP_ICENGINE_TEMPERATURE_INVALID     -999;
 #define AP_ICENGINE_FUEL_LEVEL_INVALID      -1
 
+#define ICE_GEAR_STATE_PWM_INVALID 0
 
 const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
 
@@ -198,6 +199,37 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @Description: This makes up for a lack of voltage offset in the battery monitor which only has scaling.
     // @User: Advanced
     AP_GROUPINFO("FUEL_OFFSET",  30, AP_ICEngine, fuel.offset, 0),
+
+
+    // @Param: PWM_PARK
+    // @DisplayName: Gear PWM for Park
+    // @Description: This is the output PWM value sent to the gear servo channel when the vehicle transmission is in PARK
+    // @User: Advanced
+    AP_GROUPINFO("PWM_PARK",  31, AP_ICEngine, gear.pwm_park, 1100),
+
+    // @Param: PWM_REVERSE
+    // @DisplayName: Gear PWM for Reverse
+    // @Description: This is the output PWM value sent to the gear servo channel when the vehicle transmission is in REVERSE
+    // @User: Advanced
+    AP_GROUPINFO("PWM_REVERSE",  32, AP_ICEngine, gear.pwm_reverse, 1300),
+
+    // @Param: PWM_NEUTRAL
+    // @DisplayName: Gear PWM for Neutral
+    // @Description: This is the output PWM value sent to the gear servo channel when the vehicle transmission is in NEUTRAL
+    // @User: Advanced
+    AP_GROUPINFO("PWM_NEUTRAL",  33, AP_ICEngine, gear.pwm_neutral, 1500),
+
+    // @Param: PWM_FWD1
+    // @DisplayName: Gear PWM for Forward1/Low
+    // @Description: This is the output PWM value sent to the gear servo channel when the vehicle transmission is in FORWARD1/Low
+    // @User: Advanced
+    AP_GROUPINFO("PWM_FWD1",  34, AP_ICEngine, gear.pwm_forward1, 1700),
+
+    // @Param: PWM_FWD2
+    // @DisplayName: Gear PWM for Forward2/High
+    // @Description: This is the output PWM value sent to the gear servo channel when the vehicle transmission is in FORWARD2/High
+    // @User: Advanced
+    AP_GROUPINFO("PWM_FWD2",  35, AP_ICEngine, gear.pwm_forward2, 1900),
 
     AP_GROUPEND
 };
@@ -475,16 +507,16 @@ void AP_ICEngine::set_output_channels()
 
     if (!SRV_Channels::function_assigned(SRV_Channel::k_engine_gear)) {
         // if we don't have a gear then set it to a known invalid state
-        gear.pwm = ICE_Gear_State_PRM::INVALID;
+        gear.pwm_active = ICE_GEAR_STATE_PWM_INVALID;
         gear.state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
     } else if (gear.state == MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN) {
         // on boot or in an unknown state, set gear to trim and find out what that value is and set to that state
         SRV_Channels::set_output_to_trim(SRV_Channel::k_engine_gear);
-        SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, gear.pwm);
-        gear.state = convertPwmToGearState(gear.pwm);
+        SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, gear.pwm_active);
+        gear.state = convertPwmToGearState(gear.pwm_active);
     } else {
         // normal operation, set the output
-        SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear.pwm);
+        SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear.pwm_active);
     }
 }
 
@@ -620,30 +652,30 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
 
     switch (gearState) {
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
-            gear.pwm = ICE_Gear_State_PRM::PARK;
+            gear.pwm_active = gear.pwm_park;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
-            gear.pwm = ICE_Gear_State_PRM::REVERSE1;
+            gear.pwm_active = gear.pwm_reverse;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
-            gear.pwm = ICE_Gear_State_PRM::NEUTRAL;
+            gear.pwm_active = gear.pwm_neutral;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
-            gear.pwm = ICE_Gear_State_PRM::FORWARD1;
+            gear.pwm_active = gear.pwm_forward1;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
-            gear.pwm = ICE_Gear_State_PRM::FORWARD2;
+            gear.pwm_active = gear.pwm_forward2;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
             // use as-is
-            gear.pwm = pwm_value;
+            gear.pwm_active = pwm_value;
             break;
 
         default:
@@ -778,7 +810,7 @@ void AP_ICEngine::send_status()
                     0,0,0);
         }
 
-        uint16_t current_gear_pwm = ICE_Gear_State_PRM::INVALID;
+        uint16_t current_gear_pwm = ICE_GEAR_STATE_PWM_INVALID;
         const bool hasGear = SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, current_gear_pwm);
         const bool send_gear = force || (now_ms - gear.last_send_ms >= 1000);
         if (hasGear && send_gear && HAVE_PAYLOAD_SPACE((mavlink_channel_t)chan, COMMAND_LONG)) {
@@ -834,22 +866,19 @@ MAV_ICE_TRANSMISSION_GEAR_STATE AP_ICEngine::convertPwmToGearState(const uint16_
     const uint16_t margin = 100;
     const uint16_t margin_edge = 200;
 
-    if (pwm >= ICE_Gear_State_PRM::FORWARD2 + margin_edge) {
-        return MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
-    }
-    else if (pwm >= ICE_Gear_State_PRM::FORWARD2 - margin) {
+    if (pwm >= gear.pwm_forward2 - margin && pwm <= gear.pwm_forward2 + margin_edge) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2;
     }
-    else if (pwm >= ICE_Gear_State_PRM::FORWARD1 - margin) {
+    else if (pwm >= gear.pwm_forward1 - margin) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1;
     }
-    else if (pwm >= ICE_Gear_State_PRM::NEUTRAL - margin) {
+    else if (pwm >= gear.pwm_neutral - margin) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL;
     }
-    else if (pwm >= ICE_Gear_State_PRM::REVERSE1 - margin) {
+    else if (pwm >= gear.pwm_reverse - margin) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE;
     }
-    else if (pwm >= ICE_Gear_State_PRM::PARK - margin_edge) {
+    else if (pwm >= gear.pwm_park - margin_edge) {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_PARK;
     }
     else {

@@ -60,14 +60,6 @@ public:
         ICE_STARTING=3,
         ICE_RUNNING=4
     };
-    enum ICE_Gear_State_PRM {
-        INVALID     = 0,
-        PARK        = 1100,
-        REVERSE1    = 1300,
-        NEUTRAL     = 1500,
-        FORWARD1    = 1700,
-        FORWARD2    = 1900,
-    };
 
     // get current engine control state
     ICE_State get_state(void) const { return state; }
@@ -107,10 +99,15 @@ private:
 
     struct {
         enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
-        uint16_t pwm;
+        uint16_t pwm_active;
         uint32_t last_send_ms;
+        AP_Int16 pwm_park;
+        AP_Int16 pwm_reverse;
+        AP_Int16 pwm_neutral;
+        AP_Int16 pwm_forward1;
+        AP_Int16 pwm_forward2;
     } gear;
-    static MAV_ICE_TRANSMISSION_GEAR_STATE convertPwmToGearState(const uint16_t pwm);
+    MAV_ICE_TRANSMISSION_GEAR_STATE convertPwmToGearState(const uint16_t pwm);
 
     void update_fuel();
     struct {
