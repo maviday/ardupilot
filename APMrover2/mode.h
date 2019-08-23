@@ -284,11 +284,13 @@ protected:
         Auto_RTL,               // perform RTL within auto mode
         Auto_Loiter,            // perform Loiter within auto mode
         Auto_Guided,            // handover control to external navigation system from within auto mode
-        Auto_Stop               // stop the vehicle as quickly as possible
-    } _submode;
+        Auto_Stop,              // stop the vehicle as quickly as possible
+        Auto_StickMixingOverride, // temporary heading hold while user is overriding input
+    } _submode, _submode_previous;
 
 private:
 
+    int32_t checkStickMixing();
     bool check_trigger(void);
     bool start_loiter();
     void start_guided(const Location& target_loc);
@@ -354,6 +356,7 @@ private:
     uint32_t nav_delay_time_max_ms;  // used for delaying the navigation commands
     uint32_t nav_delay_time_start_ms;
 
+    uint32_t stick_mixing_time_start_ms;
 };
 
 

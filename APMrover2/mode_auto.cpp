@@ -40,6 +40,8 @@ void ModeAuto::_exit()
 
 void ModeAuto::update()
 {
+    int32_t stick_mixing = checkStickMixing();
+
     switch (_submode) {
         case Auto_WP:
         {
@@ -60,6 +62,15 @@ void ModeAuto::update()
             }
             break;
         }
+
+        case Auto_StickMixingOverride:
+        {
+            // hold throttle and apply pilot heading
+            _reached_heading = false;
+            calc_steering_to_heading(stick_mixing);
+            calc_throttle(calc_speed_nudge(_desired_speed, false), true);
+        }
+        break;
 
         case Auto_HeadingAndSpeed:
         {
@@ -120,6 +131,7 @@ float ModeAuto::get_distance_to_destination() const
     switch (_submode) {
     case Auto_WP:
         return _distance_to_destination;
+    case Auto_StickMixingOverride:
     case Auto_HeadingAndSpeed:
     case Auto_Stop:
         // no valid distance so return zero
@@ -136,6 +148,35 @@ float ModeAuto::get_distance_to_destination() const
     return 0.0f;
 }
 
+int32_t ModeAuto::checkStickMixing()
+{
+    const uint32_t now_ms = AP_HAL::millis();
+    int32_t stick_mixing_override = 0;
+    float steering, dummy;
+
+    get_pilot_input(steering, dummy);
+
+    if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone()) {
+        // stick mixing is allowed, and enabled, and there's an input on the user sticks
+        // full left/right would be +/-30deg heading change
+        stick_mixing_override = steering * 100 * (30 / 4500.0);
+
+        // start or continuing..
+        stick_mixing_time_start_ms = now_ms;
+
+        if (_submode != Auto_StickMixingOverride) {
+            // start
+            _submode_previous = _submode;
+            _submode = Auto_StickMixingOverride;
+        }
+    } else if (_submode == Auto_StickMixingOverride && now_ms - stick_mixing_time_start_ms > 1000) {
+        // stop
+        _submode = _submode_previous;
+    }
+
+    return ahrs.yaw_sensor + stick_mixing_override;
+}
+
 // get desired location
 bool ModeAuto::get_desired_location(Location& destination) const
 {
@@ -146,6 +187,7 @@ bool ModeAuto::get_desired_location(Location& destination) const
             return true;
         }
         return false;
+    case Auto_StickMixingOverride:
     case Auto_HeadingAndSpeed:
     case Auto_Stop:
         // no desired location for this submode
@@ -181,21 +223,24 @@ bool ModeAuto::reached_destination() const
     switch (_submode) {
     case Auto_WP:
         return g2.wp_nav.reached_destination();
-        break;
+
+    case Auto_StickMixingOverride:
+        return false;
+
     case Auto_HeadingAndSpeed:
     case Auto_Stop:
         // always return true because this is the safer option to allow missions to continue
         return true;
-        break;
+
     case Auto_RTL:
         return rover.mode_rtl.reached_destination();
-        break;
+
     case Auto_Loiter:
         return rover.mode_loiter.reached_destination();
-        break;
+
     case Auto_Guided:
         return rover.mode_guided.reached_destination();
-        break;
+
     }
 
     // we should never reach here but just in case, return true to allow missions to continue
@@ -215,7 +260,7 @@ void ModeAuto::set_desired_heading_and_speed(float yaw_angle_cd, float target_sp
 // return true if vehicle has reached desired heading
 bool ModeAuto::reached_heading()
 {
-    if (_submode == Auto_HeadingAndSpeed) {
+    if (_submode == Auto_HeadingAndSpeed || _submode == Auto_StickMixingOverride) {
         return _reached_heading;
     }
     // we should never reach here but just in case, return true to allow missions to continue
