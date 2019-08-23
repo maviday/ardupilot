@@ -69,6 +69,7 @@ public:
     
     bool handle_message(const mavlink_command_long_t &packt);
     bool handle_set_ice_transmission_state(const mavlink_command_long_t &packet);
+    static int16_t constrain_pwm_with_direction(const int16_t initial, const int16_t desired, const int16_t pwm_going_down, const int16_t pwm_going_up);
 
     // Engine temperature status
     bool get_temperature(float& value) const;
@@ -101,11 +102,16 @@ private:
         enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
         uint16_t pwm_active;
         uint32_t last_send_ms;
-        AP_Int16 pwm_park;
-        AP_Int16 pwm_reverse;
-        AP_Int16 pwm_neutral;
-        AP_Int16 pwm_forward1;
-        AP_Int16 pwm_forward2;
+        AP_Int16 pwm_park_up;
+        AP_Int16 pwm_park_down;
+        AP_Int16 pwm_reverse_up;
+        AP_Int16 pwm_reverse_down;
+        AP_Int16 pwm_neutral_up;
+        AP_Int16 pwm_neutral_down;
+        AP_Int16 pwm_forward1_up;
+        AP_Int16 pwm_forward1_down;
+        AP_Int16 pwm_forward2_up;
+        AP_Int16 pwm_forward2_down;
     } gear;
     MAV_ICE_TRANSMISSION_GEAR_STATE convertPwmToGearState(const uint16_t pwm);
 
