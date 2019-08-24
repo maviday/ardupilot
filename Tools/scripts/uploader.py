@@ -560,6 +560,14 @@ class uploader(object):
                     uploader.EOC)
         self.__getSync()
 
+    #immediately reboot
+    def reboot(self):
+        # make sure we are in sync before starting
+        self.__sync()
+        print("\nRebooting.\n")
+        self.__reboot()
+        self.port.close()
+
     # get basic data about the board
     def identify(self):
         # make sure we are in sync before starting
@@ -854,18 +862,19 @@ def main():
     parser.add_argument('--source-component', type=int, action="store", help="Source component to send reboot mavlink packets from", default=0)
     parser.add_argument('--download', action='store_true', default=False, help='download firmware from board')
     parser.add_argument('--identify', action="store_true", help="Do not flash firmware; simply dump information about board")
+    parser.add_argument('--reboot', action="store_true", help="Do not flash firmware; simply reboot the system and attempt to run the application")
     parser.add_argument('firmware', nargs="?", action="store", default=None, help="Firmware file to be uploaded")
     args = parser.parse_args()
 
     # warn people about ModemManager which interferes badly with Pixhawk
     modemmanager_check()
 
-    if args.firmware is None and not args.identify:
+    if args.firmware is None and not args.identify and not args.reboot:
         parser.error("Firmware filename required for upload or download")
         sys.exit(1)
 
     # Load the firmware file
-    if not args.download and not args.identify:
+    if not args.download and not args.identify and not args.reboot:
         fw = firmware(args.firmware)
         print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
     print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
@@ -908,6 +917,8 @@ def main():
                     # ok, we have a bootloader, try flashing it
                     if args.identify:
                         up.dump_board_info()
+                    if args.identify:
+                        up.reboot()
                     elif args.download:
                         up.download(args.firmware)
                     else:
