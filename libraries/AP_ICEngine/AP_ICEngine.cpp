@@ -727,9 +727,17 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
 {
     //const uint8_t index = packet->param1; // unused
     const MAV_ICE_TRANSMISSION_GEAR_STATE gearState = (MAV_ICE_TRANSMISSION_GEAR_STATE)packet.param2;
-    uint16_t pwm_value = 0;
-    const bool brakeReleaseAllowedIn_Neutral_and_Disarmed_temp = !is_zero(packet.param4);
+    const uint16_t pwm_value = packet.param3;
 
+    if (set_ice_transmission_state(gearState, pwm_value)) {
+        brakeReleaseAllowedIn_Neutral_and_Disarmed = !is_zero(packet.param4);
+        return true;
+    }
+    return false;
+}
+
+bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value)
+{
     if (gearState != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE && (gear.state == gearState || gear.pending.state == gearState)) {
         return true;
     }
@@ -788,8 +796,6 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
         gear.pwm_active = gear.pending.pwm;
         force_send_status = true;
     }
-
-    brakeReleaseAllowedIn_Neutral_and_Disarmed = brakeReleaseAllowedIn_Neutral_and_Disarmed_temp;
 
     return true;
 }
