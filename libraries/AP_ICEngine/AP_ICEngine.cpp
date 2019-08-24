@@ -260,6 +260,17 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("PWM_FWD2_D",  49, AP_ICEngine, gear.pwm_forward2_down, 1600),
 
+    // @Param: GEAR_STOP
+    // @DisplayName: Gear change duration to inhibit throttle while waiting for vehicle to stop moving before changing physical gear
+    // @Description: Gear change duration to inhibit throttle while waiting for vehicle to stop moving before changing physical gear
+    // @User: Advanced
+    AP_GROUPINFO("GEAR_STOP",  50, AP_ICEngine, gear.pending.stop_vehicle_duration, 0),
+
+    // @Param: GEAR_DUR
+    // @DisplayName: Gear change duration to inhibit throttle while physically changing the gear
+    // @Description: Gear change duration to inhibit throttle while physically changing the gear
+    // @User: Advanced
+    AP_GROUPINFO("GEAR_DUR",  51, AP_ICEngine, gear.pending.change_physical_gear_duration, 3.0f),
 
     AP_GROUPEND
 };
@@ -596,6 +607,29 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
     }
 
     const uint32_t now_ms = AP_HAL::millis();
+    if (gear.pending.stop_vehicle_start_ms > 0) {
+        if (now_ms - gear.pending.stop_vehicle_start_ms >= gear.pending.stop_vehicle_duration*1000) {
+            gear.pending.stop_vehicle_start_ms = 0;
+
+            // we've waited to stop the vehicle, now set the gear and wait again for it to physically change
+            gear.pending.change_physical_gear_start_ms = now_ms;
+            gear.pwm_active = gear.pending.pwm;
+            gear.state = gear.pending.state;
+            force_send_status = true;
+        } else {
+            percentage = 0;
+        }
+    }
+    if (gear.pending.change_physical_gear_start_ms > 0) {
+        if (now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_physical_gear_duration*1000) {
+            gear.pending.change_physical_gear_start_ms = 0;
+        } else {
+            percentage = 0;
+        }
+    }
+
+
+
     if (use_idle_percent) {
         // some of the above logic may have set it to zero but other logic says we're in a state that zero may kill the engine so use idle instead
         percentage = idle_percent;
@@ -692,33 +726,33 @@ int16_t AP_ICEngine::constrain_pwm_with_direction(const int16_t initial, const i
 bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t &packet)
 {
     //const uint8_t index = packet->param1; // unused
-    const uint8_t gearState = packet.param2;
-    const uint16_t pwm_value = packet.param3;
+    const MAV_ICE_TRANSMISSION_GEAR_STATE gearState = (MAV_ICE_TRANSMISSION_GEAR_STATE)packet.param2;
+    uint16_t pwm_value = 0;
     const bool brakeReleaseAllowedIn_Neutral_and_Disarmed_temp = !is_zero(packet.param4);
 
-    if (gear.state == gearState) {
+    if (gearState != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE && (gear.state == gearState || gear.pending.state == gearState)) {
         return true;
     }
 
     switch (gearState) {
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
-            gear.pwm_active = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_park_down+gear.pwm_park_up)/2, gear.pwm_park_down, gear.pwm_park_up);
+            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_park_down+gear.pwm_park_up)/2, gear.pwm_park_down, gear.pwm_park_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_2:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_3:
-            gear.pwm_active = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_reverse_down+gear.pwm_reverse_up)/2, gear.pwm_reverse_down, gear.pwm_reverse_up);
+            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_reverse_down+gear.pwm_reverse_up)/2, gear.pwm_reverse_down, gear.pwm_reverse_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
-            gear.pwm_active = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_neutral_down+gear.pwm_neutral_up)/2, gear.pwm_neutral_down, gear.pwm_neutral_up);
+            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_neutral_down+gear.pwm_neutral_up)/2, gear.pwm_neutral_down, gear.pwm_neutral_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
-            gear.pwm_active = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward1_down+gear.pwm_forward1_up)/2, gear.pwm_forward1_down, gear.pwm_forward1_up);
+            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward1_down+gear.pwm_forward1_up)/2, gear.pwm_forward1_down, gear.pwm_forward1_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
@@ -729,12 +763,12 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_7:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_8:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9:
-            gear.pwm_active = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward2_down+gear.pwm_forward2_up)/2, gear.pwm_forward2_down, gear.pwm_forward2_up);
+            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward2_down+gear.pwm_forward2_up)/2, gear.pwm_forward2_down, gear.pwm_forward2_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
             // use as-is
-            gear.pwm_active = pwm_value;
+            gear.pending.pwm = pwm_value;
             break;
 
         default:
@@ -742,8 +776,19 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
             return false;
     }
 
-    gear.state = (MAV_ICE_TRANSMISSION_GEAR_STATE)gearState;
-    force_send_status = true;
+    gear.pending.state = gearState;
+
+    if (is_positive(gear.pending.stop_vehicle_duration) || is_positive(gear.pending.change_physical_gear_duration)) {
+        // delay the gear change for user-defined duration
+        gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
+    } else {
+        // take effect immediately
+        gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = 0;
+        gear.state = gear.pending.state;
+        gear.pwm_active = gear.pending.pwm;
+        force_send_status = true;
+    }
+
     brakeReleaseAllowedIn_Neutral_and_Disarmed = brakeReleaseAllowedIn_Neutral_and_Disarmed_temp;
 
     return true;

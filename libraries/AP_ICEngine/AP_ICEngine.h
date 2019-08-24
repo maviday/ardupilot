@@ -101,6 +101,22 @@ private:
     struct {
         enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
         uint16_t pwm_active;
+
+        struct {
+            uint16_t pwm;
+            enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+
+            // start time of when pending changed, waiting while throttle is zero until "wait_to_stop" expires
+            uint32_t stop_vehicle_start_ms;
+            // duration in seconds to inhibit throttle while we wait for vehicle to stop before we start changing to pwm_active
+            AP_Float stop_vehicle_duration;
+
+            // start time of when pending ended and pwm_active was just set, inhibit throttle while waiting for gear to physically change until "wait_to_change_physical" expires
+            uint32_t change_physical_gear_start_ms;
+            // duration in seconds to inhibit throttle while gear is changing from pending.pwm to pwm_active
+            AP_Float change_physical_gear_duration;
+        } pending;
+
         uint32_t last_send_ms;
         AP_Int16 pwm_park_up;
         AP_Int16 pwm_park_down;
