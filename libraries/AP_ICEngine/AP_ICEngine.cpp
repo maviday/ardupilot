@@ -339,9 +339,9 @@ void AP_ICEngine::determine_state()
 {
     uint16_t cvalue;
 
-    if (auto_mode.is_active && auto_mode.mission_start_chan_value > 0) {
+    if (auto_mode.is_active && auto_mode.mission_starter_chan_value > 0) {
         // we're executing missions and the mission has set the starter/ignition channels
-        cvalue = auto_mode.mission_start_chan_value;
+        cvalue = auto_mode.mission_starter_chan_value;
 
     } else if (auto_mode.is_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART)) {
         // we're in an auto nav mode and we're configured to always auto-start
@@ -681,13 +681,13 @@ bool AP_ICEngine::engine_control(float start_control, float unused, float height
 #endif
 
     if (is_equal(start_control, 0.0f)) {
-        auto_mode.mission_start_chan_value = 1000;
+        auto_mode.mission_starter_chan_value = 1000;
     } else if (is_equal(start_control, 1.0f)) {
-        auto_mode.mission_start_chan_value = 1500;
+        auto_mode.mission_starter_chan_value = 1500;
     } else if (is_equal(start_control, 2.0f)) {
-        auto_mode.mission_start_chan_value = 2000;
+        auto_mode.mission_starter_chan_value = 2000;
     } else {
-        auto_mode.mission_start_chan_value = 0;
+        auto_mode.mission_starter_chan_value = 0;
     }
 
     return true;

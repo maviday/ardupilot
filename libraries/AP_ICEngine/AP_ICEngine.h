@@ -89,7 +89,7 @@ public:
 
     bool get_brakeReleaseAllowedIn_Neutral_and_Disarmed() const { return brakeReleaseAllowedIn_Neutral_and_Disarmed; }
 
-    void set_is_in_auto_mode(bool modeIsAnyAutoNav, bool isAuto) { auto_mode.is_active = modeIsAnyAutoNav; if (!isAuto) { auto_mode.mission_start_chan_value = 0; }}
+    void set_is_in_auto_mode(bool modeIsAnyAutoNav, bool isAuto) { auto_mode.is_active = modeIsAnyAutoNav; if (!isAuto) { auto_mode.mission_starter_chan_value = 0; }}
 
 private:
     static AP_ICEngine *_singleton;
@@ -251,8 +251,8 @@ private:
 
     struct {
         bool is_active;
-        uint16_t mission_start_chan_value;
-    }auto_mode;
+        uint16_t mission_starter_chan_value;
+    } auto_mode;
 };
 
 
