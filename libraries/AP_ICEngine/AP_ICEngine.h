@@ -26,6 +26,7 @@
 #define AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED     (1<<2)
 #define AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART          (1<<3)
 #define AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS    (1<<4) //NOTE: This blocks both external mavlink msgs and "internal" auto mission cmds
+#define AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD         (1<<5)
 
 #define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION |        \
                                                                 AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START)
@@ -69,7 +70,7 @@ public:
     
     bool handle_message(const mavlink_command_long_t &packt);
     bool handle_set_ice_transmission_state(const mavlink_command_long_t &packet);
-    bool set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value);
+    bool set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value = 0);
     static int16_t constrain_pwm_with_direction(const int16_t initial, const int16_t desired, const int16_t pwm_going_down, const int16_t pwm_going_up);
 
     // Engine temperature status
@@ -99,11 +100,30 @@ private:
     enum ICE_State state;
     enum ICE_State state_prev;
 
-    struct {
-        enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
-        uint16_t pwm_active;
+    struct Gear_t {
+        bool is_forward() { return Gear_t::is_forward(state); }
+        bool is_reverse() { return Gear_t::is_reverse(state); }
+        bool is_neutral() { return Gear_t::is_neutral(state); }
+        bool is_park()    { return Gear_t::is_park(state); }
 
-        struct {
+        static bool is_forward(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState) {
+            return (gearState == MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD ||
+                (gearState >= MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1 && gearState <= MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9));
+        }
+        static bool is_reverse(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState) {
+            return (gearState == MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE ||
+                (gearState >= MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1 && gearState <= MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_3));
+        }
+        static bool is_neutral(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState) { return (gearState == MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL); }
+        static bool is_park(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState) { return (gearState == MAV_ICE_TRANSMISSION_GEAR_STATE_PARK); }
+
+        struct pending_t {
+            bool is_active()  { return (stop_vehicle_start_ms > 0 || change_physical_gear_start_ms > 0); }
+            bool is_forward() { return Gear_t::is_forward(state); }
+            bool is_reverse() { return Gear_t::is_reverse(state); }
+            bool is_neutral() { return Gear_t::is_neutral(state); }
+            bool is_park()    { return Gear_t::is_park(state); }
+
             uint16_t pwm;
             enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
 
@@ -118,6 +138,9 @@ private:
             AP_Float change_physical_gear_duration;
         } pending;
 
+        enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+        uint16_t pwm_active;
+
         uint32_t last_send_ms;
         AP_Int16 pwm_park_up;
         AP_Int16 pwm_park_down;
@@ -130,6 +153,7 @@ private:
         AP_Int16 pwm_forward2_up;
         AP_Int16 pwm_forward2_down;
     } gear;
+
     MAV_ICE_TRANSMISSION_GEAR_STATE convertPwmToGearState(const uint16_t pwm);
 
     void update_fuel();

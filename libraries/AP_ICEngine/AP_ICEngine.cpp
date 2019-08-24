@@ -501,6 +501,15 @@ void AP_ICEngine::determine_state()
             gcs().send_text(MAV_SEVERITY_INFO, "Engine died while running: %d rpm", current_rpm);
             state = ICE_START_DELAY;
         }
+
+        if (auto_mode.is_active &&
+                (options & AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD) &&
+                !gear.is_forward() &&
+                !gear.pending.is_active())
+        {
+            gcs().send_text(MAV_SEVERITY_INFO, "Setting Gear to FORWARD");
+            set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD);
+        }
         break;
     } // switch
 
@@ -738,7 +747,7 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
 
 bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value)
 {
-    if (gearState != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE && (gear.state == gearState || gear.pending.state == gearState)) {
+    if (gearState != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE && (gear.state == gearState || (gear.pending.is_active() && gear.pending.state == gearState))) {
         return true;
     }
 
