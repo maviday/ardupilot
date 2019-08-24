@@ -574,34 +574,37 @@ bool AP_ICEngine::brake_override(float &percentage)
  */
 bool AP_ICEngine::throttle_override(int8_t &percentage)
 {
-    bool result = false;
-
     if (!enable) {
-        return result;
+        return false;
     }
+
     const int8_t percentage_old = percentage;
+    bool use_idle_percent = false;
 
     if (state == ICE_RUNNING &&
         idle_percent > 0 &&
         idle_percent < 100 &&
         (int16_t)idle_percent > SRV_Channels::get_output_scaled(SRV_Channel::k_throttle))
     {
-        percentage = (uint8_t)idle_percent;
-        result = true;
+        use_idle_percent = true;
     }  else if (state == ICE_STARTING || state == ICE_START_DELAY) {
-        percentage = start_percent;
-        result = true;
+        use_idle_percent = true;
     } else if (too_cold()) {
         percentage = 0;
-        result = true;
     } else if (too_hot()) {
         percentage *= constrain_float(temperature.too_hot_throttle_reduction_factor,0,1);
-        result = true;
     }
 
     const uint32_t now_ms = AP_HAL::millis();
+    if (use_idle_percent) {
+        // some of the above logic may have set it to zero but other logic says we're in a state that zero may kill the engine so use idle instead
+        percentage = idle_percent;
+    }
+
+
+    const bool result = (percentage_old != percentage);
+
     if (result &&
-            (percentage_old != percentage) &&
             (throttle_prev != percentage) &&
             (now_ms - throttle_overrde_msg_last_ms > 5000 || state_prev != state)) {
         state_prev = state;
