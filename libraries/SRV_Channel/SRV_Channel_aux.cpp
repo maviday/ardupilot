@@ -28,6 +28,8 @@ extern const AP_HAL::HAL& hal;
 void SRV_Channel::output_ch(void)
 {
     int8_t passthrough_from = -1;
+    bool isRcinPassthroughChannel = false;
+
 
     // take care of special function cases
     switch(function)
@@ -37,6 +39,7 @@ void SRV_Channel::output_ch(void)
         break;
     case k_rcin1 ... k_rcin16: // rc pass-thru
         passthrough_from = int8_t(function - k_rcin1);
+        isRcinPassthroughChannel = true;
         break;
     }
     if (passthrough_from != -1) {
@@ -47,7 +50,9 @@ void SRV_Channel::output_ch(void)
                 output_pwm = c->get_radio_trim();
             } else {
                 const int16_t radio_in = c->get_radio_in();
-                if (!ign_small_rcin_changes) {
+                if (isRcinPassthroughChannel && !c->has_override() && (SRV_Channels::get_singleton()->get_options() & SRV_Channel::OptionsMask::RCIN_PASSTHROUGH_DEFAULT_IS_TRIM)) {
+                    output_pwm = servo_trim;
+                } else if (!ign_small_rcin_changes) {
                     output_pwm = radio_in;
                     previous_radio_in = radio_in;
                 } else {

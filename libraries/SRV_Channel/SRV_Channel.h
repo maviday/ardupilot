@@ -489,6 +489,15 @@ public:
     // get E - stop
     static bool get_emergency_stop() { return emergency_stop;}
 
+
+    // get singleton instance
+    static SRV_Channels *get_singleton() {
+        return _singleton;
+    }
+
+    int32_t get_options() const { return _options.get(); }
+
+
 private:
     struct {
         bool k_throttle_reversible:1;
