@@ -948,8 +948,9 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
 
     case MAV_CMD_DO_ENGINE_CONTROL:
         cmd.content.do_engine_control.start_control = packet.param1;
-        cmd.content.do_engine_control.unused = packet.param2;
+        cmd.content.do_engine_control.cold_start = packet.param2;
         cmd.content.do_engine_control.height_delay_cm = packet.param3*100;
+        cmd.content.do_engine_control.gear_state = packet.param4;
         break;        
 
     case MAV_CMD_NAV_PAYLOAD_PLACE:
@@ -1380,8 +1381,9 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
 
     case MAV_CMD_DO_ENGINE_CONTROL:
         packet.param1 = cmd.content.do_engine_control.start_control;
-        packet.param2 = cmd.content.do_engine_control.unused;
+        packet.param2 = cmd.content.do_engine_control.cold_start;
         packet.param3 = cmd.content.do_engine_control.height_delay_cm*0.01f;
+        packet.param4 = cmd.content.do_engine_control.gear_state;
         break;        
 
     case MAV_CMD_NAV_PAYLOAD_PLACE:

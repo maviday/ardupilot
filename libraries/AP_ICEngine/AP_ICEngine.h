@@ -66,7 +66,7 @@ public:
     ICE_State get_state(void) const { return state; }
 
     // handle DO_ENGINE_CONTROL messages via MAVLink or mission
-    bool engine_control(float start_control, float unused, float height_delay);
+    bool engine_control(float start_control, float cold_start, float height_delay, float gear_state_f);
     
     bool handle_message(const mavlink_command_long_t &packt);
     bool handle_set_ice_transmission_state(const mavlink_command_long_t &packet);

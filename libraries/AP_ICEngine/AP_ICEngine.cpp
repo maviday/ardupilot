@@ -675,8 +675,10 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
 /*
   handle DO_ENGINE_CONTROL messages via MAVLink or mission
 */
-bool AP_ICEngine::engine_control(float start_control, float unused, float height_delay)
+bool AP_ICEngine::engine_control(float start_control, float cold_start, float height_delay, float gear_state_f)
 {
+    (void)cold_start; // unused
+
     if (options & AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS) {
         gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine: external starter commands are blocked", AP_HAL::millis());
         return false;
@@ -699,6 +701,8 @@ bool AP_ICEngine::engine_control(float start_control, float unused, float height
         state = ICE_START_HEIGHT_DELAY;
         gcs().send_text(MAV_SEVERITY_INFO, "Takeoff height set to %.1fm", (double)height_delay);
     }
+#else
+    (void)height_delay; // unused for rover because there is no altitude
 #endif
 
     if (is_equal(start_control, 0.0f)) {
@@ -708,7 +712,17 @@ bool AP_ICEngine::engine_control(float start_control, float unused, float height
     } else if (is_equal(start_control, 2.0f)) {
         auto_mode.mission_starter_chan_value = 2000;
     } else {
-        auto_mode.mission_starter_chan_value = 0;
+        // ignore it, no effect
+    }
+
+    // note, for safety reasons you can not set start_control and gear_state in the same message.
+    // if you need to set both, do it in two seperate messages
+    if (is_negative(start_control) &&
+            gear_state_f > 0 && // 0 == MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN
+            !is_equal(gear_state_f, (float)MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE) &&
+            gear_state_f < MAV_ICE_TRANSMISSION_GEAR_STATE_ENUM_END)
+    {
+        set_ice_transmission_state((MAV_ICE_TRANSMISSION_GEAR_STATE)gear_state_f, 0);
     }
 
     return true;
@@ -842,7 +856,6 @@ bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STA
 
     gear.pending.state = gearState;
     gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
-    gcs().send_text(MAV_SEVERITY_INFO, "Gear change pending to %d", get_gear_name(gearState));
 
     return true;
 }

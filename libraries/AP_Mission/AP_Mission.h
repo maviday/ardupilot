@@ -173,8 +173,9 @@ public:
     // DO_ENGINE_CONTROL support
     struct PACKED Do_Engine_Control {
         float start_control; // Off, Ignition, Run
-        float unused;
+        float cold_start;
         uint16_t height_delay_cm; // height delay for start
+        float gear_state;
     };
 
     // NAV_SET_YAW_SPEED support

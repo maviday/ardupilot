@@ -43,8 +43,9 @@ bool AP_Mission::start_command_do_engine_control(const AP_Mission::Mission_Comma
     }
 
     return ice->engine_control(cmd.content.do_engine_control.start_control,
-                            0,
-                            cmd.content.do_engine_control.height_delay_cm*0.01f);
+                            cmd.content.do_engine_control.cold_start,
+                            cmd.content.do_engine_control.height_delay_cm*0.01f,
+                            cmd.content.do_engine_control.gear_state);
 }
 
 bool AP_Mission::start_command_do_servorelayevents(const AP_Mission::Mission_Command& cmd)
