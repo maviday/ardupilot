@@ -357,17 +357,20 @@ void RC_Channel::set_override(const uint16_t v, const uint16_t source, const uin
 
 void RC_Channel::clear_override()
 {
-    last_override_time1 = 0;
-    last_override_time2 = 0;
-    override_value = 0;
+    if (!is_negative(rc().override_timeout1_ms())) {
+        // -1 means never timeout
+        override_value = 0;
+        last_override_time1 = 0;
+    }
+    if (!is_negative(rc().override_timeout2_ms())) {
+        // -1 means never timeout
+        override_value = 0;
+        last_override_time2 = 0;
+    }
 }
 
 bool RC_Channel::has_override() const
 {
-    if (override_value <= 0) {
-        return false;
-    }
-
     uint32_t now_ms = AP_HAL::millis();
     if (last_override_time1 > 0) {
         const float override_timeout1_ms = rc().override_timeout1_ms();
@@ -383,6 +386,10 @@ bool RC_Channel::has_override() const
             return true;
         }
         return (now_ms - last_override_time2) < (uint32_t)override_timeout2_ms;
+    }
+
+    if (override_value <= 0) {
+        return false;
     }
 
     return false;

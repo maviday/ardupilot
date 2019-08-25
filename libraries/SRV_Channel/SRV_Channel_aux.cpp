@@ -50,7 +50,7 @@ void SRV_Channel::output_ch(void)
                 output_pwm = c->get_radio_trim();
             } else {
                 const int16_t radio_in = c->get_radio_in();
-                if (isRcinPassthroughChannel && !c->has_override() && (SRV_Channels::get_singleton()->get_options() & SRV_Channel::OptionsMask::RCIN_PASSTHROUGH_DEFAULT_IS_TRIM)) {
+                if (isRcinPassthroughChannel && !c->has_override() && radio_in == 0 && (SRV_Channels::get_singleton()->get_options() & SRV_Channel::OptionsMask::RCIN_PASSTHROUGH_DEFAULT_IS_TRIM)) {
                     output_pwm = servo_trim;
                 } else if (!ign_small_rcin_changes) {
                     output_pwm = radio_in;
