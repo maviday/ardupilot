@@ -194,6 +194,9 @@ private:
 
     void update_temperature();
 
+    void update_gear();
+    const char* get_gear_name(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState);
+
     void set_output_channels();
 
     void determine_state();

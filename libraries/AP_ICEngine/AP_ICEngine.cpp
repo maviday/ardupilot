@@ -330,6 +330,8 @@ void AP_ICEngine::update(void)
 
     determine_state();
 
+    update_gear();
+
     set_output_channels();
 
     send_status();
@@ -588,6 +590,35 @@ bool AP_ICEngine::brake_override(float &percentage)
     return false;
 }
 
+void AP_ICEngine::update_gear()
+{
+    const uint32_t now_ms = AP_HAL::millis();
+
+    // sanity check params
+    if (is_negative(gear.pending.stop_vehicle_duration)) {
+        gear.pending.stop_vehicle_duration = 0;
+    }
+    if (is_negative(gear.pending.change_physical_gear_duration)) {
+        gear.pending.change_physical_gear_duration = 2;
+    }
+
+    // delay the gear change for user-defined duration. This helps ensure the vehicle is stopped before we attempt to change gears
+    if (gear.pending.stop_vehicle_start_ms > 0 && now_ms - gear.pending.stop_vehicle_start_ms >= gear.pending.stop_vehicle_duration*1000) {
+        gear.pending.stop_vehicle_start_ms = 0;
+
+        // we've waited to stop the vehicle, now set the gear and wait again for it to physically change
+        gear.pending.change_physical_gear_start_ms = now_ms;
+        gear.pwm_active = gear.pending.pwm;
+        gear.state = gear.pending.state;
+        force_send_status = true;
+
+        gcs().send_text(MAV_SEVERITY_INFO, "Gear set to %d", get_gear_name(gear.state));
+    }
+
+    if (gear.pending.change_physical_gear_start_ms > 0 && now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_physical_gear_duration*1000) {
+        gear.pending.change_physical_gear_start_ms = 0;
+    }
+}
 /*
   check for throttle override. This allows the ICE controller to force
   the correct starting throttle when starting the engine and maintain idle when disarmed or out of temp range
@@ -615,29 +646,9 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
         percentage *= constrain_float(temperature.too_hot_throttle_reduction_factor,0,1);
     }
 
-    const uint32_t now_ms = AP_HAL::millis();
-    if (gear.pending.stop_vehicle_start_ms > 0) {
-        if (now_ms - gear.pending.stop_vehicle_start_ms >= gear.pending.stop_vehicle_duration*1000) {
-            gear.pending.stop_vehicle_start_ms = 0;
-
-            // we've waited to stop the vehicle, now set the gear and wait again for it to physically change
-            gear.pending.change_physical_gear_start_ms = now_ms;
-            gear.pwm_active = gear.pending.pwm;
-            gear.state = gear.pending.state;
-            force_send_status = true;
-        } else {
-            percentage = 0;
-        }
+    if (gear.pending.is_active()) {
+        percentage = 0;
     }
-    if (gear.pending.change_physical_gear_start_ms > 0) {
-        if (now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_physical_gear_duration*1000) {
-            gear.pending.change_physical_gear_start_ms = 0;
-        } else {
-            percentage = 0;
-        }
-    }
-
-
 
     if (use_idle_percent) {
         // some of the above logic may have set it to zero but other logic says we're in a state that zero may kill the engine so use idle instead
@@ -647,6 +658,7 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
 
     const bool result = (percentage_old != percentage);
 
+    const uint32_t now_ms = AP_HAL::millis();
     if (result &&
             (throttle_prev != percentage) &&
             (now_ms - throttle_overrde_msg_last_ms > 5000 || state_prev != state)) {
@@ -745,6 +757,41 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
     return false;
 }
 
+const char* AP_ICEngine::get_gear_name(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState)
+{
+    switch (gearState) {
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
+        return "Park";
+
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_2:
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_3:
+        return "Reverse";
+
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
+        return "Neutral";
+
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
+        return "Forward";
+
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_3:
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_4:
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_5:
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_6:
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_7:
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_8:
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9:
+        return "Forward High";
+
+    case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
+    default:
+        return "Unknown";
+    }
+}
+
 bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value)
 {
     if (gearState != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE && (gear.state == gearState || (gear.pending.is_active() && gear.pending.state == gearState))) {
@@ -794,17 +841,8 @@ bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STA
     }
 
     gear.pending.state = gearState;
-
-    if (is_positive(gear.pending.stop_vehicle_duration) || is_positive(gear.pending.change_physical_gear_duration)) {
-        // delay the gear change for user-defined duration
-        gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
-    } else {
-        // take effect immediately
-        gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = 0;
-        gear.state = gear.pending.state;
-        gear.pwm_active = gear.pending.pwm;
-        force_send_status = true;
-    }
+    gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
+    gcs().send_text(MAV_SEVERITY_INFO, "Gear change pending to %d", get_gear_name(gearState));
 
     return true;
 }
