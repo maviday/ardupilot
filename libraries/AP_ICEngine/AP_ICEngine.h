@@ -69,6 +69,14 @@ public:
         ICE_RUNNING=5
     };
 
+    enum ICE_Ignition_State {
+        ICE_IGNITION_OFF = 0,
+        ICE_IGNITION_ACCESSORY = 1,
+        ICE_IGNITION_START_RUN = 2,
+    } startControlSelect;
+
+    uint8_t convertPwmToIgnitionState(const uint16_t pwm);
+
     // get current engine control state
     ICE_State get_state(void) const { return state; }
 
@@ -97,7 +105,7 @@ public:
 
     bool get_brakeReleaseAllowedIn_Neutral_and_Disarmed() const { return brakeReleaseAllowedIn_Neutral_and_Disarmed; }
 
-    void set_is_in_auto_mode(bool modeIsAnyAutoNav, bool isAuto) { auto_mode.is_active = modeIsAnyAutoNav; if (!isAuto) { auto_mode.mission_starter_chan_value = 0; }}
+    void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; }
 
 private:
     static AP_ICEngine *_singleton;
@@ -292,10 +300,7 @@ private:
     // if option is set and rpm sensor says we're not running, this is the timer to inhibit any action
     uint32_t running_rpm_fail_timer_ms;
 
-    struct {
-        bool is_active;
-        uint16_t mission_starter_chan_value;
-    } auto_mode;
+    bool auto_mode_active;
 };
 
 

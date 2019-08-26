@@ -379,7 +379,7 @@ bool Rover::set_mode(Mode &new_mode, mode_reason_t reason)
     gcs().send_message(MSG_HEARTBEAT);
 
     notify_mode(control_mode);
-    g2.ice_control.set_is_in_auto_mode(control_mode->is_autopilot_mode(), control_mode->mode_number() == Mode::Number::AUTO);
+    g2.ice_control.set_is_in_auto_mode(control_mode->is_autopilot_mode());
     return true;
 }
 

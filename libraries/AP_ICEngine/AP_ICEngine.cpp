@@ -303,9 +303,26 @@ void AP_ICEngine::init(const bool inhibit_outputs)
         const uint16_t boot_up_value = c->get_radio_trim();
         c->set_override(boot_up_value, MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE, AP_HAL::millis());
         c->set_radio_in(boot_up_value);
+        startControlSelect = (ICE_Ignition_State)convertPwmToIgnitionState(boot_up_value);
+    } else {
+        startControlSelect = ICE_IGNITION_OFF;
     }
 }
 
+uint8_t AP_ICEngine::convertPwmToIgnitionState(const uint16_t pwm)
+{
+    // low = off
+    // mid = accessory/run only
+    // high accessory/run + allow auto starting
+
+    if (pwm <= 1300) {
+        return ICE_IGNITION_OFF;
+    } else if (pwm >= 1700) {
+        return ICE_IGNITION_START_RUN;
+    } else {
+        return ICE_IGNITION_ACCESSORY;
+    }
+}
 /*
   update engine state
  */
@@ -339,43 +356,25 @@ void AP_ICEngine::update(void)
 
 void AP_ICEngine::determine_state()
 {
-    uint16_t cvalue;
 
-    if (auto_mode.is_active && auto_mode.mission_starter_chan_value > 0) {
-        // we're executing missions and the mission has set the starter/ignition channels
-        cvalue = auto_mode.mission_starter_chan_value;
-
-    } else if (auto_mode.is_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART)) {
+    if (auto_mode_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART)) {
         // we're in an auto nav mode and we're configured to always auto-start
-        cvalue = 1900;
+        startControlSelect = ICE_IGNITION_START_RUN;
 
     } else {
-        // else, listen to RC control
         RC_Channel *c = rc().channel(start_chan-1);
-        if (c == nullptr) {
-            if (state != ICE_OFF) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped, check starter input");
-            }
-            state = ICE_OFF;
-            return;
+        if (c != nullptr) {
+            // check for 2 or 3 position switch:
+            startControlSelect = (ICE_Ignition_State)convertPwmToIgnitionState(c->get_radio_in());
         }
-        cvalue = c->get_radio_in();
     }
 
-
-    // check for 2 or 3 position switch:
-    // low = off
-    // mid = accessory/run only
-    // high accessory/run + allow auto starting
-    const bool switch_position_off          = (cvalue <= 1300);
-    const bool switch_position_acc          = (cvalue > 1300) && (cvalue < 1700);
-    const bool switch_position_acc_start    = (cvalue >= 1700);
     const uint32_t now_ms = AP_HAL::millis();
 
     const bool is_soft_armed = hal.util->get_soft_armed();
     const bool arming_OK_to_ign          = is_soft_armed || (!is_soft_armed && !(options & AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION));
     const bool arming_OK_to_start_or_run = is_soft_armed || (!is_soft_armed && !(options & AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START));
-    const bool system_should_be_off = switch_position_off || !arming_OK_to_ign;
+    const bool system_should_be_off = (startControlSelect == ICE_IGNITION_OFF) || !arming_OK_to_ign;
 
     if (system_should_be_off) {
         if (state != ICE_OFF) {
@@ -398,7 +397,7 @@ void AP_ICEngine::determine_state()
 
     case ICE_OFF:
         starting_attempts = 0;
-        if (!system_should_be_off && (switch_position_acc || switch_position_acc_start)) {
+        if (!system_should_be_off && (startControlSelect != ICE_IGNITION_OFF)) {
             state = ICE_START_DELAY;
         }
         break;
@@ -437,7 +436,7 @@ void AP_ICEngine::determine_state()
         break;
 
     case ICE_START_DELAY:
-        if (!switch_position_acc_start || !arming_OK_to_start_or_run) {
+        if ((startControlSelect != ICE_IGNITION_START_RUN) || !arming_OK_to_start_or_run) {
             // nothing to do, linger in this state forever
             break;
         }
@@ -538,14 +537,6 @@ void AP_ICEngine::determine_state()
             running_rpm_fail_timer_ms = 0;
         }
 
-        if (auto_mode.is_active &&
-                (options & AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD) &&
-                !gear.is_forward() &&
-                !gear.pending.is_active())
-        {
-            gcs().send_text(MAV_SEVERITY_INFO, "Setting Gear to FORWARD");
-            set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD);
-        }
         break;
     } // switch
 
@@ -561,6 +552,26 @@ void AP_ICEngine::determine_state()
 
 void AP_ICEngine::set_output_channels()
 {
+    if (!SRV_Channels::function_assigned(SRV_Channel::k_engine_gear)) {
+        // if we don't have a gear then set it to a known invalid state
+        gear.pwm_active = ICE_GEAR_STATE_PWM_INVALID;
+        gear.state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+    } else if (gear.state == MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN) {
+        // on boot or in an unknown state, set gear to trim and find out what that value is and set to that state
+        SRV_Channels::set_output_to_trim(SRV_Channel::k_engine_gear);
+        SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, gear.pwm_active);
+        gear.state = convertPwmToGearState(gear.pwm_active);
+    } else {
+        // normal operation, set the output
+        SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear.pwm_active);
+    }
+
+    if (gear.pending.is_active() && state != ICE_OFF) {
+        // if we're actively changing gears, don't change our ignition state unless we're trying to turn off
+        return;
+    }
+
+
     switch (state) {
     case ICE_OFF:
     case ICE_START_DELAY_NO_IGNITION:
@@ -595,20 +606,6 @@ void AP_ICEngine::set_output_channels()
         SRV_Channels::set_output_scaled(SRV_Channel::k_starter,0);
         break;
     } // switch
-
-    if (!SRV_Channels::function_assigned(SRV_Channel::k_engine_gear)) {
-        // if we don't have a gear then set it to a known invalid state
-        gear.pwm_active = ICE_GEAR_STATE_PWM_INVALID;
-        gear.state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
-    } else if (gear.state == MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN) {
-        // on boot or in an unknown state, set gear to trim and find out what that value is and set to that state
-        SRV_Channels::set_output_to_trim(SRV_Channel::k_engine_gear);
-        SRV_Channels::get_output_pwm(SRV_Channel::k_engine_gear, gear.pwm_active);
-        gear.state = convertPwmToGearState(gear.pwm_active);
-    } else {
-        // normal operation, set the output
-        SRV_Channels::set_output_pwm(SRV_Channel::k_engine_gear, gear.pwm_active);
-    }
 }
 
 /*
@@ -657,6 +654,16 @@ void AP_ICEngine::update_gear()
     if (gear.pending.change_physical_gear_start_ms > 0 && now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_physical_gear_duration*gear.pending.total_steps*1000) {
         gear.pending.change_physical_gear_start_ms = 0;
     }
+
+    if (auto_mode_active &&
+            state == ICE_RUNNING &&
+            (options & AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD) &&
+            !gear.is_forward() &&
+            !gear.pending.is_active())
+    {
+        set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD);
+    }
+
 }
 /*
   check for throttle override. This allows the ICE controller to force
@@ -704,16 +711,17 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
 bool AP_ICEngine::engine_control(float start_control, float cold_start, float height_delay, float gear_state_f)
 {
     (void)cold_start; // unused
+    const MAV_ICE_TRANSMISSION_GEAR_STATE gear_state = (MAV_ICE_TRANSMISSION_GEAR_STATE)(int32_t)gear_state_f;
 
     if (options & AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS) {
         gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine: external starter commands are blocked", AP_HAL::millis());
         return false;
     }
 
-    if (!(auto_mode.is_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART))) {
+    if (!(auto_mode_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART))) {
         // Allow RC input to block engine control commands if we're not in any autoNav mode and options flag says the autonav always autostarts
         RC_Channel *c = rc().channel(start_chan-1);
-        if (c != nullptr && c->get_radio_in() <= 1300) {
+        if ((c != nullptr) && convertPwmToIgnitionState(c->get_radio_in() == ICE_IGNITION_OFF)) {
             gcs().send_text(MAV_SEVERITY_INFO, "%d, Engine: start control disabled", AP_HAL::millis());
             return false;
         }
@@ -732,23 +740,19 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
 #endif
 
     if (is_equal(start_control, 0.0f)) {
-        auto_mode.mission_starter_chan_value = 1000;
+        startControlSelect = ICE_IGNITION_OFF;
     } else if (is_equal(start_control, 1.0f)) {
-        auto_mode.mission_starter_chan_value = 1500;
+        startControlSelect = ICE_IGNITION_ACCESSORY;
     } else if (is_equal(start_control, 2.0f)) {
-        auto_mode.mission_starter_chan_value = 2000;
-    } else {
-        // ignore it, no effect
+        startControlSelect = ICE_IGNITION_START_RUN;
     }
 
-    // note, for safety reasons you can not set start_control and gear_state in the same message.
-    // if you need to set both, do it in two seperate messages
-    if (is_negative(start_control) &&
-            gear_state_f > 0 && // 0 == MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN
-            !is_equal(gear_state_f, (float)MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE) &&
+    if (gear_state > 0 &&
+            gear_state != MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN &&
+            gear_state != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE &&
             gear_state_f < MAV_ICE_TRANSMISSION_GEAR_STATE_ENUM_END)
     {
-        set_ice_transmission_state((MAV_ICE_TRANSMISSION_GEAR_STATE)gear_state_f, 0);
+        set_ice_transmission_state(gear_state, 0);
     }
 
     return true;
@@ -1055,7 +1059,8 @@ void AP_ICEngine::send_status()
                     0, // index
                     gear.state,
                     current_gear_pwm,
-                    0,0,0,0);
+                    startControlSelect,
+                    0,0,0);
         }
 
 
