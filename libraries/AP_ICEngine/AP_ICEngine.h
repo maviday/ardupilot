@@ -126,6 +126,8 @@ private:
         static bool is_neutral(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState) { return (gearState == MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL); }
         static bool is_park(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState) { return (gearState == MAV_ICE_TRANSMISSION_GEAR_STATE_PARK); }
 
+        static int8_t get_position(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState);
+
         struct pending_t {
             bool is_active()  { return (stop_vehicle_start_ms > 0 || change_physical_gear_start_ms > 0); }
             bool is_forward() { return Gear_t::is_forward(state); }
@@ -140,6 +142,8 @@ private:
             uint32_t stop_vehicle_start_ms;
             // duration in seconds to inhibit throttle while we wait for vehicle to stop before we start changing to pwm_active
             AP_Float stop_vehicle_duration;
+
+            uint8_t total_steps;
 
             // start time of when pending ended and pwm_active was just set, inhibit throttle while waiting for gear to physically change until "wait_to_change_physical" expires
             uint32_t change_physical_gear_start_ms;

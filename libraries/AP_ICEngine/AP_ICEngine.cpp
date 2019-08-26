@@ -261,16 +261,16 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     AP_GROUPINFO("PWM_FWD2_D",  49, AP_ICEngine, gear.pwm_forward2_down, 1600),
 
     // @Param: GEAR_STOP
-    // @DisplayName: Gear change duration to inhibit throttle while waiting for vehicle to stop moving before changing physical gear
+    // @DisplayName: Gear change stop vehicle time
     // @Description: Gear change duration to inhibit throttle while waiting for vehicle to stop moving before changing physical gear
     // @User: Advanced
     AP_GROUPINFO("GEAR_STOP",  50, AP_ICEngine, gear.pending.stop_vehicle_duration, 0),
 
     // @Param: GEAR_DUR
-    // @DisplayName: Gear change duration to inhibit throttle while physically changing the gear
-    // @Description: Gear change duration to inhibit throttle while physically changing the gear
+    // @DisplayName: Gear change duration
+    // @Description: Gear change duration to inhibit throttle while physically changing the gear. This is the time it takes to change one gear-distance. Actual duration is this param multiplied by how many gears it has to change.
     // @User: Advanced
-    AP_GROUPINFO("GEAR_DUR",  51, AP_ICEngine, gear.pending.change_physical_gear_duration, 3.0f),
+    AP_GROUPINFO("GEAR_DUR",  51, AP_ICEngine, gear.pending.change_physical_gear_duration, 1.5f),
 
     AP_GROUPEND
 };
@@ -651,10 +651,10 @@ void AP_ICEngine::update_gear()
         gear.state = gear.pending.state;
         force_send_status = true;
 
-        gcs().send_text(MAV_SEVERITY_INFO, "Gear set to %d", get_gear_name(gear.state));
+        gcs().send_text(MAV_SEVERITY_INFO, "Gear set to %s", get_gear_name(gear.state));
     }
 
-    if (gear.pending.change_physical_gear_start_ms > 0 && now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_physical_gear_duration*1000) {
+    if (gear.pending.change_physical_gear_start_ms > 0 && now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_physical_gear_duration*gear.pending.total_steps*1000) {
         gear.pending.change_physical_gear_start_ms = 0;
     }
 }
@@ -882,10 +882,45 @@ bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STA
 
     gear.pending.state = gearState;
     gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
+    gear.pending.total_steps = abs(Gear_t::get_position(gear.state) - Gear_t::get_position(gear.pending.state));
 
     return true;
 }
 
+int8_t AP_ICEngine::Gear_t::get_position(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState)
+{
+     switch (gearState) {
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
+             return 1;
+
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_2:
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_3:
+             return 2;
+
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
+             return 3;
+
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
+             return 4;
+
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_3:
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_4:
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_5:
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_6:
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_7:
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_8:
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9:
+             return 5;
+
+         case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
+         default:
+             return 0;
+     }
+ }
 
 void AP_ICEngine::update_fuel()
 {
