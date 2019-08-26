@@ -392,8 +392,11 @@ void AP_ICEngine::determine_state()
 
     // switch on current state to work out new state
     switch (state) {
-    case ICE_OFF:
     default:
+        state = ICE_OFF;
+        break;
+
+    case ICE_OFF:
         starting_attempts = 0;
         if (!system_should_be_off && (switch_position_acc || switch_position_acc_start)) {
             state = ICE_START_DELAY;
@@ -420,6 +423,18 @@ void AP_ICEngine::determine_state()
         break;
     }
 #endif
+
+    case ICE_START_DELAY_NO_IGNITION:
+        // this state is usually skipped, it's only used when ICE_RUNNING fails
+        // and we want to stop the motor but not reset starting_attempts. This will
+        // force the ignition off if it's actually still on because in ICE_DELAY_START
+        // the ignition is on which would keep the engine running and then we're run
+        // the starter with a running engine for a fraction of a moment.
+        if (force_staying_in_DELAY_NO_IGNITION_duration_ms > 0 && now_ms - state_change_timestamp_ms < force_staying_in_DELAY_NO_IGNITION_duration_ms) {
+            break;
+        }
+        force_staying_in_DELAY_NO_IGNITION_duration_ms = 0;
+        break;
 
     case ICE_START_DELAY:
         if (!switch_position_acc_start || !arming_OK_to_start_or_run) {
@@ -501,7 +516,14 @@ void AP_ICEngine::determine_state()
             // we're expecting an rpm, have a valid rpm, and the rpm is too low.
             // engine has stopped when it should be running
             gcs().send_text(MAV_SEVERITY_INFO, "Engine died while running: %d rpm", current_rpm);
-            state = ICE_START_DELAY;
+
+            if (options & AP_ICENGINE_OPTIONS_MASK_RUNNING_FAIL_FORCE_STOP_MOTOR) {
+                // in the case of a noisy rpm signal, ensure we actually turn off the ignition
+                state = ICE_START_DELAY_NO_IGNITION;
+                force_staying_in_DELAY_NO_IGNITION_duration_ms = 3000;
+            } else {
+                state = ICE_START_DELAY;
+            }
         }
 
         if (auto_mode.is_active &&
@@ -519,12 +541,17 @@ void AP_ICEngine::determine_state()
         starter_start_time_ms = 0;
     }
 
+    if (state_prev != state) {
+        state_change_timestamp_ms = now_ms;
+    }
+    state_prev = state;
 }
 
 void AP_ICEngine::set_output_channels()
 {
     switch (state) {
     case ICE_OFF:
+    case ICE_START_DELAY_NO_IGNITION:
         {
         const SRV_Channel *chan_ignition = SRV_Channels::get_channel_for(SRV_Channel::k_ignition);
         if (chan_ignition != nullptr) {
@@ -655,20 +682,7 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
         percentage = idle_percent;
     }
 
-
-    const bool result = (percentage_old != percentage);
-
-    const uint32_t now_ms = AP_HAL::millis();
-    if (result &&
-            (throttle_prev != percentage) &&
-            (now_ms - throttle_overrde_msg_last_ms > 5000 || state_prev != state)) {
-        state_prev = state;
-        throttle_overrde_msg_last_ms = now_ms;
-        throttle_prev = percentage;
-        gcs().send_text(MAV_SEVERITY_INFO, "Engine Throttle override from %d to %d", percentage_old, percentage);
-    }
-
-    return result;
+    return (percentage_old != percentage);
 }
 
 

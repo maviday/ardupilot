@@ -21,12 +21,17 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_RPM/AP_RPM.h>
 
-#define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION       (1<<0)
-#define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START          (1<<1)
-#define AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED     (1<<2)
-#define AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART          (1<<3)
-#define AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS    (1<<4) //NOTE: This blocks both external mavlink msgs and "internal" auto mission cmds
-#define AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD         (1<<5)
+// 0000 0101 == 6
+// 0010 1101 == 45
+// 0110 1101 == 155
+#define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION       (1<<0) // yes
+#define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START          (1<<1) // no
+#define AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED     (1<<2) // yes
+#define AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART          (1<<3) // yes
+
+#define AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS    (1<<4) // no NOTE: This blocks both external mavlink msgs and "internal" auto mission cmds
+#define AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD         (1<<5) // yes
+#define AP_ICENGINE_OPTIONS_MASK_RUNNING_FAIL_FORCE_STOP_MOTOR  (1<<6) // yes
 
 #define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION |        \
                                                                 AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START)
@@ -57,9 +62,10 @@ public:
     enum ICE_State {
         ICE_OFF=0,
         ICE_START_HEIGHT_DELAY=1,
-        ICE_START_DELAY=2,
-        ICE_STARTING=3,
-        ICE_RUNNING=4
+        ICE_START_DELAY_NO_IGNITION=2,
+        ICE_START_DELAY=3,
+        ICE_STARTING=4,
+        ICE_RUNNING=5
     };
 
     // get current engine control state
@@ -99,6 +105,8 @@ private:
 
     enum ICE_State state;
     enum ICE_State state_prev;
+    uint32_t state_change_timestamp_ms;
+    uint32_t force_staying_in_DELAY_NO_IGNITION_duration_ms;
 
     struct Gear_t {
         bool is_forward() { return Gear_t::is_forward(state); }
