@@ -23,7 +23,7 @@
 
 // 0000 0101 == 6
 // 0010 1101 == 45
-// 0110 1101 == 155
+// 1010 1101 == 173
 #define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION       (1<<0) // yes
 #define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START          (1<<1) // no
 #define AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED     (1<<2) // yes
@@ -31,7 +31,8 @@
 
 #define AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS    (1<<4) // no NOTE: This blocks both external mavlink msgs and "internal" auto mission cmds
 #define AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD         (1<<5) // yes
-#define AP_ICENGINE_OPTIONS_MASK_RUNNING_FAIL_FORCE_STOP_MOTOR  (1<<6) // yes
+#define AP_ICENGINE_OPTIONS_MASK_RUNNING_FAIL_FORCE_STOP_MOTOR  (1<<6) // no
+#define AP_ICENGINE_OPTIONS_MASK_RPM_FAIL_HAS_TIMER             (1<<7) // yes
 
 #define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION |        \
                                                                 AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START)
@@ -283,6 +284,9 @@ private:
     bool force_send_status;
 
     AP_Int8 master_output_enable_pin;
+
+    // if option is set and rpm sensor says we're not running, this is the timer to inhibit any action
+    uint32_t running_rpm_fail_timer_ms;
 
     struct {
         bool is_active;

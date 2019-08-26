@@ -515,15 +515,27 @@ void AP_ICEngine::determine_state()
         if (rpm_threshold_running > 0 && current_rpm >= 0 && current_rpm < rpm_threshold_running) {
             // we're expecting an rpm, have a valid rpm, and the rpm is too low.
             // engine has stopped when it should be running
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine died while running: %d rpm", current_rpm);
 
-            if (options & AP_ICENGINE_OPTIONS_MASK_RUNNING_FAIL_FORCE_STOP_MOTOR) {
+            if (!running_rpm_fail_timer_ms) {
+                running_rpm_fail_timer_ms = now_ms;
+            }
+
+            if ((options & AP_ICENGINE_OPTIONS_MASK_RPM_FAIL_HAS_TIMER) && (now_ms - running_rpm_fail_timer_ms <= 500)) {
+                // do nothing, just ignore the rpm for now
+                break;
+            } else if (options & AP_ICENGINE_OPTIONS_MASK_RUNNING_FAIL_FORCE_STOP_MOTOR) {
                 // in the case of a noisy rpm signal, ensure we actually turn off the ignition
                 state = ICE_START_DELAY_NO_IGNITION;
                 force_staying_in_DELAY_NO_IGNITION_duration_ms = 3000;
             } else {
                 state = ICE_START_DELAY;
             }
+
+            if (state != ICE_RUNNING) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Engine died while running: %d rpm", current_rpm);
+            }
+        } else {
+            running_rpm_fail_timer_ms = 0;
         }
 
         if (auto_mode.is_active &&
@@ -626,7 +638,7 @@ void AP_ICEngine::update_gear()
         gear.pending.stop_vehicle_duration = 0;
     }
     if (is_negative(gear.pending.change_physical_gear_duration)) {
-        gear.pending.change_physical_gear_duration = 2;
+        gear.pending.change_physical_gear_duration.set_and_save(2);
     }
 
     // delay the gear change for user-defined duration. This helps ensure the vehicle is stopped before we attempt to change gears
