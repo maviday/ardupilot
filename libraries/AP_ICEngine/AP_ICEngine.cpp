@@ -359,8 +359,10 @@ void AP_ICEngine::determine_state()
 
     if (auto_mode_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART)) {
         // we're in an auto nav mode and we're configured to always auto-start
-        startControlSelect = ICE_IGNITION_START_RUN;
-
+        if (startControlSelect != ICE_IGNITION_START_RUN) {
+            startControlSelect = ICE_IGNITION_START_RUN;
+            force_send_status = true;
+        }
     } else {
         RC_Channel *c = rc().channel(start_chan-1);
         if (c != nullptr) {
@@ -741,10 +743,13 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
 
     if (is_equal(start_control, 0.0f)) {
         startControlSelect = ICE_IGNITION_OFF;
+        force_send_status = true;
     } else if (is_equal(start_control, 1.0f)) {
         startControlSelect = ICE_IGNITION_ACCESSORY;
+        force_send_status = true;
     } else if (is_equal(start_control, 2.0f)) {
         startControlSelect = ICE_IGNITION_START_RUN;
+        force_send_status = true;
     }
 
     if (gear_state > 0 &&
@@ -753,6 +758,7 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
             gear_state_f < MAV_ICE_TRANSMISSION_GEAR_STATE_ENUM_END)
     {
         set_ice_transmission_state(gear_state, 0);
+        force_send_status = true;
     }
 
     return true;
@@ -790,14 +796,14 @@ int16_t AP_ICEngine::constrain_pwm_with_direction(const int16_t initial, const i
 
 bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t &packet)
 {
-    //const uint8_t index = packet->param1; // unused
-    const MAV_ICE_TRANSMISSION_GEAR_STATE gearState = (MAV_ICE_TRANSMISSION_GEAR_STATE)packet.param2;
-    const uint16_t pwm_value = packet.param3;
-
-    if (set_ice_transmission_state(gearState, pwm_value)) {
-        brakeReleaseAllowedIn_Neutral_and_Disarmed = !is_zero(packet.param4);
-        return true;
-    }
+//    //const uint8_t index = packet->param1; // unused
+//    const MAV_ICE_TRANSMISSION_GEAR_STATE gearState = (MAV_ICE_TRANSMISSION_GEAR_STATE)packet.param2;
+//    const uint16_t pwm_value = packet.param3;
+//
+//    if (set_ice_transmission_state(gearState, pwm_value)) {
+//        brakeReleaseAllowedIn_Neutral_and_Disarmed = !is_zero(packet.param4);
+//        return true;
+//    }
     return false;
 }
 
