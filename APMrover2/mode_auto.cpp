@@ -164,6 +164,8 @@ int32_t ModeAuto::checkStickMixing()
         // start or continuing..
         stick_mixing_time_start_ms = now_ms;
 
+        Mode::set_desired_heading_and_speed(stick_mixing_override, _desired_speed);
+
         if (_submode != Auto_StickMixingOverride) {
             // start
             _submode_previous = _submode;
