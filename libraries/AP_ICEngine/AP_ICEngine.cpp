@@ -653,7 +653,9 @@ void AP_ICEngine::update_gear()
         gcs().send_text(MAV_SEVERITY_INFO, "Gear set to %s", get_gear_name(gear.state));
     }
 
-    if (gear.pending.change_physical_gear_start_ms > 0 && now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_physical_gear_duration*gear.pending.total_steps*1000) {
+    const uint32_t duration = gear.pending.change_physical_gear_duration*1000 * (uint32_t)gear.pending.total_steps;
+    gcs().send_text(MAV_SEVERITY_INFO, "gear.pending.total_steps = %d, duration = %dms", gear.pending.total_steps, duration);
+    if (gear.pending.change_physical_gear_start_ms > 0 && now_ms - gear.pending.change_physical_gear_start_ms >= duration) {
         gear.pending.change_physical_gear_start_ms = 0;
     }
 
@@ -892,7 +894,13 @@ bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STA
 
     gear.pending.state = gearState;
     gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
-    gear.pending.total_steps = abs(Gear_t::get_position(gear.state) - Gear_t::get_position(gear.pending.state));
+
+    const int8_t gear_pos_current = Gear_t::get_position(gear.state);
+    const int8_t gear_pos_pending = Gear_t::get_position(gear.pending.state);
+    gear.pending.total_steps = MAX(1,abs(gear_pos_current - gear_pos_pending));
+
+    gcs().send_text(MAV_SEVERITY_INFO, "pos_current:%d - pos_pending:%d = total_steps:%d",
+            gear_pos_current, gear_pos_pending, gear.pending.total_steps);
 
     return true;
 }
