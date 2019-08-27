@@ -559,7 +559,6 @@ Mode *Rover::mode_from_mode_num(const enum Mode::Number num)
 bool Mode::checkStickMixing()
 {
     const uint32_t now_ms = AP_HAL::millis();
-    int32_t stick_mixing_override = 0;
     float steering, dummy;
 
     get_pilot_input(steering, dummy);
@@ -569,24 +568,37 @@ bool Mode::checkStickMixing()
     if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone() && stick_mixing_subMode(subMode_StickMixing)) {
         // stick mixing is allowed, and enabled, and there's an input on the user sticks
         // full left/right would be +/-30deg heading change
-        stick_mixing_override = steering * 100 * (30 / 4500.0);
+        const int32_t stick_mixing_override_cd = steering * 100 * (30 / 4500.0);
 
         // start or continuing..
         _stick_mixing_time_start_ms = now_ms;
-
-        set_desired_heading_and_speed(ahrs.yaw_sensor + stick_mixing_override, _desired_speed);
+        const uint32_t yaw = ahrs.yaw_sensor + stick_mixing_override_cd;
 
         const int8_t subMode_current = get_subMode();
         if (subMode_current != subMode_StickMixing) {
             // start
             _subMode_previous = subMode_current;
             set_subMode(subMode_StickMixing);
+
+            if (is_positive(_desired_speed)) {
+                _stick_mixing_initial_speed = _desired_speed;
+                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: desired_speed %.1f m/s", _stick_mixing_initial_speed);
+            } else {
+                _stick_mixing_initial_speed = ahrs.groundspeed();
+                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: groundspeed %.1f m/s", _stick_mixing_initial_speed);
+            }
         }
+        gcs().send_text(MAV_SEVERITY_WARNING, "StickMix ON: %d deg, %.1f m/s", yaw / 100, _stick_mixing_initial_speed);
+        set_desired_heading_and_speed(yaw, _stick_mixing_initial_speed);
+
         return true;
 
     } else if (_stick_mixing_time_start_ms > 0) {
         if (now_ms - _stick_mixing_time_start_ms < 300) {
-            set_desired_heading_and_speed(ahrs.yaw_sensor, _desired_speed);
+            const uint32_t yaw = ahrs.yaw_sensor;
+
+            gcs().send_text(MAV_SEVERITY_WARNING, "StickMix IDLE: %d deg, %.1f m/s", yaw / 100, _stick_mixing_initial_speed);
+            set_desired_heading_and_speed(yaw, _stick_mixing_initial_speed);
         } else {
             // done, restore to previous subMode
             set_subMode(_subMode_previous);

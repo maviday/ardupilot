@@ -219,6 +219,7 @@ protected:
 
     int8_t _subMode_previous;
     uint32_t _stick_mixing_time_start_ms;
+    float _stick_mixing_initial_speed;
 };
 
 
