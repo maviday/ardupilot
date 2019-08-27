@@ -40,7 +40,7 @@ void ModeAuto::_exit()
 
 void ModeAuto::update()
 {
-    int32_t stick_mixing = checkStickMixing();
+    checkStickMixing();
 
     switch (_submode) {
         case Auto_WP:
@@ -65,16 +65,16 @@ void ModeAuto::update()
 
         case Auto_StickMixingOverride:
         {
-            // hold throttle and apply pilot heading
-            _reached_heading = false;
-            calc_steering_to_heading(stick_mixing);
-            calc_throttle(calc_speed_nudge(_desired_speed, false), true);
+//            // hold throttle and apply pilot heading
+//            _reached_heading = false;
+//            calc_steering_to_heading(stick_mixing);
+//            calc_throttle(calc_speed_nudge(_desired_speed, false), true);
         }
         break;
 
         case Auto_HeadingAndSpeed:
         {
-            if (!_reached_heading) {
+            if (!_reached_heading || stick_mixing_is_active()) {
                 // run steering and throttle controllers
                 calc_steering_to_heading(_desired_yaw_cd);
                 calc_throttle(calc_speed_nudge(_desired_speed, is_negative(_desired_speed)), true);
@@ -148,36 +148,6 @@ float ModeAuto::get_distance_to_destination() const
     return 0.0f;
 }
 
-int32_t ModeAuto::checkStickMixing()
-{
-    const uint32_t now_ms = AP_HAL::millis();
-    int32_t stick_mixing_override = 0;
-    float steering, dummy;
-
-    get_pilot_input(steering, dummy);
-
-    if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone()) {
-        // stick mixing is allowed, and enabled, and there's an input on the user sticks
-        // full left/right would be +/-30deg heading change
-        stick_mixing_override = steering * 100 * (30 / 4500.0);
-
-        // start or continuing..
-        stick_mixing_time_start_ms = now_ms;
-
-        Mode::set_desired_heading_and_speed(stick_mixing_override, _desired_speed);
-
-        if (_submode != Auto_StickMixingOverride) {
-            // start
-            _submode_previous = _submode;
-            _submode = Auto_StickMixingOverride;
-        }
-    } else if (_submode == Auto_StickMixingOverride && now_ms - stick_mixing_time_start_ms > 100) {
-        // stop
-        _submode = _submode_previous;
-    }
-
-    return ahrs.yaw_sensor + stick_mixing_override;
-}
 
 // get desired location
 bool ModeAuto::get_desired_location(Location& destination) const

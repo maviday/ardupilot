@@ -72,8 +72,6 @@ public:
     // returns true if vehicle can be armed or disarmed from the transmitter in this mode
     virtual bool allows_arming_from_transmitter() { return !is_autopilot_mode(); }
 
-    bool allows_stick_mixing() const { return is_autopilot_mode(); }
-
     //
     // attributes for mavlink system status reporting
     //
@@ -189,6 +187,13 @@ protected:
     // calculate vehicle stopping location using current location, velocity and maximum acceleration
     void calc_stopping_location(Location& stopping_loc);
 
+    virtual bool allows_stick_mixing() const { return false; }
+    virtual bool stick_mixing_subMode(int8_t &subMode) const { return false; }
+    virtual void set_subMode(int8_t subMode) { }
+    virtual int8_t get_subMode() const { return -1; }
+    bool stick_mixing_is_active() const { return _stick_mixing_time_start_ms > 0; }
+    bool checkStickMixing();
+
 protected:
 
     // decode pilot steering and throttle inputs and return in steer_out and throttle_out arguments
@@ -211,6 +216,9 @@ protected:
     bool _reached_destination;  // true once the vehicle has reached the destination
     float _desired_yaw_cd;      // desired yaw in centi-degrees.  used in Auto, Guided and Loiter
     float _desired_speed;       // desired speed in m/s
+
+    int8_t _subMode_previous;
+    uint32_t _stick_mixing_time_start_ms;
 };
 
 
@@ -265,6 +273,11 @@ public:
     void set_desired_heading_and_speed(float yaw_angle_cd, float target_speed) override;
     bool reached_heading();
 
+    bool allows_stick_mixing() const override { return true; }
+    void set_subMode(int8_t subMode) override { _submode = (AutoSubMode)subMode; }
+    int8_t get_subMode() const override { return _submode; }
+    bool stick_mixing_subMode(int8_t &subMode) const override { subMode = AutoSubMode::Auto_HeadingAndSpeed; return true; }
+
     // start RTL (within auto)
     void start_RTL();
 
@@ -286,11 +299,10 @@ protected:
         Auto_Guided,            // handover control to external navigation system from within auto mode
         Auto_Stop,              // stop the vehicle as quickly as possible
         Auto_StickMixingOverride, // temporary heading hold while user is overriding input
-    } _submode, _submode_previous;
+    } _submode;
 
 private:
 
-    int32_t checkStickMixing();
     bool check_trigger(void);
     bool start_loiter();
     void start_guided(const Location& target_loc);
@@ -355,8 +367,6 @@ private:
     // Delay the next navigation command
     uint32_t nav_delay_time_max_ms;  // used for delaying the navigation commands
     uint32_t nav_delay_time_start_ms;
-
-    uint32_t stick_mixing_time_start_ms;
 };
 
 
@@ -402,18 +412,22 @@ public:
     void limit_init_time_and_location();
     bool limit_breached() const;
 
+    bool allows_stick_mixing() const override { return true; }
+    bool stick_mixing_subMode(int8_t &subMode) const override { subMode = GuidedMode::Guided_HeadingAndSpeed; return true; }
+    void set_subMode(int8_t subMode) override { _guided_mode = (GuidedMode)subMode; }
+    int8_t get_subMode() const override { return _guided_mode; }
+
 protected:
 
     enum GuidedMode {
         Guided_WP,
         Guided_HeadingAndSpeed,
         Guided_TurnRateAndSpeed,
-        Guided_Loiter
-    };
+        Guided_Loiter,
+        Guided_StickMixingOverride,
+    } _guided_mode;    // stores which GUIDED mode the vehicle is in;
 
     bool _enter() override;
-
-    GuidedMode _guided_mode;    // stores which GUIDED mode the vehicle is in
 
     // attitude control
     bool have_attitude_target;  // true if we have a valid attitude target

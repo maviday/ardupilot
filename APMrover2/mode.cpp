@@ -555,3 +555,46 @@ Mode *Rover::mode_from_mode_num(const enum Mode::Number num)
     }
     return ret;
 }
+
+bool Mode::checkStickMixing()
+{
+    const uint32_t now_ms = AP_HAL::millis();
+    int32_t stick_mixing_override = 0;
+    float steering, dummy;
+
+    get_pilot_input(steering, dummy);
+
+    int8_t subMode_StickMixing = -1;
+
+    if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone() && stick_mixing_subMode(subMode_StickMixing)) {
+        // stick mixing is allowed, and enabled, and there's an input on the user sticks
+        // full left/right would be +/-30deg heading change
+        stick_mixing_override = steering * 100 * (30 / 4500.0);
+
+        // start or continuing..
+        _stick_mixing_time_start_ms = now_ms;
+
+        set_desired_heading_and_speed(ahrs.yaw_sensor + stick_mixing_override, _desired_speed);
+
+        const int8_t subMode_current = get_subMode();
+        if (subMode_current != subMode_StickMixing) {
+            // start
+            _subMode_previous = subMode_current;
+            set_subMode(subMode_StickMixing);
+        }
+        return true;
+
+    } else if (_stick_mixing_time_start_ms > 0) {
+        if (now_ms - _stick_mixing_time_start_ms < 300) {
+            set_desired_heading_and_speed(ahrs.yaw_sensor, _desired_speed);
+        } else {
+            // done, restore to previous subMode
+            set_subMode(_subMode_previous);
+            _stick_mixing_time_start_ms = 0;
+        }
+        return true;
+    }
+
+    return false;
+}
+
