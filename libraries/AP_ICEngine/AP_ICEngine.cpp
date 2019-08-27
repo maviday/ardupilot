@@ -643,30 +643,29 @@ void AP_ICEngine::update_gear()
 
     // delay the gear change for user-defined duration. This helps ensure the vehicle is stopped before we attempt to change gears
     if (gear.pending.stop_vehicle_start_ms > 0) {
-        gcs().send_text(MAV_SEVERITY_INFO, "%d Gear Waiting before change for %dms", now_ms, gear.pending.stop_duration*1000);
         if (now_ms - gear.pending.stop_vehicle_start_ms >= gear.pending.stop_duration*1000) {
 
             gear.pending.change_physical_gear_start_ms = now_ms;
             gear.pending.stop_vehicle_start_ms = 0;
 
             // we've waited to stop the vehicle, now set the gear and wait again for it to physically change
-            gcs().send_text(MAV_SEVERITY_INFO, "%d Gear starting to change to %s", now_ms, get_gear_name(gear.state));
             gear.pwm_active = gear.pending.pwm;
             gear.state = gear.pending.state;
             force_send_status = true;
         }
 
     } else if (gear.pending.change_physical_gear_start_ms > 0) {
-        gcs().send_text(MAV_SEVERITY_INFO, "%d, duration_total = %dms", now_ms, gear.pending.change_duration_total_ms);
         if (now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_duration_total_ms) {
-            gcs().send_text(MAV_SEVERITY_INFO, "%d Gear change timer expired", now_ms);
+            gcs().send_text(MAV_SEVERITY_INFO, "Gear is now %s", get_gear_name(gear.state));
             gear.pending.change_physical_gear_start_ms = 0;
+            force_send_status = true;
         }
 
     } else if (auto_mode_active &&
             state == ICE_RUNNING &&
             (options & AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD) &&
-            !gear.is_forward())
+            !gear.is_forward() &&
+            !gear.pending.is_active())
     {
         set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD);
     }
@@ -707,7 +706,7 @@ bool AP_ICEngine::throttle_override(float &percentage)
         percentage = (float)idle_percent;
     }
 
-    return (percentage_old != percentage);
+    return !is_equal(percentage_old, percentage);
 }
 
 
@@ -910,14 +909,12 @@ bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STA
     }
 
     gear.pending.change_duration_total_ms = gear.pending.change_duration_per_posiiton * 1000 * total_steps;
-
-    gcs().send_text(MAV_SEVERITY_INFO, "%d Request:%s to %s, %d steps, %dms",
-            AP_HAL::millis(),
-            get_gear_name(gear.state), get_gear_name(gear.pending.state),
-            total_steps, gear.pending.change_duration_total_ms);
-
-
     gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
+    force_send_status = true;
+
+    gcs().send_text(MAV_SEVERITY_INFO, "Gear change request: %s to %s in %.1fs",
+            get_gear_name(gear.state), get_gear_name(gear.pending.state),
+            (double)(gear.pending.change_duration_total_ms*0.001f));
 
     return true;
 }
