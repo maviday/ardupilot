@@ -256,10 +256,8 @@ void Rover::set_brake(float brake_percent)
     const float brake_percent_start = brake_percent;
     float speed;
 
-    float ice_brake_override_percent;
-    if (rover.g2.ice_control.brake_override(ice_brake_override_percent)) {
+    if (rover.g2.ice_control.brake_override(brake_percent)) {
         // the ICE controller wants to override the brake, usually for starting
-        brake_percent = ice_brake_override_percent;
     }
 
     switch (rover.g2.ice_control.get_transmission_gear_state()) {

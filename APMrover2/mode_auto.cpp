@@ -40,8 +40,6 @@ void ModeAuto::_exit()
 
 void ModeAuto::update()
 {
-    checkStickMixing();
-
     switch (_submode) {
         case Auto_WP:
         {
@@ -113,6 +111,12 @@ void ModeAuto::update()
             stop_vehicle();
             break;
     }
+
+//    if (checkStickMixing()) {
+//        calc_steering_to_heading(_stick_mixing_yaw_cd);
+//        set_desired_heading_and_speed(wrap_180_cd(_stick_mixing_yaw_cd), _desired_speed);
+//    }
+
 }
 
 void ModeAuto::calc_throttle(float target_speed, bool avoidance_enabled)

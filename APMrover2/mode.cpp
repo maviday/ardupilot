@@ -416,6 +416,10 @@ void Mode::navigate_to_waypoint()
     calc_throttle(desired_speed, true);
 
     float desired_heading_cd = g2.wp_nav.wp_bearing_cd();
+//    if (checkStickMixing()) {
+//        desired_heading_cd = _stick_mixing_yaw_cd;
+//    }
+
     if (g2.sailboat.use_indirect_route(desired_heading_cd)) {
         // sailboats use heading controller when tacking upwind
         desired_heading_cd = g2.sailboat.calc_heading(desired_heading_cd);
@@ -506,6 +510,29 @@ void Mode::calc_stopping_location(Location& stopping_loc)
 
 void Mode::set_steering(float steering_value)
 {
+    if (g2.stick_mixing > 0 && allows_stick_mixing()) {
+        steering_value = channel_steer->stick_mixing((int16_t)steering_value);
+        const int16_t steering_input = (int16_t)steering_value;
+        const int16_t steering_output = channel_steer->stick_mixing(steering_input);
+
+        if (abs(steering_input - steering_output) > channel_steer->get_dead_zone()) {
+           // since stick mixing directly overrides the servo/motor outputs, this will fool the PID integrators into
+           // thinking that it's steering offcourse and the integrator will start to wind up to get you back on coarse.
+           // The result will be the user will have to push harder and harder to override movement and then when
+           // the pilot relaxes the integrator will be so wound-up that it will overshoot and have to re-learn
+           // what no pilot mixing feels like. This will look like sloppy steering while it re-earns. So, lets
+           // freeze the integrator learning for a moment while we're actively mixing pilot sticks by so
+           // whatever pre-learned integrator will stay as-is for a moment
+           const uint32_t integrator_freeze_duration_ms = 1000;
+           g2.attitude_control.get_steering_rate_pid().freeze_integrator(integrator_freeze_duration_ms);
+           g2.attitude_control.get_throttle_speed_pid().freeze_integrator(integrator_freeze_duration_ms);
+           g2.attitude_control.get_pitch_to_throttle_pid().freeze_integrator(integrator_freeze_duration_ms);
+           g2.attitude_control.get_sailboat_heel_pid().freeze_integrator(integrator_freeze_duration_ms);
+
+           steering_value = steering_output;
+        }
+    }
+
     steering_value = constrain_float(steering_value, -4500.0f, 4500.0f);
     g2.motors.set_steering(steering_value);
 }
@@ -563,50 +590,63 @@ bool Mode::checkStickMixing()
 
     get_pilot_input(steering, dummy);
 
-    int8_t subMode_StickMixing = -1;
+    int8_t subMode_StickMixing;
 
     if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone() && stick_mixing_subMode(subMode_StickMixing)) {
         // stick mixing is allowed, and enabled, and there's an input on the user sticks
         // full left/right would be +/-30deg heading change
-        const int32_t stick_mixing_override_cd = steering * 100 * (30 / 4500.0);
+        const int32_t stick_mixing_override_delta_cd = steering * 100 * (30 / 4500.0);
 
         // start or continuing..
-        _stick_mixing_time_start_ms = now_ms;
-        const uint32_t yaw = ahrs.yaw_sensor + stick_mixing_override_cd;
 
-        const int8_t subMode_current = get_subMode();
-        if (subMode_current != subMode_StickMixing) {
-            // start
-            _subMode_previous = subMode_current;
-            set_subMode(subMode_StickMixing);
-
-            if (is_positive(_desired_speed)) {
-                _stick_mixing_initial_speed = _desired_speed;
-                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: desired_speed %.1f m/s", _stick_mixing_initial_speed);
-            } else {
-                _stick_mixing_initial_speed = ahrs.groundspeed();
-                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: groundspeed %.1f m/s", _stick_mixing_initial_speed);
-            }
+        if (stick_mixing_override_delta_cd >= 0) {
+            _stick_mixing_yaw_cd = ahrs.yaw_sensor + stick_mixing_override_delta_cd;
+        } else {
+            _stick_mixing_yaw_cd = _desired_yaw_cd + stick_mixing_override_delta_cd;
         }
-        gcs().send_text(MAV_SEVERITY_WARNING, "StickMix ON: %d deg, %.1f m/s", yaw / 100, _stick_mixing_initial_speed);
-        set_desired_heading_and_speed(yaw, _stick_mixing_initial_speed);
 
-        return true;
+//        const int8_t subMode_current = get_subMode();
+//        if (subMode_current != subMode_StickMixing) {
+//            // start
+//            _subMode_previous = subMode_current;
+//            set_subMode(subMode_StickMixing);
+//
+        if (_stick_mixing_time_start_ms == 0) {
+            if (is_positive(_desired_speed)) {
+                _stick_mixing_speed = _desired_speed;
+                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: desired_speed %.1f m/s", _stick_mixing_speed);
+            } else if (is_positive(ahrs.groundspeed())) {
+                _stick_mixing_speed = ahrs.groundspeed();
+                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: groundspeed %.1f m/s", _stick_mixing_speed);
+            } else {
+                _stick_mixing_speed = 0;
+                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: 0 m/s");
+            }
+            _stick_mixing_time_start_ms = now_ms;
+        }
+//        }
+        gcs().send_text(MAV_SEVERITY_WARNING, "StickMix ON: %d deg, %.1f m/s", _stick_mixing_yaw_cd / 100, _stick_mixing_speed);
+//        set_desired_heading_and_speed(_stick_mixing_yaw_cd, _stick_mixing_speed);
+
+//        _desired_yaw_cd = _stick_mixing_yaw_cd;
+//        _desired_speed = _stick_mixing_speed;
 
     } else if (_stick_mixing_time_start_ms > 0) {
         if (now_ms - _stick_mixing_time_start_ms < 300) {
-            const uint32_t yaw = ahrs.yaw_sensor;
+//            _desired_yaw_cd = _stick_mixing_yaw_cd;
+//            _desired_speed = _stick_mixing_speed;
 
-            gcs().send_text(MAV_SEVERITY_WARNING, "StickMix IDLE: %d deg, %.1f m/s", yaw / 100, _stick_mixing_initial_speed);
-            set_desired_heading_and_speed(yaw, _stick_mixing_initial_speed);
+  //          const uint32_t yaw = ahrs.yaw_sensor;
+
+//            gcs().send_text(MAV_SEVERITY_WARNING, "StickMix IDLE: %d deg, %.1f m/s", _stick_mixing_yaw_cd / 100, _stick_mixing_speed);
+//            set_desired_heading_and_speed(yaw, _stick_mixing_speed);
         } else {
             // done, restore to previous subMode
-            set_subMode(_subMode_previous);
+            //set_subMode(_subMode_previous);
             _stick_mixing_time_start_ms = 0;
         }
-        return true;
     }
 
-    return false;
+    return (_stick_mixing_time_start_ms > 0);
 }
 

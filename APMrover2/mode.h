@@ -133,6 +133,9 @@ public:
     // handle tacking request (from auxiliary switch) in sailboats
     virtual void handle_tack_request();
 
+    bool stick_mixing_is_active() const { return _stick_mixing_time_start_ms > 0; }
+    virtual bool allows_stick_mixing() const { return false; }
+
 protected:
 
     // subclasses override this to perform checks before entering the mode
@@ -187,11 +190,9 @@ protected:
     // calculate vehicle stopping location using current location, velocity and maximum acceleration
     void calc_stopping_location(Location& stopping_loc);
 
-    virtual bool allows_stick_mixing() const { return false; }
     virtual bool stick_mixing_subMode(int8_t &subMode) const { return false; }
     virtual void set_subMode(int8_t subMode) { }
     virtual int8_t get_subMode() const { return -1; }
-    bool stick_mixing_is_active() const { return _stick_mixing_time_start_ms > 0; }
     bool checkStickMixing();
 
 protected:
@@ -219,7 +220,8 @@ protected:
 
     int8_t _subMode_previous;
     uint32_t _stick_mixing_time_start_ms;
-    float _stick_mixing_initial_speed;
+    int32_t _stick_mixing_yaw_cd;
+    float _stick_mixing_speed;
 };
 
 

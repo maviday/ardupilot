@@ -32,7 +32,7 @@ MAV_MODE GCS_MAVLINK_Rover::base_mode() const
         _base_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
     }
 
-    if (rover.g2.stick_mixing > 0 && rover.control_mode != &rover.mode_initializing) {
+    if (rover.g2.stick_mixing > 0 && rover.control_mode->allows_stick_mixing()) {
         // all modes except INITIALISING have some form of manual
         // override if stick mixing is enabled
         _base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
