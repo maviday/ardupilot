@@ -55,7 +55,7 @@ public:
     void init(const bool force_outut);
 
     // check for  override
-    bool throttle_override(int8_t &percent);
+    bool throttle_override(float &percent);
 
     // check for brake override
     bool brake_override(float &percentage);

@@ -675,13 +675,13 @@ void AP_ICEngine::update_gear()
   check for throttle override. This allows the ICE controller to force
   the correct starting throttle when starting the engine and maintain idle when disarmed or out of temp range
  */
-bool AP_ICEngine::throttle_override(int8_t &percentage)
+bool AP_ICEngine::throttle_override(float &percentage)
 {
     if (!enable) {
         return false;
     }
 
-    const int8_t percentage_old = percentage;
+    const float percentage_old = percentage;
     bool use_idle_percent = false;
 
     if (state == ICE_RUNNING &&
@@ -704,7 +704,7 @@ bool AP_ICEngine::throttle_override(int8_t &percentage)
 
     if (use_idle_percent) {
         // some of the above logic may have set it to zero but other logic says we're in a state that zero may kill the engine so use idle instead
-        percentage = idle_percent;
+        percentage = (float)idle_percent;
     }
 
     return (percentage_old != percentage);
