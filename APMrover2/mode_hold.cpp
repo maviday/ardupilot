@@ -18,5 +18,5 @@ void ModeHold::update()
     // hold position - stop motors and center steering
     rover.set_throttle(throttle);
     rover.set_brake(brake);
-    g2.motors.set_steering(0.0f);
+    set_steering(0.0f);
 }

@@ -9,7 +9,7 @@ void ModeSteering::update()
         // no valid speed so stop
         rover.set_throttle(0.0f);
         rover.set_brake(0.0f);
-        g2.motors.set_steering(0.0f);
+        set_steering(0.0f);
         _desired_lat_accel = 0.0f;
         return;
     }

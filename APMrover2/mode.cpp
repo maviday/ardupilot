@@ -337,7 +337,7 @@ bool Mode::stop_vehicle()
     rover.set_brake(brake_out);
 
     // do not attempt to steer
-    g2.motors.set_steering(0.0f);
+    set_steering(0.0f);
 
     // return true once stopped
     return stopped;
@@ -441,7 +441,7 @@ void Mode::calc_steering_from_turn_rate(float turn_rate, float speed, bool rever
                                                                       g2.motors.limit.steer_left,
                                                                       g2.motors.limit.steer_right,
                                                                       rover.G_Dt);
-    g2.motors.set_steering(steering_out * 4500.0f);
+    set_steering(steering_out * 4500.0f);
 }
 
 /*
