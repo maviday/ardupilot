@@ -264,13 +264,13 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @DisplayName: Gear change stop vehicle time
     // @Description: Gear change duration to inhibit throttle while waiting for vehicle to stop moving before changing physical gear
     // @User: Advanced
-    AP_GROUPINFO("GEAR_STOP",  50, AP_ICEngine, gear.pending.stop_vehicle_duration, 0),
+    AP_GROUPINFO("GEAR_STOP",  50, AP_ICEngine, gear.pending.stop_duration, 0),
 
     // @Param: GEAR_DUR
     // @DisplayName: Gear change duration
     // @Description: Gear change duration to inhibit throttle while physically changing the gear. This is the time it takes to change one gear-distance. Actual duration is this param multiplied by how many gears it has to change.
     // @User: Advanced
-    AP_GROUPINFO("GEAR_DUR",  51, AP_ICEngine, gear.pending.change_physical_gear_duration, 1.5f),
+    AP_GROUPINFO("GEAR_DUR",  51, AP_ICEngine, gear.pending.change_duration_per_posiiton, 1.5f),
 
     AP_GROUPEND
 };
@@ -633,41 +633,43 @@ void AP_ICEngine::update_gear()
     const uint32_t now_ms = AP_HAL::millis();
 
     // sanity check params
-    if (is_negative(gear.pending.stop_vehicle_duration)) {
-        gear.pending.stop_vehicle_duration = 0;
+    if (is_negative(gear.pending.stop_duration)) {
+        gear.pending.stop_duration.set_and_save(0);
     }
-    if (is_negative(gear.pending.change_physical_gear_duration)) {
-        gear.pending.change_physical_gear_duration.set_and_save(2);
+    if (is_negative(gear.pending.change_duration_per_posiiton)) {
+        gear.pending.change_duration_per_posiiton.set_and_save(2);
     }
+
 
     // delay the gear change for user-defined duration. This helps ensure the vehicle is stopped before we attempt to change gears
-    if (gear.pending.stop_vehicle_start_ms > 0 && now_ms - gear.pending.stop_vehicle_start_ms >= gear.pending.stop_vehicle_duration*1000) {
-        gear.pending.stop_vehicle_start_ms = 0;
+    if (gear.pending.stop_vehicle_start_ms > 0) {
+        gcs().send_text(MAV_SEVERITY_INFO, "%d Gear Waiting before change for %dms", now_ms, gear.pending.stop_duration*1000);
+        if (now_ms - gear.pending.stop_vehicle_start_ms >= gear.pending.stop_duration*1000) {
 
-        // we've waited to stop the vehicle, now set the gear and wait again for it to physically change
-        gear.pending.change_physical_gear_start_ms = now_ms;
-        gear.pwm_active = gear.pending.pwm;
-        gear.state = gear.pending.state;
-        force_send_status = true;
+            gear.pending.change_physical_gear_start_ms = now_ms;
+            gear.pending.stop_vehicle_start_ms = 0;
 
-        gcs().send_text(MAV_SEVERITY_INFO, "Gear set to %s", get_gear_name(gear.state));
-    }
+            // we've waited to stop the vehicle, now set the gear and wait again for it to physically change
+            gcs().send_text(MAV_SEVERITY_INFO, "%d Gear starting to change to %s", now_ms, get_gear_name(gear.state));
+            gear.pwm_active = gear.pending.pwm;
+            gear.state = gear.pending.state;
+            force_send_status = true;
+        }
 
-    const uint32_t duration = gear.pending.change_physical_gear_duration*1000 * (uint32_t)gear.pending.total_steps;
-    gcs().send_text(MAV_SEVERITY_INFO, "gear.pending.total_steps = %d, duration = %dms", gear.pending.total_steps, duration);
-    if (gear.pending.change_physical_gear_start_ms > 0 && now_ms - gear.pending.change_physical_gear_start_ms >= duration) {
-        gear.pending.change_physical_gear_start_ms = 0;
-    }
+    } else if (gear.pending.change_physical_gear_start_ms > 0) {
+        gcs().send_text(MAV_SEVERITY_INFO, "%d, duration_total = %dms", now_ms, gear.pending.change_duration_total_ms);
+        if (now_ms - gear.pending.change_physical_gear_start_ms >= gear.pending.change_duration_total_ms) {
+            gcs().send_text(MAV_SEVERITY_INFO, "%d Gear change timer expired", now_ms);
+            gear.pending.change_physical_gear_start_ms = 0;
+        }
 
-    if (auto_mode_active &&
+    } else if (auto_mode_active &&
             state == ICE_RUNNING &&
             (options & AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD) &&
-            !gear.is_forward() &&
-            !gear.pending.is_active())
+            !gear.is_forward())
     {
         set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD);
     }
-
 }
 /*
   check for throttle override. This allows the ICE controller to force
@@ -893,14 +895,29 @@ bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STA
     }
 
     gear.pending.state = gearState;
-    gear.pending.change_physical_gear_start_ms = gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
+    uint32_t total_steps;
 
-    const int8_t gear_pos_current = Gear_t::get_position(gear.state);
-    const int8_t gear_pos_pending = Gear_t::get_position(gear.pending.state);
-    gear.pending.total_steps = MAX(1,abs(gear_pos_current - gear_pos_pending));
+    if (gear.pending.is_active()) {
+        // this is where we're trying to change to a new gear, while already in the middle of
+        // changing to a gear. Hard to know where we are, so let's be suppper conservative
+        total_steps = Gear_t::get_position_max();
 
-    gcs().send_text(MAV_SEVERITY_INFO, "pos_current:%d - pos_pending:%d = total_steps:%d",
-            gear_pos_current, gear_pos_pending, gear.pending.total_steps);
+    } else {
+        // normal scenario
+        const int8_t gear_pos_current = Gear_t::get_position(gear.state);
+        const int8_t gear_pos_pending = Gear_t::get_position(gear.pending.state);
+        total_steps = MAX(1,abs(gear_pos_current - gear_pos_pending));
+    }
+
+    gear.pending.change_duration_total_ms = gear.pending.change_duration_per_posiiton * 1000 * total_steps;
+
+    gcs().send_text(MAV_SEVERITY_INFO, "%d Request:%s to %s, %d steps, %dms",
+            AP_HAL::millis(),
+            get_gear_name(gear.state), get_gear_name(gear.pending.state),
+            total_steps, gear.pending.change_duration_total_ms);
+
+
+    gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
 
     return true;
 }
