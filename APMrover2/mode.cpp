@@ -510,40 +510,27 @@ void Mode::calc_stopping_location(Location& stopping_loc)
 
 void Mode::set_steering(float steering_value)
 {
+    if (g2.stick_mixing > 0 && allows_stick_mixing()) {
+        steering_value = channel_steer->stick_mixing((int16_t)steering_value);
+        const int16_t steering_input = (int16_t)steering_value;
+        const int16_t steering_output = channel_steer->stick_mixing(steering_input);
 
-    if (g2.stick_mixing > 0 &&
-            allows_stick_mixing() &&
-            abs(channel_steer->get_radio_in() - channel_steer->get_radio_trim()) > channel_steer->get_dead_zone())
-    {
-       // since stick mixing directly overrides the servo/motor outputs, this will fool the PID integrators into
-       // thinking that it's steering offcourse and the integrator will start to wind up to get you back on coarse.
-       // The result will be the user will have to push harder and harder to override movement and then when
-       // the pilot relaxes the integrator will be so wound-up that it will overshoot and have to re-learn
-       // what no pilot mixing feels like. This will look like sloppy steering while it re-earns. So, lets
-       // freeze the integrator learning for a moment while we're actively mixing pilot sticks by so
-       // whatever pre-learned integrator will stay as-is for a moment
-       const uint32_t integrator_freeze_duration_ms = 1000;
-       g2.attitude_control.get_steering_rate_pid().freeze_integrator(integrator_freeze_duration_ms);
-       g2.attitude_control.get_throttle_speed_pid().freeze_integrator(integrator_freeze_duration_ms);
-       g2.attitude_control.get_pitch_to_throttle_pid().freeze_integrator(integrator_freeze_duration_ms);
-       g2.attitude_control.get_sailboat_heel_pid().freeze_integrator(integrator_freeze_duration_ms);
+        if (abs(steering_input - steering_output) > channel_steer->get_dead_zone()) {
+           // since stick mixing directly overrides the servo/motor outputs, this will fool the PID integrators into
+           // thinking that it's steering offcourse and the integrator will start to wind up to get you back on coarse.
+           // The result will be the user will have to push harder and harder to override movement and then when
+           // the pilot relaxes the integrator will be so wound-up that it will overshoot and have to re-learn
+           // what no pilot mixing feels like. This will look like sloppy steering while it re-earns. So, lets
+           // freeze the integrator learning for a moment while we're actively mixing pilot sticks by so
+           // whatever pre-learned integrator will stay as-is for a moment
+           const uint32_t integrator_freeze_duration_ms = 1000;
+           g2.attitude_control.get_steering_rate_pid().freeze_integrator(integrator_freeze_duration_ms);
+           g2.attitude_control.get_throttle_speed_pid().freeze_integrator(integrator_freeze_duration_ms);
+           g2.attitude_control.get_pitch_to_throttle_pid().freeze_integrator(integrator_freeze_duration_ms);
+           g2.attitude_control.get_sailboat_heel_pid().freeze_integrator(integrator_freeze_duration_ms);
 
-       static uint32_t start_ms = 0;
-       const uint32_t now_ms = AP_HAL::millis();
-       static float steering_initial_cd = 0;
-
-       if (now_ms - start_ms <= 1000) {
-           start_ms = now_ms;
-           steering_initial_cd = steering_value;
-       }
-       const float steering_value_new = steering_initial_cd + (channel_steer->get_control_in()*5);
-
-       static uint32_t send_ms = 0;
-       if (now_ms - send_ms >= 200) {
-           send_ms = now_ms;
-           gcs().send_text(MAV_SEVERITY_INFO, "OVERRIDE from %.0f to %.0f", steering_value, steering_value_new);
-       }
-       steering_value = steering_value_new;
+           steering_value = steering_output;
+        }
     }
 
     steering_value = constrain_float(steering_value, -4500.0f, 4500.0f);
