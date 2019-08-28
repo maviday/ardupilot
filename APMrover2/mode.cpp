@@ -567,7 +567,7 @@ bool Mode::checkStickMixing()
     if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone()) {
         // stick mixing is allowed, and enabled, and there's an input on the user sticks
         // full left/right would be +/-30deg heading change
-        const int32_t stick_mixing_override_delta_cd = steering * 100 * (30 / 4500.0);
+        const int32_t stick_mixing_override_delta_cd = steering * 100 * (30 / 4500.0) * 2;
 
         // start or continuing..
 
