@@ -416,9 +416,6 @@ void Mode::navigate_to_waypoint()
     calc_throttle(desired_speed, true);
 
     float desired_heading_cd = g2.wp_nav.wp_bearing_cd();
-//    if (checkStickMixing()) {
-//        desired_heading_cd = _stick_mixing_yaw_cd;
-//    }
 
     if (g2.sailboat.use_indirect_route(desired_heading_cd)) {
         // sailboats use heading controller when tacking upwind
@@ -576,11 +573,11 @@ bool Mode::checkStickMixing()
 
         // start or continuing..
 
-        if (stick_mixing_override_delta_cd >= 0) {
+//        if (stick_mixing_override_delta_cd >= 0) {
             _stick_mixing_yaw_cd = ahrs.yaw_sensor + stick_mixing_override_delta_cd;
-        } else {
-            _stick_mixing_yaw_cd = _desired_yaw_cd + stick_mixing_override_delta_cd;
-        }
+//        } else {
+//            _stick_mixing_yaw_cd = _desired_yaw_cd + stick_mixing_override_delta_cd;
+//        }
 
 //        const int8_t subMode_current = get_subMode();
 //        if (subMode_current != subMode_StickMixing) {

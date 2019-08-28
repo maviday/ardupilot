@@ -112,10 +112,10 @@ void ModeAuto::update()
             break;
     }
 
-//    if (checkStickMixing()) {
-//        calc_steering_to_heading(_stick_mixing_yaw_cd);
-//        set_desired_heading_and_speed(wrap_180_cd(_stick_mixing_yaw_cd), _desired_speed);
-//    }
+    if (checkStickMixing()) {
+        calc_steering_to_heading(_stick_mixing_yaw_cd);
+        set_desired_heading_and_speed(wrap_180_cd(_stick_mixing_yaw_cd), _desired_speed);
+    }
 
 }
 
