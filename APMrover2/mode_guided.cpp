@@ -47,13 +47,6 @@ void ModeGuided::update()
             break;
         }
 
-        case Guided_StickMixingOverride:
-        {
-//            calc_steering_to_heading(_desired_yaw_cd);
-//            calc_throttle(calc_speed_nudge(_desired_speed, is_negative(_desired_speed)), true);
-         break;
-        }
-
         case Guided_HeadingAndSpeed:
         {
             // stop vehicle if target not updated within 3 seconds
@@ -116,6 +109,12 @@ void ModeGuided::update()
             gcs().send_text(MAV_SEVERITY_WARNING, "Unknown GUIDED mode");
             break;
     }
+
+    if (checkStickMixing()) {
+        Mode::set_desired_heading_and_speed(_stick_mixing_yaw_cd, _stick_mixing_speed);
+        calc_steering_to_heading(_stick_mixing_yaw_cd);
+    }
+
 }
 
 // return distance (in meters) to destination
@@ -124,7 +123,6 @@ float ModeGuided::get_distance_to_destination() const
     switch (_guided_mode) {
     case Guided_WP:
         return _distance_to_destination;
-    case Guided_StickMixingOverride:
     case Guided_HeadingAndSpeed:
     case Guided_TurnRateAndSpeed:
         return 0.0f;
@@ -142,7 +140,6 @@ bool ModeGuided::reached_destination() const
     switch (_guided_mode) {
     case Guided_WP:
         return _reached_destination;
-    case Guided_StickMixingOverride:
     case Guided_HeadingAndSpeed:
     case Guided_TurnRateAndSpeed:
     case Guided_Loiter:
@@ -163,7 +160,6 @@ bool ModeGuided::get_desired_location(Location& destination) const
             return true;
         }
         return false;
-    case Guided_StickMixingOverride:
     case Guided_HeadingAndSpeed:
     case Guided_TurnRateAndSpeed:
         // not supported in these submodes

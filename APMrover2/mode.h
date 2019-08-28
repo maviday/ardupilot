@@ -190,9 +190,6 @@ protected:
     // calculate vehicle stopping location using current location, velocity and maximum acceleration
     void calc_stopping_location(Location& stopping_loc);
 
-    virtual bool stick_mixing_subMode(int8_t &subMode) const { return false; }
-    virtual void set_subMode(int8_t subMode) { }
-    virtual int8_t get_subMode() const { return -1; }
     bool checkStickMixing();
 
 protected:
@@ -218,7 +215,6 @@ protected:
     float _desired_yaw_cd;      // desired yaw in centi-degrees.  used in Auto, Guided and Loiter
     float _desired_speed;       // desired speed in m/s
 
-    int8_t _subMode_previous;
     uint32_t _stick_mixing_time_start_ms;
     int32_t _stick_mixing_yaw_cd;
     float _stick_mixing_speed;
@@ -277,9 +273,6 @@ public:
     bool reached_heading();
 
     bool allows_stick_mixing() const override { return true; }
-    void set_subMode(int8_t subMode) override { _submode = (AutoSubMode)subMode; }
-    int8_t get_subMode() const override { return _submode; }
-    bool stick_mixing_subMode(int8_t &subMode) const override { subMode = AutoSubMode::Auto_HeadingAndSpeed; return true; }
 
     // start RTL (within auto)
     void start_RTL();
@@ -301,7 +294,6 @@ protected:
         Auto_Loiter,            // perform Loiter within auto mode
         Auto_Guided,            // handover control to external navigation system from within auto mode
         Auto_Stop,              // stop the vehicle as quickly as possible
-        Auto_StickMixingOverride, // temporary heading hold while user is overriding input
     } _submode;
 
 private:
@@ -416,9 +408,6 @@ public:
     bool limit_breached() const;
 
     bool allows_stick_mixing() const override { return true; }
-    bool stick_mixing_subMode(int8_t &subMode) const override { subMode = GuidedMode::Guided_HeadingAndSpeed; return true; }
-    void set_subMode(int8_t subMode) override { _guided_mode = (GuidedMode)subMode; }
-    int8_t get_subMode() const override { return _guided_mode; }
 
 protected:
 
@@ -427,7 +416,6 @@ protected:
         Guided_HeadingAndSpeed,
         Guided_TurnRateAndSpeed,
         Guided_Loiter,
-        Guided_StickMixingOverride,
     } _guided_mode;    // stores which GUIDED mode the vehicle is in;
 
     bool _enter() override;

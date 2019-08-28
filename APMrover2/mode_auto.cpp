@@ -61,15 +61,6 @@ void ModeAuto::update()
             break;
         }
 
-        case Auto_StickMixingOverride:
-        {
-//            // hold throttle and apply pilot heading
-//            _reached_heading = false;
-//            calc_steering_to_heading(stick_mixing);
-//            calc_throttle(calc_speed_nudge(_desired_speed, false), true);
-        }
-        break;
-
         case Auto_HeadingAndSpeed:
         {
             if (!_reached_heading) {
@@ -113,11 +104,10 @@ void ModeAuto::update()
     }
 
     if (checkStickMixing()) {
-        calc_steering_to_heading(_stick_mixing_yaw_cd);
-        set_desired_heading_and_speed(wrap_180_cd(_stick_mixing_yaw_cd), _desired_speed);
         _reached_heading = false;
+        Mode::set_desired_heading_and_speed(_stick_mixing_yaw_cd, _stick_mixing_speed);
+        calc_steering_to_heading(_stick_mixing_yaw_cd);
     }
-
 }
 
 void ModeAuto::calc_throttle(float target_speed, bool avoidance_enabled)
@@ -136,7 +126,6 @@ float ModeAuto::get_distance_to_destination() const
     switch (_submode) {
     case Auto_WP:
         return _distance_to_destination;
-    case Auto_StickMixingOverride:
     case Auto_HeadingAndSpeed:
     case Auto_Stop:
         // no valid distance so return zero
@@ -164,7 +153,6 @@ bool ModeAuto::get_desired_location(Location& destination) const
             return true;
         }
         return false;
-    case Auto_StickMixingOverride:
     case Auto_HeadingAndSpeed:
     case Auto_Stop:
         // no desired location for this submode
@@ -197,16 +185,9 @@ bool ModeAuto::set_desired_location(const struct Location& destination, float ne
 // return true if vehicle has reached or even passed destination
 bool ModeAuto::reached_destination() const
 {
-    if (stick_mixing_is_active()) {
-        return false;
-    }
-
    switch (_submode) {
     case Auto_WP:
         return g2.wp_nav.reached_destination();
-
-    case Auto_StickMixingOverride:
-        return false;
 
     case Auto_HeadingAndSpeed:
     case Auto_Stop:
@@ -241,7 +222,7 @@ void ModeAuto::set_desired_heading_and_speed(float yaw_angle_cd, float target_sp
 // return true if vehicle has reached desired heading
 bool ModeAuto::reached_heading()
 {
-    if (_submode == Auto_HeadingAndSpeed || _submode == Auto_StickMixingOverride) {
+    if (_submode == Auto_HeadingAndSpeed) {
         return _reached_heading;
     }
     // we should never reach here but just in case, return true to allow missions to continue

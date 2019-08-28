@@ -564,61 +564,30 @@ bool Mode::checkStickMixing()
 
     get_pilot_input(steering, dummy);
 
-    int8_t subMode_StickMixing;
-
-    if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone() && stick_mixing_subMode(subMode_StickMixing)) {
+    if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone()) {
         // stick mixing is allowed, and enabled, and there's an input on the user sticks
         // full left/right would be +/-30deg heading change
         const int32_t stick_mixing_override_delta_cd = steering * 100 * (30 / 4500.0);
 
         // start or continuing..
 
-//        if (stick_mixing_override_delta_cd >= 0) {
-            _stick_mixing_yaw_cd = ahrs.yaw_sensor + stick_mixing_override_delta_cd;
-//        } else {
-//            _stick_mixing_yaw_cd = _desired_yaw_cd + stick_mixing_override_delta_cd;
-//        }
+        _stick_mixing_yaw_cd = wrap_180_cd(ahrs.yaw_sensor + stick_mixing_override_delta_cd);
 
-//        const int8_t subMode_current = get_subMode();
-//        if (subMode_current != subMode_StickMixing) {
-//            // start
-//            _subMode_previous = subMode_current;
-//            set_subMode(subMode_StickMixing);
-//
         if (_stick_mixing_time_start_ms == 0) {
             if (is_positive(_desired_speed)) {
                 _stick_mixing_speed = _desired_speed;
-                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: desired_speed %.1f m/s", _stick_mixing_speed);
             } else if (is_positive(ahrs.groundspeed())) {
                 _stick_mixing_speed = ahrs.groundspeed();
-                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: groundspeed %.1f m/s", _stick_mixing_speed);
             } else {
                 _stick_mixing_speed = 0;
-                gcs().send_text(MAV_SEVERITY_WARNING, "StickMix: 0 m/s");
             }
-            _stick_mixing_time_start_ms = now_ms;
         }
-//        }
-        gcs().send_text(MAV_SEVERITY_WARNING, "StickMix ON: %d deg, %.1f m/s", _stick_mixing_yaw_cd / 100, _stick_mixing_speed);
-//        set_desired_heading_and_speed(_stick_mixing_yaw_cd, _stick_mixing_speed);
+        _stick_mixing_time_start_ms = now_ms;
 
-//        _desired_yaw_cd = _stick_mixing_yaw_cd;
-//        _desired_speed = _stick_mixing_speed;
+//        gcs().send_text(MAV_SEVERITY_WARNING, "StickMix ON: %d deg, %.1f m/s", _stick_mixing_yaw_cd / 100, _stick_mixing_speed);
 
-    } else if (_stick_mixing_time_start_ms > 0) {
-        if (now_ms - _stick_mixing_time_start_ms < 300) {
-//            _desired_yaw_cd = _stick_mixing_yaw_cd;
-//            _desired_speed = _stick_mixing_speed;
-
-  //          const uint32_t yaw = ahrs.yaw_sensor;
-
-//            gcs().send_text(MAV_SEVERITY_WARNING, "StickMix IDLE: %d deg, %.1f m/s", _stick_mixing_yaw_cd / 100, _stick_mixing_speed);
-//            set_desired_heading_and_speed(yaw, _stick_mixing_speed);
-        } else {
-            // done, restore to previous subMode
-            //set_subMode(_subMode_previous);
-            _stick_mixing_time_start_ms = 0;
-        }
+    } else if (_stick_mixing_time_start_ms > 0 && (now_ms - _stick_mixing_time_start_ms > 300)) {
+        _stick_mixing_time_start_ms = 0;
     }
 
     return (_stick_mixing_time_start_ms > 0);
