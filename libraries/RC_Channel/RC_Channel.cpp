@@ -403,11 +403,10 @@ bool RC_Channel::has_override() const
  */
 int16_t RC_Channel::stick_mixing(const int16_t servo_in)
 {
-    const int16_t range_div_2 = (radio_max- radio_min) / 2;
     float ch_inf = (float)(radio_in - radio_trim);
     ch_inf = fabsf(ch_inf);
-    ch_inf = MIN(ch_inf, range_div_2);
-    ch_inf = ((range_div_2 - ch_inf) / range_div_2);
+    ch_inf = MIN(ch_inf, 400.0f);
+    ch_inf = ((400.0f - ch_inf) / 400.0f);
 
     int16_t servo_out = servo_in;
     servo_out *= ch_inf;
