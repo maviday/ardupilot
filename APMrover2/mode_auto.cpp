@@ -466,7 +466,11 @@ void ModeAuto::exit_mission()
         return;
     }
 
-    rover.set_mode(rover.mode_hold, MODE_REASON_MISSION_END);
+    if (g2.ice_control.enabled()) {
+        rover.set_mode(rover.mode_manual, MODE_REASON_MISSION_END);
+    } else {
+        rover.set_mode(rover.mode_hold, MODE_REASON_MISSION_END);
+    }
 }
 
 // verify_command_callback - callback function called from ap-mission at 10hz or higher when a command is being run

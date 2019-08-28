@@ -167,7 +167,11 @@ void Rover::failsafe_ekf_event()
             break;
         case FS_EFK_HOLD:
         default:
-            set_mode(mode_hold, MODE_REASON_EKF_FAILSAFE);
+            if (g2.ice_control.enabled()) {
+                set_mode(mode_manual, MODE_REASON_EKF_FAILSAFE);
+            } else {
+                set_mode(mode_hold, MODE_REASON_EKF_FAILSAFE);
+            }
             break;
     }
 }

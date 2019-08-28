@@ -55,10 +55,14 @@ void Rover::crash_check()
             gcs().send_text(MAV_SEVERITY_EMERGENCY, "Crash: Disarming");
             arming.disarm();
         } else {
-            // send message to gcs
-            gcs().send_text(MAV_SEVERITY_EMERGENCY, "Crash: Going to HOLD");
             // change mode to hold and disarm
-            set_mode(mode_hold, MODE_REASON_CRASH_FAILSAFE);
+            if (g2.ice_control.enabled()) {
+                gcs().send_text(MAV_SEVERITY_EMERGENCY, "Crash: Going to MANUAL");
+                set_mode(mode_manual, MODE_REASON_CRASH_FAILSAFE);
+            } else {
+                gcs().send_text(MAV_SEVERITY_EMERGENCY, "Crash: Going to HOLD");
+                set_mode(mode_hold, MODE_REASON_CRASH_FAILSAFE);
+            }
             if (g.fs_crash_check == FS_CRASH_HOLD_AND_DISARM) {
                 arming.disarm();
             }
