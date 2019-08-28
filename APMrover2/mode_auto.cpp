@@ -43,7 +43,7 @@ void ModeAuto::update()
     switch (_submode) {
         case Auto_WP:
         {
-            if (!g2.wp_nav.reached_destination()) {
+            if (!reached_destination()) {
                 // update navigation controller
                 navigate_to_waypoint();
             } else {
@@ -196,7 +196,11 @@ bool ModeAuto::set_desired_location(const struct Location& destination, float ne
 // return true if vehicle has reached or even passed destination
 bool ModeAuto::reached_destination() const
 {
-    switch (_submode) {
+    if (stick_mixing_is_active()) {
+        return false;
+    }
+
+   switch (_submode) {
     case Auto_WP:
         return g2.wp_nav.reached_destination();
 
