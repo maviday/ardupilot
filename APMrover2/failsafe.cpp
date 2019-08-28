@@ -118,38 +118,22 @@ void Rover::failsafe_trigger(uint8_t failsafe_type, bool on)
                 break;
             case Failsafe_Action_RTL:
                 if (!set_mode(mode_rtl, MODE_REASON_FAILSAFE)) {
-                    if (g2.ice_control.enabled()) {
-                        set_mode(mode_manual, MODE_REASON_FAILSAFE);
-                    } else {
-                        set_mode(mode_hold, MODE_REASON_FAILSAFE);
-                    }
+                    set_mode(mode_manual, MODE_REASON_FAILSAFE);
                 }
                 break;
             case Failsafe_Action_Hold:
-                if (g2.ice_control.enabled()) {
-                    set_mode(mode_manual, MODE_REASON_FAILSAFE);
-                } else {
-                    set_mode(mode_hold, MODE_REASON_FAILSAFE);
-                }
+                set_mode(mode_hold, MODE_REASON_FAILSAFE);
                 break;
             case Failsafe_Action_SmartRTL:
                 if (!set_mode(mode_smartrtl, MODE_REASON_FAILSAFE)) {
                     if (!set_mode(mode_rtl, MODE_REASON_FAILSAFE)) {
-                        if (g2.ice_control.enabled()) {
-                            set_mode(mode_manual, MODE_REASON_FAILSAFE);
-                        } else {
-                            set_mode(mode_hold, MODE_REASON_FAILSAFE);
-                        }
+                        set_mode(mode_manual, MODE_REASON_FAILSAFE);
                     }
                 }
                 break;
             case Failsafe_Action_SmartRTL_Hold:
                 if (!set_mode(mode_smartrtl, MODE_REASON_FAILSAFE)) {
-                    if (g2.ice_control.enabled()) {
-                        set_mode(mode_manual, MODE_REASON_FAILSAFE);
-                    } else {
-                        set_mode(mode_hold, MODE_REASON_FAILSAFE);
-                    }
+                    set_mode(mode_manual, MODE_REASON_FAILSAFE);
                 }
                 break;
             }
@@ -173,19 +157,11 @@ void Rover::handle_battery_failsafe(const char* type_str, const int8_t action)
                 }
                 FALLTHROUGH;
             case Failsafe_Action_Hold:
-                if (g2.ice_control.enabled()) {
-                    set_mode(mode_manual, MODE_REASON_FAILSAFE);
-                } else {
-                    set_mode(mode_hold, MODE_REASON_FAILSAFE);
-                }
+                set_mode(mode_hold, MODE_REASON_FAILSAFE);
                 break;
             case Failsafe_Action_SmartRTL_Hold:
                 if (!set_mode(mode_smartrtl, MODE_REASON_FAILSAFE)) {
-                    if (g2.ice_control.enabled()) {
-                        set_mode(mode_manual, MODE_REASON_FAILSAFE);
-                    } else {
-                        set_mode(mode_hold, MODE_REASON_FAILSAFE);
-                    }
+                    set_mode(mode_manual, MODE_REASON_FAILSAFE);
                 }
                 break;
             case Failsafe_Action_Terminate:

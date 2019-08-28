@@ -72,7 +72,7 @@ void ModeAuto::update()
 
         case Auto_HeadingAndSpeed:
         {
-            if (!_reached_heading || stick_mixing_is_active()) {
+            if (!_reached_heading) {
                 // run steering and throttle controllers
                 calc_steering_to_heading(_desired_yaw_cd);
                 calc_throttle(calc_speed_nudge(_desired_speed, is_negative(_desired_speed)), true);
@@ -115,6 +115,7 @@ void ModeAuto::update()
     if (checkStickMixing()) {
         calc_steering_to_heading(_stick_mixing_yaw_cd);
         set_desired_heading_and_speed(wrap_180_cd(_stick_mixing_yaw_cd), _desired_speed);
+        _reached_heading = false;
     }
 
 }
@@ -470,11 +471,7 @@ void ModeAuto::exit_mission()
         return;
     }
 
-    if (g2.ice_control.enabled()) {
-        rover.set_mode(rover.mode_manual, MODE_REASON_MISSION_END);
-    } else {
-        rover.set_mode(rover.mode_hold, MODE_REASON_MISSION_END);
-    }
+    rover.set_mode(rover.mode_manual, MODE_REASON_MISSION_END);
 }
 
 // verify_command_callback - callback function called from ap-mission at 10hz or higher when a command is being run
