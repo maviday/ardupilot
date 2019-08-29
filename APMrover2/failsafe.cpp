@@ -101,7 +101,7 @@ void Rover::failsafe_trigger(uint8_t failsafe_type, bool on)
         failsafe.bits != 0 &&
         millis() - failsafe.start_time > g.fs_timeout * 1000 &&
         control_mode != &mode_rtl &&
-        control_mode != &mode_hold) {
+        control_mode != &mode_manual) {
         failsafe.triggered = failsafe.bits;
         gcs().send_text(MAV_SEVERITY_WARNING, "Failsafe trigger: %s", failsafe_to_string(failsafe.triggered));
 
@@ -122,7 +122,7 @@ void Rover::failsafe_trigger(uint8_t failsafe_type, bool on)
                 }
                 break;
             case Failsafe_Action_Hold:
-                set_mode(mode_hold, MODE_REASON_FAILSAFE);
+                set_mode(mode_manual, MODE_REASON_FAILSAFE);
                 break;
             case Failsafe_Action_SmartRTL:
                 if (!set_mode(mode_smartrtl, MODE_REASON_FAILSAFE)) {
@@ -157,7 +157,7 @@ void Rover::handle_battery_failsafe(const char* type_str, const int8_t action)
                 }
                 FALLTHROUGH;
             case Failsafe_Action_Hold:
-                set_mode(mode_hold, MODE_REASON_FAILSAFE);
+                set_mode(mode_manual, MODE_REASON_FAILSAFE);
                 break;
             case Failsafe_Action_SmartRTL_Hold:
                 if (!set_mode(mode_smartrtl, MODE_REASON_FAILSAFE)) {
