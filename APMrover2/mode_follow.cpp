@@ -65,7 +65,9 @@ void ModeFollow::update()
     const float desired_yaw_cd = wrap_180_cd(atan2f(desired_velocity_ne.y, desired_velocity_ne.x) * DEGX100);
 
     // run steering and throttle controllers
+    Mode::apply_stick_mixing_override();
     calc_steering_to_heading(desired_yaw_cd);
+
     calc_throttle(desired_speed, true);
 }
 

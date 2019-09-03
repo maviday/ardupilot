@@ -50,11 +50,11 @@ void ModeGuided::update()
         case Guided_HeadingAndSpeed:
         {
             // stop vehicle if target not updated within 3 seconds
-            if (have_attitude_target && (millis() - _des_att_time_ms) > 3000 && !stick_mixing_is_active()) {
+            if (have_attitude_target && (millis() - _des_att_time_ms) > 3000) {
                 gcs().send_text(MAV_SEVERITY_WARNING, "target not received last 3secs, stopping");
                 have_attitude_target = false;
             }
-            if (have_attitude_target || stick_mixing_is_active()) {
+            if (have_attitude_target) {
                 // run steering and throttle controllers
                 calc_steering_to_heading(_desired_yaw_cd);
                 calc_throttle(calc_speed_nudge(_desired_speed, is_negative(_desired_speed)), true);
@@ -78,15 +78,7 @@ void ModeGuided::update()
                 gcs().send_text(MAV_SEVERITY_WARNING, "target not received last 3secs, stopping");
                 have_attitude_target = false;
             }
-            if (have_attitude_target) {
-                // run steering and throttle controllers
-                float steering_out = attitude_control.get_steering_out_rate(radians(_desired_yaw_rate_cds / 100.0f),
-                                                                            g2.motors.limit.steer_left,
-                                                                            g2.motors.limit.steer_right,
-                                                                            rover.G_Dt);
-                set_steering(steering_out * 4500.0f);
-                calc_throttle(calc_speed_nudge(_desired_speed, is_negative(_desired_speed)), true);
-            } else {
+            if (!have_attitude_target) {
                 // we have reached the destination so stay here
                 if (rover.is_boat()) {
                     if (!start_loiter()) {
@@ -95,6 +87,14 @@ void ModeGuided::update()
                 } else {
                     stop_vehicle();
                 }
+            } else if (!_stick_mixing.is_active()) {
+                // run steering and throttle controllers
+                float steering_out = attitude_control.get_steering_out_rate(radians(_desired_yaw_rate_cds / 100.0f),
+                                                                            g2.motors.limit.steer_left,
+                                                                            g2.motors.limit.steer_right,
+                                                                            rover.G_Dt);
+                set_steering(steering_out * 4500.0f);
+                calc_throttle(calc_speed_nudge(_desired_speed, is_negative(_desired_speed)), true);
             }
             break;
         }
@@ -110,11 +110,7 @@ void ModeGuided::update()
             break;
     }
 
-    if (checkStickMixing()) {
-        Mode::set_desired_heading_and_speed(_stick_mixing_yaw_cd, _stick_mixing_speed);
-        calc_steering_to_heading(_stick_mixing_yaw_cd);
-    }
-
+    Mode::apply_stick_mixing_override();
 }
 
 // return distance (in meters) to destination

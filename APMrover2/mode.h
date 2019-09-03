@@ -133,7 +133,6 @@ public:
     // handle tacking request (from auxiliary switch) in sailboats
     virtual void handle_tack_request();
 
-    bool stick_mixing_is_active() const { return _stick_mixing_time_start_ms > 0; }
     virtual bool allows_stick_mixing() const { return false; }
 
 protected:
@@ -190,9 +189,7 @@ protected:
     // calculate vehicle stopping location using current location, velocity and maximum acceleration
     void calc_stopping_location(Location& stopping_loc);
 
-    bool checkStickMixing();
-
-protected:
+    bool apply_stick_mixing_override();
 
     // decode pilot steering and throttle inputs and return in steer_out and throttle_out arguments
     // steering_out is in the range -4500 ~ +4500 with positive numbers meaning rotate clockwise
@@ -215,9 +212,15 @@ protected:
     float _desired_yaw_cd;      // desired yaw in centi-degrees.  used in Auto, Guided and Loiter
     float _desired_speed;       // desired speed in m/s
 
-    uint32_t _stick_mixing_time_start_ms;
-    int32_t _stick_mixing_yaw_cd;
-    float _stick_mixing_speed;
+    struct stick_mixing_t {
+        uint32_t time_start_ms;
+        float yaw_cd;
+        float initial_speed;
+
+        bool is_active() const { return time_start_ms > 0; }
+        void disable() { time_start_ms = 0; }
+        bool is_expired() const { return (AP_HAL::millis() - time_start_ms > 300); }
+    } _stick_mixing;
 };
 
 

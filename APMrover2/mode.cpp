@@ -421,7 +421,8 @@ void Mode::navigate_to_waypoint()
         // sailboats use heading controller when tacking upwind
         desired_heading_cd = g2.sailboat.calc_heading(desired_heading_cd);
         calc_steering_to_heading(desired_heading_cd, g2.wp_nav.get_pivot_rate());
-    } else {
+
+    } else if (!_stick_mixing.is_active()) { // if stick_mixing is active, then it's setting steering
         // call turn rate steering controller
         calc_steering_from_turn_rate(g2.wp_nav.get_turn_rate_rads(), desired_speed, g2.wp_nav.get_reversed());
     }
@@ -450,6 +451,12 @@ void Mode::calc_steering_from_turn_rate(float turn_rate, float speed, bool rever
 */
 void Mode::calc_steering_from_lateral_acceleration(float lat_accel, bool reversed)
 {
+    if (_stick_mixing.is_active()) {
+        // stick mixing is currently setting the steering via
+        // calc_steering_from_turn_rate() so don't let anyone else set it
+        return;
+    }
+
     // add obstacle avoidance response to lateral acceleration target
     // ToDo: replace this type of object avoidance with path planning
     if (!reversed) {
@@ -471,6 +478,12 @@ void Mode::calc_steering_from_lateral_acceleration(float lat_accel, bool reverse
 // rate_max is a maximum turn rate in deg/s.  set to zero to use default turn rate limits
 void Mode::calc_steering_to_heading(float desired_heading_cd, float rate_max_degs)
 {
+    if (_stick_mixing.is_active()) {
+        // stick mixing is currently setting the steering via
+        // calc_steering_from_turn_rate() so don't let anyone else set it
+        return;
+    }
+
     // call heading controller
     const float steering_out = attitude_control.get_steering_out_heading(radians(desired_heading_cd*0.01f),
                                                                          radians(rate_max_degs),
@@ -557,39 +570,55 @@ Mode *Rover::mode_from_mode_num(const enum Mode::Number num)
     return ret;
 }
 
-bool Mode::checkStickMixing()
+bool Mode::apply_stick_mixing_override()
 {
-    const uint32_t now_ms = AP_HAL::millis();
-    float steering, dummy;
-
-    get_pilot_input(steering, dummy);
-
-    if (allows_stick_mixing() && g2.stick_mixing != 0 && abs(steering) > channel_steer->get_dead_zone()) {
-        // stick mixing is allowed, and enabled, and there's an input on the user sticks
-        // full left/right would be +/-30deg heading change
-        const int32_t stick_mixing_override_delta_cd = steering * 100 * (30 / 4500.0) * 2;
-
-        // start or continuing..
-
-        _stick_mixing_yaw_cd = wrap_180_cd(ahrs.yaw_sensor + stick_mixing_override_delta_cd);
-
-        if (_stick_mixing_time_start_ms == 0) {
-            if (is_positive(_desired_speed)) {
-                _stick_mixing_speed = _desired_speed;
-            } else if (is_positive(ahrs.groundspeed())) {
-                _stick_mixing_speed = ahrs.groundspeed();
-            } else {
-                _stick_mixing_speed = 0;
-            }
-        }
-        _stick_mixing_time_start_ms = now_ms;
-
-//        gcs().send_text(MAV_SEVERITY_WARNING, "StickMix ON: %d deg, %.1f m/s", _stick_mixing_yaw_cd / 100, _stick_mixing_speed);
-
-    } else if (_stick_mixing_time_start_ms > 0 && (now_ms - _stick_mixing_time_start_ms > 300)) {
-        _stick_mixing_time_start_ms = 0;
+    if (g2.stick_mixing <= 0 || !allows_stick_mixing()) {
+        _stick_mixing.disable();
+        return false;
     }
 
-    return (_stick_mixing_time_start_ms > 0);
+    float pilot_override_gain = rover.BoardConfig.get_singleton()->vehicleSerialNumber;
+
+    if (pilot_override_gain <= 0) {
+        pilot_override_gain = 100;
+    }
+    pilot_override_gain *= 0.01f;
+    pilot_override_gain = constrain_float(pilot_override_gain, 0.1f, 10);
+    // TODO: determine a good value for pilot_override_gain and hard-code it
+
+
+    const float override_delta_cd = rover.channel_steer->get_control_in() * pilot_override_gain;
+
+    if (fabsf(override_delta_cd) > (float)channel_steer->get_dead_zone()) {
+        // stick mixing is allowed, and enabled, and there's an input on the user sticks
+
+        if (!_stick_mixing.is_active()) {
+            // init
+            if (is_positive(_desired_speed)) {
+                _stick_mixing.initial_speed = _desired_speed;
+            } else {
+                _stick_mixing.initial_speed = ahrs.groundspeed();
+            }
+        }
+
+        // new yaw demand is current_heading plus pilot input
+        _stick_mixing.yaw_cd = wrap_360_cd(ahrs.yaw_sensor + override_delta_cd);
+        _stick_mixing.time_start_ms = AP_HAL::millis();
+    }
+
+    if (_stick_mixing.is_active()) {
+        if (_stick_mixing.is_expired()) {
+            _stick_mixing.disable();
+        } else {
+            _reached_destination = false;
+            _desired_yaw_cd = _stick_mixing.yaw_cd;
+            _desired_speed = _stick_mixing.initial_speed;
+            calc_steering_from_turn_rate(ToRad(override_delta_cd*0.01f), _desired_speed, 0);
+            //Mode::calc_steering_to_heading(_desired_yaw_cd);
+            return true;
+        }
+    }
+
+    return false;
 }
 

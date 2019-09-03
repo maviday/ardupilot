@@ -84,6 +84,8 @@ void ModeSmartRTL::update()
             }
             break;
     }
+
+    Mode::apply_stick_mixing_override();
 }
 
 // get desired location

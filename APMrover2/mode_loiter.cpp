@@ -48,8 +48,10 @@ void ModeLoiter::update()
         _desired_speed *= yaw_error_ratio;
     }
 
-    // run steering and throttle controllers
+    // run steering and throttle controllers.
+    Mode::apply_stick_mixing_override();
     calc_steering_to_heading(_desired_yaw_cd);
+
     calc_throttle(_desired_speed, true);
 }
 

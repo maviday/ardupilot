@@ -103,11 +103,7 @@ void ModeAuto::update()
             break;
     }
 
-    if (checkStickMixing()) {
-        _reached_heading = false;
-        Mode::set_desired_heading_and_speed(_stick_mixing_yaw_cd, _stick_mixing_speed);
-        calc_steering_to_heading(_stick_mixing_yaw_cd);
-    }
+    Mode::apply_stick_mixing_override();
 }
 
 void ModeAuto::calc_throttle(float target_speed, bool avoidance_enabled)
