@@ -21,8 +21,10 @@ void Rover::crash_check()
 
     // Crashed if pitch/roll > crash_angle
     if (g2.crash_angle_pitch > 0 && (fabsf(ahrs.pitch) > radians(g2.crash_angle_pitch))) {
+        gcs().send_text(MAV_SEVERITY_EMERGENCY, "Crash: Pitch angle %d exceeded %d", degrees(fabsf(ahrs.pitch)), g2.crash_angle_pitch);
         crashed = true;
     } else if (g2.crash_angle_roll > 0 && (fabsf(ahrs.roll) > radians(g2.crash_angle_roll))) {
+        gcs().send_text(MAV_SEVERITY_EMERGENCY, "Crash: Roll angle %d exceeded %d", degrees(fabsf(ahrs.roll)), g2.crash_angle_roll);
         crashed = true;
     }
 
@@ -42,6 +44,7 @@ void Rover::crash_check()
 
         // check if crashing for 2 seconds
         if (crash_counter >= (CRASH_CHECK_TRIGGER_SEC * 10)) {
+            gcs().send_text(MAV_SEVERITY_EMERGENCY, "Crash: Expected to be moving");
             crashed = true;
         }
     }
