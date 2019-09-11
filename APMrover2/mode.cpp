@@ -238,6 +238,7 @@ float Mode::get_speed_default(bool rtl) const
 void Mode::set_desired_speed_to_default(bool rtl)
 {
     _desired_speed = get_speed_default(rtl);
+    g2.wp_nav.set_desired_speed(_desired_speed);
 }
 
 // set desired speed in m/s
@@ -245,6 +246,7 @@ bool Mode::set_desired_speed(float speed)
 {
     if (!is_negative(speed)) {
         _desired_speed = speed;
+        g2.wp_nav.set_desired_speed(_desired_speed);
         return true;
     }
     return false;
@@ -411,7 +413,7 @@ void Mode::navigate_to_waypoint()
     _distance_to_destination = g2.wp_nav.get_distance_to_destination();
 
     // pass speed to throttle controller after applying nudge from pilot
-    float desired_speed = g2.wp_nav.get_speed();
+    float desired_speed = g2.wp_nav.get_speed(); // this is the accel limited desired speed
     desired_speed = calc_speed_nudge(desired_speed, g2.wp_nav.get_reversed());
     calc_throttle(desired_speed, true);
 
