@@ -87,7 +87,7 @@ public:
     
     bool handle_message(const mavlink_command_long_t &packt);
     bool handle_set_ice_transmission_state(const mavlink_command_long_t &packet);
-    bool set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value = 0);
+    bool set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value = 0);
     static int16_t constrain_pwm_with_direction(const int16_t initial, const int16_t desired, const int16_t pwm_going_down, const int16_t pwm_going_up);
 
     // Engine temperature status

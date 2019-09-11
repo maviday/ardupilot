@@ -845,34 +845,40 @@ const char* AP_ICEngine::get_gear_name(const MAV_ICE_TRANSMISSION_GEAR_STATE gea
     }
 }
 
-bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value)
+bool AP_ICEngine::set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value)
 {
-    if (gearState != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE && (gear.state == gearState || (gear.pending.is_active() && gear.pending.state == gearState))) {
-        return true;
-    }
+    uint16_t pendingPwm = 0;
 
     switch (gearState) {
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK: /* Park. | */
-            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_park_down+gear.pwm_park_up)/2, gear.pwm_park_down, gear.pwm_park_up);
+            pendingPwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_park_down+gear.pwm_park_up)/2, gear.pwm_park_down, gear.pwm_park_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_2:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_3:
-            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_reverse_down+gear.pwm_reverse_up)/2, gear.pwm_reverse_down, gear.pwm_reverse_up);
+            gearState = MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE;
+            pendingPwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_reverse_down+gear.pwm_reverse_up)/2, gear.pwm_reverse_down, gear.pwm_reverse_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL: /* Neutral. Engine is physically disconnected. | */
-            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_neutral_down+gear.pwm_neutral_up)/2, gear.pwm_neutral_down, gear.pwm_neutral_up);
+            pendingPwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_neutral_down+gear.pwm_neutral_up)/2, gear.pwm_neutral_down, gear.pwm_neutral_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
-            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward1_down+gear.pwm_forward1_up)/2, gear.pwm_forward1_down, gear.pwm_forward1_up);
+            gearState = MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD;
+            pendingPwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward1_down+gear.pwm_forward1_up)/2, gear.pwm_forward1_down, gear.pwm_forward1_up);
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2: /* Second gear. | */
+            pendingPwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward2_down+gear.pwm_forward2_up)/2, gear.pwm_forward2_down, gear.pwm_forward2_up);
+            break;
+
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
+            // use as-is
+            pendingPwm = pwm_value;
+            break;
+
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_3:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_4:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_5:
@@ -880,39 +886,41 @@ bool AP_ICEngine::set_ice_transmission_state(const MAV_ICE_TRANSMISSION_GEAR_STA
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_7:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_8:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9:
-            gear.pending.pwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward2_down+gear.pwm_forward2_up)/2, gear.pwm_forward2_down, gear.pwm_forward2_up);
-            break;
-
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
-            // use as-is
-            gear.pending.pwm = pwm_value;
-            break;
-
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_2:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_3:
         default:
             // unhandled
             return false;
     }
 
+    if (gearState != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE && (gear.state == gearState || (gear.pending.is_active() && gear.pending.state == gearState))) {
+        // always handle PWM,
+        // don't handle if (requested == current)
+        // don't handle if it's changing and (requested == pending)
+        return true;
+    }
+
     gear.pending.state = gearState;
+    gear.pending.pwm = pendingPwm;
     uint32_t total_steps;
 
-    if (gear.pending.is_active()) {
-        // this is where we're trying to change to a new gear, while already in the middle of
-        // changing to a gear. Hard to know where we are, so let's be suppper conservative
-        total_steps = Gear_t::get_position_max();
-
-    } else {
+    if (!gear.pending.is_active()) {
         // normal scenario
         const int8_t gear_pos_current = Gear_t::get_position(gear.state);
         const int8_t gear_pos_pending = Gear_t::get_position(gear.pending.state);
         total_steps = MAX(1,abs(gear_pos_current - gear_pos_pending));
+
+    } else {
+        // this is where we're trying to change to a new gear, while already in the middle of
+        // changing to a different gear. Hard to know where we are, so let's be suuuper conservative
+        total_steps = Gear_t::get_position_max();
     }
 
     gear.pending.change_duration_total_ms = gear.pending.change_duration_per_posiiton * 1000 * total_steps;
     gear.pending.stop_vehicle_start_ms = AP_HAL::millis();
     force_send_status = true;
 
-    gcs().send_text(MAV_SEVERITY_INFO, "Gear change request: %s to %s in %.1fs",
+    gcs().send_text(MAV_SEVERITY_INFO, "Gear change: %s to %s in %.1fs",
             get_gear_name(gear.state), get_gear_name(gear.pending.state),
             (double)(gear.pending.change_duration_total_ms*0.001f));
 
@@ -1136,9 +1144,9 @@ MAV_ICE_TRANSMISSION_GEAR_STATE AP_ICEngine::convertPwmToGearState(const uint16_
     }
 
     else if (gear.pwm_forward1_down <= gear.pwm_forward1_up && pwm <= gear.pwm_forward1_up + margin && pwm >= gear.pwm_forward1_down - margin) {
-        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1;
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD;
     } else if (gear.pwm_forward1_down > gear.pwm_forward1_up && pwm <= gear.pwm_forward1_down + margin && pwm >= gear.pwm_forward1_up - margin) {
-        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1;
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD;
     }
 
 
