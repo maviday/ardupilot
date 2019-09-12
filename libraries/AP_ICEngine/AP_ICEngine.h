@@ -83,11 +83,11 @@ public:
     ICE_State get_state(void) const { return state; }
 
     // handle DO_ENGINE_CONTROL messages via MAVLink or mission
-    bool engine_control(float start_control, float cold_start, float height_delay, float gear_state_f);
+    bool engine_control(float start_control, float cold_start, float height_delay, float gear_state_f, bool being_set_by_auto_mission);
     
     bool handle_message(const mavlink_command_long_t &packt);
     bool handle_set_ice_transmission_state(const mavlink_command_long_t &packet);
-    bool set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value = 0);
+    bool set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE gearState, const uint16_t pwm_value);
     static int16_t constrain_pwm_with_direction(const int16_t initial, const int16_t desired, const int16_t pwm_going_down, const int16_t pwm_going_up);
 
     // Engine temperature status
@@ -105,9 +105,7 @@ public:
 
     MAV_ICE_TRANSMISSION_GEAR_STATE get_transmission_gear_state() const { return gear.state; }
 
-    bool get_brakeReleaseAllowedIn_Neutral_and_Disarmed() const { return brakeReleaseAllowedIn_Neutral_and_Disarmed; }
-
-    void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; }
+    void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; gear.set_by_automission = false; }
 
 private:
     static AP_ICEngine *_singleton;
@@ -163,6 +161,7 @@ private:
         } pending;
 
         enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
+        bool set_by_automission;
         uint16_t pwm_active;
 
         uint32_t last_send_ms;

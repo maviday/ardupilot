@@ -3476,7 +3476,7 @@ MAV_RESULT GCS_MAVLINK::handle_engine_control(const mavlink_command_long_t &pack
         return MAV_RESULT_UNSUPPORTED;
     }
 
-    if (ice->engine_control(packet.param1, packet.param2, packet.param3, packet.param4)) {
+    if (ice->engine_control(packet.param1, packet.param2, packet.param3, packet.param4, false)) {
         return MAV_RESULT_ACCEPTED;
     }
     return MAV_RESULT_FAILED;

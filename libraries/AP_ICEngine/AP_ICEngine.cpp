@@ -711,10 +711,11 @@ void AP_ICEngine::update_gear()
     } else if (auto_mode_active &&
             state == ICE_RUNNING &&
             (options & AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD) &&
+            !gear.set_by_automission &&
             !gear.is_forward() &&
             !gear.pending.is_active())
     {
-        set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD);
+        set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD, 0);
     }
 }
 /*
@@ -754,7 +755,7 @@ bool AP_ICEngine::throttle_override(float &percentage)
 /*
   handle DO_ENGINE_CONTROL messages via MAVLink or mission
 */
-bool AP_ICEngine::engine_control(float start_control, float cold_start, float height_delay, float gear_state_f)
+bool AP_ICEngine::engine_control(float start_control, float cold_start, float height_delay, float gear_state_f, bool being_set_by_auto_mission)
 {
     (void)cold_start; // unused
     const MAV_ICE_TRANSMISSION_GEAR_STATE gear_state = (MAV_ICE_TRANSMISSION_GEAR_STATE)(int32_t)gear_state_f;
@@ -788,12 +789,15 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
     if (is_equal(start_control, 0.0f)) {
         startControlSelect = ICE_IGNITION_OFF;
         force_send_status = true;
+        gear.set_by_automission = being_set_by_auto_mission;
     } else if (is_equal(start_control, 1.0f)) {
         startControlSelect = ICE_IGNITION_ACCESSORY;
         force_send_status = true;
+        gear.set_by_automission = being_set_by_auto_mission;
     } else if (is_equal(start_control, 2.0f)) {
         startControlSelect = ICE_IGNITION_START_RUN;
         force_send_status = true;
+        gear.set_by_automission = being_set_by_auto_mission;
     }
 
     if (gear_state > 0 &&
@@ -801,8 +805,10 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
             gear_state != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE &&
             gear_state_f < MAV_ICE_TRANSMISSION_GEAR_STATE_ENUM_END)
     {
-        set_ice_transmission_state(gear_state, 0);
-        force_send_status = true;
+        if (set_ice_transmission_state(gear_state, 0)) {
+            force_send_status = true;
+            gear.set_by_automission = being_set_by_auto_mission;
+        }
     }
 
     return true;
@@ -846,6 +852,7 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
 //
 //    if (set_ice_transmission_state(gearState, pwm_value)) {
 //        brakeReleaseAllowedIn_Neutral_and_Disarmed = !is_zero(packet.param4);
+//        gear.set_by_automission = false;
 //        return true;
 //    }
     return false;
