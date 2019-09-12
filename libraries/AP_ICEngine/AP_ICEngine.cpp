@@ -736,16 +736,10 @@ bool AP_ICEngine::throttle_override(float &percentage)
         (int16_t)idle_percent > SRV_Channels::get_output_scaled(SRV_Channel::k_throttle))
     {
         use_idle_percent = true;
-    }  else if (state == ICE_STARTING || state == ICE_START_DELAY) {
+    }  else if (state == ICE_STARTING || state == ICE_START_DELAY || too_cold() || gear.pending.is_active()) {
         use_idle_percent = true;
-    } else if (too_cold()) {
-        percentage = 0;
     } else if (too_hot()) {
         percentage *= constrain_float(temperature.too_hot_throttle_reduction_factor,0,1);
-    }
-
-    if (gear.pending.is_active()) {
-        percentage = 0;
     }
 
     if (use_idle_percent) {
