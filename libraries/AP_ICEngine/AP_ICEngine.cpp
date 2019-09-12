@@ -614,18 +614,65 @@ void AP_ICEngine::set_output_channels()
 check for brake override. This allows the ICE controller to force
 the brake when starting the engine
 */
-bool AP_ICEngine::brake_override(float &percentage)
+bool AP_ICEngine::brake_override(float &brake_percent, const float desired_speed, const bool speed_is_valid, const float speed)
 {
+    const float brake_percent_start = brake_percent;
+
     if (!enable) {
         return false;
     }
 
+
+    switch (gear.state) {
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_2:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_3:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_3:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_4:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_5:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_6:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_7:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_8:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9:
+            if (!hal.util->get_soft_armed()) {
+                // disarmed
+                brake_percent = 100;
+            } else if (is_equal(desired_speed, 0.0f) && speed_is_valid && fabsf(speed) < 0.1f) {
+                // we want speed=0 and we are about speed=0
+                brake_percent = 100;
+            }
+            break;
+
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL:
+            if (!hal.util->get_soft_armed()) {
+                brake_percent = 100;
+            } else if (brakeReleaseAllowedIn_Neutral_and_Disarmed) {
+                // User can override brake - Brake OFF to push vehicle - Brake "Off" override check box in Admin panel.
+                brake_percent = 0;
+            }
+            break;
+
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
+        default:
+            // unhandled, no brake management
+            break;
+    }
+
+    if (gear.pending.is_active()) {
+        brake_percent = 100;
+    }
 //    if (state == ICE_STARTING || state == ICE_START_DELAY) {
 //        // when starting, apply full brake
-//        percentage = 100;
-//        return true;
+//        brake_percent = 100;
 //    }
-    return false;
+
+    return !is_equal(brake_percent, brake_percent_start);
 }
 
 void AP_ICEngine::update_gear()

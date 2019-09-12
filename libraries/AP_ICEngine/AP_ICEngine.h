@@ -60,7 +60,7 @@ public:
     bool throttle_override(float &percent);
 
     // check for brake override
-    bool brake_override(float &percentage);
+    bool brake_override(float &brake_percent, const float desired_speed, const bool speed_is_valid, const float speed);
 
     enum ICE_State {
         ICE_OFF=0,

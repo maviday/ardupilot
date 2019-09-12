@@ -254,55 +254,10 @@ void Rover::set_throttle(float throttle)
 void Rover::set_brake(float brake_percent)
 {
     const float brake_percent_start = brake_percent;
-    float speed;
+    float speed = 0;
 
-    if (rover.g2.ice_control.brake_override(brake_percent)) {
-        // the ICE controller wants to override the brake, usually for starting
-    }
-
-    switch (rover.g2.ice_control.get_transmission_gear_state()) {
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_2:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_3:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_2:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_3:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_4:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_5:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_6:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_7:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_8:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_9:
-            if (!hal.util->get_soft_armed()) {
-                // disarmed
-                brake_percent = 100;
-
-            } else if (g2.attitude_control.get_desired_speed() <= 0 &&
-                    g2.attitude_control.get_forward_speed(speed) &&
-                    speed < 0.05f)
-            {
-                // we want speed=0 and we are about speed=0
-                brake_percent = 100;
-            }
-            break;
-
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL:
-            if (!hal.util->get_soft_armed()) {
-                brake_percent = 100;
-            } else if (g2.ice_control.get_brakeReleaseAllowedIn_Neutral_and_Disarmed()) {
-                // User can override brake - Brake OFF to push vehicle - Brake "Off" override check box in Admin panel.
-                brake_percent = 0;
-            }
-            break;
-
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
-        default:
-            // unhandled, no brake management
-            break;
+    if (rover.g2.ice_control.brake_override(brake_percent, g2.attitude_control.get_desired_speed(), g2.attitude_control.get_forward_speed(speed), speed)) {
+        // the ICE controller wants to override the brake, usually for starting or gear changes
     }
 
     // master overrider. If we're ever giving throttle we must always turn off the brake
