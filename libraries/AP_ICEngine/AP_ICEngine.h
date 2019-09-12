@@ -206,8 +206,8 @@ private:
         uint32_t last_send_ms;
 
         bool is_healthy() const { return (pin > 0 && last_sample_ms && (AP_HAL::millis() - last_sample_ms < 1000)); }
-        bool too_hot() const {  return (min < max) && (value > max); } // note, min == max will return false.
-        bool too_cold() const { return (min < max) && (value < min); } // note, min == max will return false.
+        bool too_hot() const {  return max != 0 && (min < max) && (value > max); } // note, min == max will return false.
+        bool too_cold() const { return min != 0 && (min < max) && (value < min); } // note, min == max will return false.
     } temperature;
 
     enum Temperature_Function {
