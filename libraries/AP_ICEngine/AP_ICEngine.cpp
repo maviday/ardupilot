@@ -713,7 +713,8 @@ void AP_ICEngine::update_gear()
     } else if (auto_mode_active &&
             state == ICE_RUNNING &&
             (options & AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD) &&
-            !last_cmd_set_by_automission &&
+            //!last_cmd_set_by_automission &&
+            !is_waiting_in_auto() &&
             !gear.is_forward() &&
             !gear.pending.is_active())
     {

@@ -104,6 +104,7 @@ void ModeAuto::update()
     }
 
     Mode::apply_stick_mixing_override();
+    rover.g2.ice_control.set_is_waiting_in_auto(is_waiting());
 }
 
 void ModeAuto::calc_throttle(float target_speed, bool avoidance_enabled)
