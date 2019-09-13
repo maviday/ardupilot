@@ -717,7 +717,11 @@ void AP_ICEngine::update_gear()
             !gear.is_forward() &&
             !gear.pending.is_active())
     {
-        set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD, 0);
+        if (!gear.auto_change_debounce) {
+            gear.auto_change_debounce = now_ms;
+        } else if (now_ms - gear.auto_change_debounce >= 300) {
+            set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD, 0);
+        }
     }
 }
 /*
@@ -952,6 +956,8 @@ bool AP_ICEngine::set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE gea
             // unhandled
             return false;
     }
+
+    gear.auto_change_debounce = 0;
 
     if (gearState != MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE && (gear.state == gearState || (gear.pending.is_active() && gear.pending.state == gearState))) {
         // always handle PWM,

@@ -175,6 +175,8 @@ private:
         enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
         uint16_t pwm_active;
 
+        uint32_t auto_change_debounce;
+
         uint32_t last_send_ms;
         AP_Int16 pwm_park_up;
         AP_Int16 pwm_park_down;
@@ -314,6 +316,8 @@ private:
     uint32_t running_rpm_fail_timer_ms;
 
     bool auto_mode_active;
+
+    bool vehicle_is_waiting_in_auto;
 };
 
 
