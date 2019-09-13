@@ -108,7 +108,13 @@ public:
     MAV_ICE_TRANSMISSION_GEAR_STATE get_transmission_gear_state() const { return gear.state; }
 
     void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; last_cmd_set_by_automission = false; }
-    bool is_changing_gears() { return gear.pending.is_active(); }
+    bool is_changing_gears() { return has_gears() && gear.pending.is_active(); }
+    bool has_gears() { return gear.is_configured(); }
+    bool gear_is_park() { return has_gears() && gear.is_park(); }
+    bool gear_is_forward() { return has_gears() && gear.is_forward(); }
+    bool gear_is_reverse() { return has_gears() && gear.is_reverse(); }
+    void set_is_waiting_in_auto(bool value) { vehicle_is_waiting_in_auto = value; }
+    bool is_waiting_in_auto() { return vehicle_is_waiting_in_auto && auto_mode_active; }
 
 private:
     static AP_ICEngine *_singleton;
@@ -126,6 +132,7 @@ private:
         bool is_reverse() { return Gear_t::is_reverse(state); }
         bool is_neutral() { return Gear_t::is_neutral(state); }
         bool is_park()    { return Gear_t::is_park(state); }
+        bool is_configured() { return (state != MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN); }
 
         static bool is_forward(const MAV_ICE_TRANSMISSION_GEAR_STATE gearState) {
             return (gearState == MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD ||

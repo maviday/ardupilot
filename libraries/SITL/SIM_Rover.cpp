@@ -18,6 +18,7 @@
 
 #include "SIM_Rover.h"
 #include <SRV_Channel/SRV_Channel.h>
+#include <AP_ICEngine/AP_ICEngine.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -93,6 +94,8 @@ float SimRover::calc_lat_accel(float steering_angle, float speed)
 void SimRover::update(const struct sitl_input &input)
 {
     float steering, throttle;
+    AP_ICEngine *ice = AP::ice();
+    const bool gear_is_park = (ice != nullptr && ice->has_gears() && ice->gear_is_park());
 
     // if in skid steering mode the steering and throttle values are used for motor1 and motor2
     if (skid_steering) {
@@ -109,6 +112,12 @@ void SimRover::update(const struct sitl_input &input)
 
     // how much time has passed?
     float delta_time = frame_time_us * 1.0e-6f;
+
+    if (gear_is_park) {
+        throttle = 0;
+        velocity_ef.x = 0;
+        velocity_ef.y = 0;
+    }
 
     // speed in m/s in body frame
     Vector3f velocity_body = dcm.transposed() * velocity_ef;
@@ -131,36 +140,42 @@ void SimRover::update(const struct sitl_input &input)
     dcm.rotate(gyro * delta_time);
     dcm.normalize();
 
+    if (gear_is_park) {
+        // We're in park, thus, not moving
+        accel_body = Vector3f(0, 0, 0);
 
-    // if braking is configured, apply it assuming 1G
-    float braking = 0;
-    float rolling_friction = 1.0f;
-    if (SRV_Channels::function_assigned(SRV_Channel::k_brake)) {
-        braking = MAX(0,GRAVITY_MSS * (SRV_Channels::get_output_scaled(SRV_Channel::k_brake) * 0.01f));
+    } else {
+        // if braking is configured, apply it assuming 1G
+        float braking = 0;
+        float rolling_friction = 1.0f;
+        if (SRV_Channels::function_assigned(SRV_Channel::k_brake)) {
+            braking = MAX(0,GRAVITY_MSS * (SRV_Channels::get_output_scaled(SRV_Channel::k_brake) * 0.01f));
 
-        // if you have brakes, assume you need them!
-        mass = 4.0f;
-        rolling_friction = 2.0f;
+            // if you have brakes, assume you need them!
+            mass = 4.0f;
+            rolling_friction = 2.0f;
+        }
+
+        if (speed < -0.1f) {
+            // negative acceleration when going backwards. It's all relative!
+            braking *= -1;
+
+        } else if (speed < 0.1f) {
+            // if we're not moving, don't decelerate from brakes, switch over to static friction
+            braking = 0;
+            rolling_friction *= 2;
+        }
+
+        // accel in body frame due to motor minus brake
+        accel_body = Vector3f(accel - braking, 0, 0);
+
+        // apply rolling friction
+        accel_body.x /= rolling_friction;
+
     }
-
-    if (speed < -0.1f) {
-        // negative acceleration when going backwards. It's all relative!
-        braking *= -1;
-
-    } else if (speed < 0.1f) {
-        // if we're not moving, don't decelerate from brakes, switch over to static friction
-        braking = 0;
-        rolling_friction *= 2;
-    }
-
-    // accel in body frame due to motor minus brake
-    accel_body = Vector3f(accel - braking, 0, 0);
 
     // apply inertia
     accel_body /= mass;
-
-    // apply rolling friction
-    accel_body.x /= rolling_friction;
 
     // add in accel due to direction change
     accel_body.y += radians(yaw_rate) * speed;
