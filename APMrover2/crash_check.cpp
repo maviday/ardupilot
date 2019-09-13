@@ -35,6 +35,7 @@ void Rover::crash_check()
                             (fabsf(ahrs.get_gyro().z) >= CRASH_CHECK_VEL_MIN) ||            // is turning
                             (fabsf(g2.motors.get_throttle()) < CRASH_CHECK_THROTTLE_MIN) || // has throttle
                             (g2.ice_control.is_changing_gears()) ||                         // is changing gears
+                            (!g2.ice_control.gear_is_forward() && !g2.ice_control.gear_is_reverse()) || // the gears are inhibiting locomotion
                             mode_auto.is_waiting();                                         // is intentionally not moving;
 
         if (!crashed && is_not_crashing) {
