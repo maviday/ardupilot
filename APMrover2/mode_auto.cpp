@@ -751,9 +751,12 @@ bool ModeAuto::verify_within_distance()
 
 void ModeAuto::do_change_speed(const AP_Mission::Mission_Command& cmd)
 {
-    // set speed for active mode
-    if (set_desired_speed(cmd.content.speed.target_ms)) {
-        gcs().send_text(MAV_SEVERITY_INFO, "speed: %.1f m/s", static_cast<double>(cmd.content.speed.target_ms));
+    float speed = cmd.content.speed.target_ms;
+    if (is_equal(speed, -2.0f)) {
+        speed = get_speed_default(false);
+    }
+    if (speed > 0 && set_desired_speed(speed)) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Set speed: %.1f m/s", static_cast<double>(speed));
     }
 }
 

@@ -72,7 +72,7 @@ public:
     // change speed command structure
     struct PACKED Change_Speed_Command {
         uint8_t speed_type;     // 0=airspeed, 1=ground speed
-        float target_ms;        // target speed in m/s, -1 means no change
+        float target_ms;        // target speed in m/s, -1 means no change, -2 means apply default speed from vehicle params
         float throttle_pct;     // throttle as a percentage (i.e. 0 ~ 100), -1 means no change
     };
 
