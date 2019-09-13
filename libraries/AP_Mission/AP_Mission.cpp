@@ -735,7 +735,7 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
 
         cmd.p1 = (passby << 8) | (acp & 0x00FF);
 #else
-        // delay at waypoint in seconds (this is for copters???)
+        // delay at waypoint in seconds.
         cmd.p1 = packet.param1;
 #endif
     }

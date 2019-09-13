@@ -71,13 +71,15 @@ public:
         ICE_RUNNING=5
     };
 
-    enum ICE_Ignition_State {
-        ICE_IGNITION_OFF = 0,
-        ICE_IGNITION_ACCESSORY = 1,
-        ICE_IGNITION_START_RUN = 2,
-    } startControlSelect;
+    typedef enum {
+        ICE_IGNITION_OFF,
+        ICE_IGNITION_ACCESSORY,
+        ICE_IGNITION_START_RUN
+    } ice_ignition_state_t;
 
-    uint8_t convertPwmToIgnitionState(const uint16_t pwm);
+    ice_ignition_state_t startControlSelect;
+
+    static ice_ignition_state_t convertPwmToIgnitionState(const uint16_t pwm);
 
     // get current engine control state
     ICE_State get_state(void) const { return state; }
@@ -105,13 +107,14 @@ public:
 
     MAV_ICE_TRANSMISSION_GEAR_STATE get_transmission_gear_state() const { return gear.state; }
 
-    void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; gear.set_by_automission = false; }
+    void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; last_cmd_set_by_automission = false; }
     bool is_changing_gears() { return gear.pending.is_active(); }
 
 private:
     static AP_ICEngine *_singleton;
 
     bool brakeReleaseAllowedIn_Neutral_and_Disarmed;
+    bool last_cmd_set_by_automission;
 
     enum ICE_State state;
     enum ICE_State state_prev;
@@ -139,11 +142,12 @@ private:
         static int8_t get_position_max() { return 6; }
 
         struct pending_t {
-            bool is_active()  { return (stop_vehicle_start_ms > 0 || change_physical_gear_start_ms > 0); }
-            bool is_forward() { return Gear_t::is_forward(state); }
-            bool is_reverse() { return Gear_t::is_reverse(state); }
-            bool is_neutral() { return Gear_t::is_neutral(state); }
-            bool is_park()    { return Gear_t::is_park(state); }
+            void cancel()       { stop_vehicle_start_ms = 0; change_physical_gear_start_ms = 0; }
+            bool is_active()    { return (stop_vehicle_start_ms > 0 || change_physical_gear_start_ms > 0); }
+            bool is_forward()   { return Gear_t::is_forward(state); }
+            bool is_reverse()   { return Gear_t::is_reverse(state); }
+            bool is_neutral()   { return Gear_t::is_neutral(state); }
+            bool is_park()      { return Gear_t::is_park(state); }
 
             uint16_t pwm;
             enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
@@ -162,7 +166,6 @@ private:
         } pending;
 
         enum MAV_ICE_TRANSMISSION_GEAR_STATE state = MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN;
-        bool set_by_automission;
         uint16_t pwm_active;
 
         uint32_t last_send_ms;
