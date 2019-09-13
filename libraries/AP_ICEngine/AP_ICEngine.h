@@ -106,6 +106,7 @@ public:
     MAV_ICE_TRANSMISSION_GEAR_STATE get_transmission_gear_state() const { return gear.state; }
 
     void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; gear.set_by_automission = false; }
+    bool is_changing_gears() { return gear.pending.is_active(); }
 
 private:
     static AP_ICEngine *_singleton;

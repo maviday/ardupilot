@@ -379,6 +379,7 @@ private:
 
     // crash_check.cpp
     void crash_check();
+    uint32_t crash_last_ms;
 
     // cruise_learn.cpp
     void cruise_learn_start();

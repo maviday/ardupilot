@@ -277,6 +277,10 @@ public:
 
     bool allows_stick_mixing() const override { return true; }
 
+    // returns true when executing a blocking command that is performing a delay but otherwise not navigating anywhere.
+    // Examples of this are during the delay after finishing a NAV_WAYPOINT and during DO_NAV_DELAY
+    bool is_waiting() const { return (_submode == Auto_Stop) && (mission.state() == AP_Mission::MISSION_RUNNING); }
+
     // start RTL (within auto)
     void start_RTL();
 

@@ -307,6 +307,8 @@ void AP_ICEngine::init(const bool inhibit_outputs)
     } else {
         startControlSelect = ICE_IGNITION_OFF;
     }
+
+    gear.pending.cancel();
 }
 
 uint8_t AP_ICEngine::convertPwmToIgnitionState(const uint16_t pwm)
