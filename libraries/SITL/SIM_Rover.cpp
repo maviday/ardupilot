@@ -96,6 +96,8 @@ void SimRover::update(const struct sitl_input &input)
     float steering, throttle;
     AP_ICEngine *ice = AP::ice();
     const bool gear_is_park = (ice != nullptr && ice->has_gears() && ice->gear_is_park());
+    const bool gear_is_neutral = (ice != nullptr && ice->has_gears() && ice->gear_is_neutral());
+    const bool gear_is_reverse = (ice != nullptr && ice->has_gears() && ice->gear_is_reverse());
 
     // if in skid steering mode the steering and throttle values are used for motor1 and motor2
     if (skid_steering) {
@@ -117,6 +119,10 @@ void SimRover::update(const struct sitl_input &input)
         throttle = 0;
         velocity_ef.x = 0;
         velocity_ef.y = 0;
+    } else if (gear_is_neutral) {
+        throttle = 0;
+    } else if (gear_is_reverse) {
+        throttle *= -1;
     }
 
     // speed in m/s in body frame

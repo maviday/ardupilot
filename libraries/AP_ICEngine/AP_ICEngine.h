@@ -113,6 +113,7 @@ public:
     bool gear_is_park() { return has_gears() && gear.is_park(); }
     bool gear_is_forward() { return has_gears() && gear.is_forward(); }
     bool gear_is_reverse() { return has_gears() && gear.is_reverse(); }
+    bool gear_is_neutral() { return has_gears() && gear.is_reverse(); }
     void set_is_waiting_in_auto(bool value) { vehicle_is_waiting_in_auto = value; }
     bool is_waiting_in_auto() { return vehicle_is_waiting_in_auto && auto_mode_active; }
 
