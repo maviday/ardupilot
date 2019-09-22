@@ -486,12 +486,14 @@ void AP_ICEngine::determine_state()
             // check RPM to see if we've started or if we'ved tried fo rlong enought. If so, skip to running
             gcs().send_text(MAV_SEVERITY_INFO, "Engine running! Detected %d rpm", current_rpm);
             state = ICE_RUNNING;
+            update_gear();
         } else if (now_ms - starter_start_time_ms >= starter_time*1000) {
             // STARTER_TIME expired
             if (rpm_threshold_starting <= 0) {
                 // without an rpm sensor we have to assume we're successful
                 gcs().send_text(MAV_SEVERITY_INFO, "Engine running! (No rpm feedback)");
                 state = ICE_RUNNING;
+                update_gear();
             } else if (current_rpm < 0) {
                 // we're expecting an rpm but never saw it, lets sanity check it
                 gcs().send_text(MAV_SEVERITY_INFO, "Engine start failed. Check rpm configuration");
@@ -744,7 +746,11 @@ bool AP_ICEngine::throttle_override(float &percentage)
         (int16_t)idle_percent > SRV_Channels::get_output_scaled(SRV_Channel::k_throttle))
     {
         use_idle_percent = true;
-    }  else if (state == ICE_STARTING || state == ICE_START_DELAY || too_cold() || gear.pending.is_active()) {
+    }  else if (state == ICE_STARTING ||
+            state == ICE_START_DELAY ||
+            too_cold() ||
+            gear.pending.is_active() ||
+            gear.auto_change_debounce) {
         use_idle_percent = true;
     } else if (too_hot()) {
         percentage *= constrain_float(temperature.too_hot_throttle_reduction_factor,0,1);
@@ -755,7 +761,14 @@ bool AP_ICEngine::throttle_override(float &percentage)
         percentage = (float)idle_percent;
     }
 
-    return !is_equal(percentage_old, percentage);
+    if (is_equal(percentage_old, percentage)) {
+        // no change on throttle
+        return false;
+    }
+
+//    gcs().send_text(MAV_SEVERITY_INFO, "%d ICE throttle override %d to %d", AP_HAL::millis(), (int)percentage_old, (int)percentage);
+
+    return true;
 }
 
 
