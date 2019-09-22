@@ -723,7 +723,7 @@ void AP_ICEngine::update_gear()
         if (!gear.auto_change_debounce) {
             gear.auto_change_debounce = now_ms;
         } else if (now_ms - gear.auto_change_debounce >= 300) {
-            set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD, 0);
+            set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1, 0);
         }
     }
 }
@@ -934,7 +934,7 @@ bool AP_ICEngine::set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE gea
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE: /* Reverse for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1: /* Reverse 1. Implies multiple gears exist. | */
-            gearState = MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE;
+            gearState = MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1;
             pendingPwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_reverse_down+gear.pwm_reverse_up)/2, gear.pwm_reverse_down, gear.pwm_reverse_up);
             break;
 
@@ -944,7 +944,7 @@ bool AP_ICEngine::set_ice_transmission_state(MAV_ICE_TRANSMISSION_GEAR_STATE gea
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD: /* Forward for single gear systems or Variable Transmissions. | */
         case MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1: /* First gear. Implies multiple gears exist. | */
-            gearState = MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD;
+            gearState = MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1;
             pendingPwm = constrain_pwm_with_direction(gear.pwm_active, (gear.pwm_forward1_down+gear.pwm_forward1_up)/2, gear.pwm_forward1_down, gear.pwm_forward1_up);
             break;
 
@@ -1224,9 +1224,9 @@ MAV_ICE_TRANSMISSION_GEAR_STATE AP_ICEngine::convertPwmToGearState(const uint16_
     }
 
     else if (gear.pwm_forward1_down <= gear.pwm_forward1_up && pwm <= gear.pwm_forward1_up + margin && pwm >= gear.pwm_forward1_down - margin) {
-        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD;
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1;
     } else if (gear.pwm_forward1_down > gear.pwm_forward1_up && pwm <= gear.pwm_forward1_down + margin && pwm >= gear.pwm_forward1_up - margin) {
-        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD;
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_FORWARD_1;
     }
 
 
@@ -1237,9 +1237,9 @@ MAV_ICE_TRANSMISSION_GEAR_STATE AP_ICEngine::convertPwmToGearState(const uint16_
     }
 
     else if (gear.pwm_reverse_down <= gear.pwm_reverse_up && pwm <= gear.pwm_reverse_up + margin && pwm >= gear.pwm_reverse_down - margin) {
-        return MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE;
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1;
     } else if (gear.pwm_reverse_down > gear.pwm_reverse_up && pwm <= gear.pwm_reverse_down + margin && pwm >= gear.pwm_reverse_up - margin) {
-        return MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE;
+        return MAV_ICE_TRANSMISSION_GEAR_STATE_REVERSE_1;
     }
 
     else {
