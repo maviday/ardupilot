@@ -253,7 +253,6 @@ void Rover::set_throttle(float throttle)
 
 void Rover::set_brake(float brake_percent)
 {
-    const float brake_percent_start = brake_percent;
     float speed = 0;
 
     if (rover.g2.ice_control.brake_override(brake_percent, g2.attitude_control.get_desired_speed(), g2.attitude_control.get_forward_speed(speed), speed)) {
@@ -266,17 +265,6 @@ void Rover::set_brake(float brake_percent)
     }
 
     brake_percent = MAX(brake_percent, get_emergency_brake());
-
-    static uint32_t now_ms = AP_HAL::millis();
-    static uint32_t last_ms = 0;
-    if (now_ms - last_ms > 2000) {
-        if (!is_equal(brake_percent,brake_percent_start)) {
-            gcs().send_text(MAV_SEVERITY_INFO, "set_brake() override from %d to %d", brake_percent_start, brake_percent);
-        } else {
-            gcs().send_text(MAV_SEVERITY_INFO, "set_brake() %d", brake_percent);
-        }
-        last_ms = now_ms;
-    }
 
     g2.motors.set_brake(brake_percent);
 }
