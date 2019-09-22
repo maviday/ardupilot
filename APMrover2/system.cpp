@@ -254,9 +254,18 @@ void Rover::set_throttle(float throttle)
 void Rover::set_brake(float brake_percent)
 {
     float speed = 0;
+    const bool speed_is_valid = g2.attitude_control.get_forward_speed(speed);
 
-    if (rover.g2.ice_control.brake_override(brake_percent, g2.attitude_control.get_desired_speed(), g2.attitude_control.get_forward_speed(speed), speed)) {
+    if (rover.g2.ice_control.brake_override(brake_percent, g2.attitude_control.get_desired_speed(), speed_is_valid, speed)) {
         // the ICE controller wants to override the brake, usually for starting or gear changes
+    }
+
+    if (is_zero(g2.motors.get_throttle()) &&        // throttle == 0
+        speed_is_valid && fabs(speed) < 0.1f &&     // speed == 0
+        control_mode->is_autopilot_mode() &&        // in AUTO/GUIDED-ish mode
+        !rover.g2.ice_control.gear_is_park())       // Gear is not park
+    {
+        brake_percent = 100;
     }
 
     // master overrider. If we're ever giving throttle we must always turn off the brake
