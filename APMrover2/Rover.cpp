@@ -35,6 +35,8 @@
 #include "version.h"
 #undef FORCE_VERSION_H_INCLUDE
 
+#define AP_SERVORELAY_EVENTS_INHIBIT_RELAY_WITH_ASSIGNED_SERVO_FUNCTION
+
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
 #define SCHED_TASK(func, _interval_ticks, _max_time_micros) SCHED_TASK_CLASS(Rover, &rover, func, _interval_ticks, _max_time_micros)
@@ -299,6 +301,19 @@ void Rover::one_second_loop(void)
 
     // send latest param values to wp_nav
     g2.wp_nav.set_turn_params(g.turn_max_g, g2.turn_radius, g2.motors.have_skid_steering());
+
+#ifdef AP_SERVORELAY_EVENTS_INHIBIT_RELAY_WITH_ASSIGNED_SERVO_FUNCTION
+    for (uint8_t servo_ch=9; servo_ch<=14; servo_ch++) {
+        SRV_Channel *c = SRV_Channels::srv_channel(servo_ch);
+        const SRV_Channel::Aux_servo_function_t function = c->get_function();
+        const uint8_t relay_num = 15 - servo_ch;
+        if (function != SRV_Channel::k_none && relay.enabled(relay_num)) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Disabling Relay pin %d, Servo %d Function is %d", relay_num, servo_ch, function);
+            relay.disable(relay_num);
+        }
+    }
+#endif
+
 }
 
 void Rover::update_GPS(void)
