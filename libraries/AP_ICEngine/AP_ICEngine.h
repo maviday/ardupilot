@@ -37,10 +37,12 @@
 #define AP_ICENGINE_OPTIONS_MASK_RUNNING_FAIL_FORCE_STOP_MOTOR  (1<<6) // no
 #define AP_ICENGINE_OPTIONS_MASK_RPM_FAIL_HAS_TIMER             (1<<7) // yes
 
-#define AP_ICENGINE_OPTIONS_MASK_SELF_RECHARGE_AUTOSTART        (1<<8) // yes
-
-#define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION |        \
-                                                                AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START)
+#define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION          \
+                                                                | AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED       \
+                                                                | AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART            \
+                                                                | AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD           \
+                                                                | AP_ICENGINE_OPTIONS_MASK_RPM_FAIL_HAS_TIMER               \
+                                                                )
 
 
 class AP_ICEngine {
@@ -233,8 +235,18 @@ private:
     };
 
     struct {
+        enum Recharge_State {
+            ICE_RECHARGE_STATE_OFF,
+            ICE_RECHARGE_STATE_CHECKING_BATTERY,
+            ICE_RECHARGE_STATE_CHARGING,
+            ICE_RECHARGE_STATE_SNOOZING,
+        } state;
+        const uint32_t snooze_duration_ms = 1 * 60 * 1000; // 1 minute
         uint32_t snooze_time_ms;
         uint32_t start_time_ms;
+        AP_Float voltage_threshold;
+        AP_Int32 duration_seconds;
+        AP_Int8 battery_instance;
     } recharge;
 
     void update_self_charging();

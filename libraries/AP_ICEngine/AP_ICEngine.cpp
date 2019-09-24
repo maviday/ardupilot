@@ -272,6 +272,30 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("GEAR_DUR",  51, AP_ICEngine, gear.pending.change_duration_per_posiiton, 1.5f),
 
+    // @Param: CHRG_TIME
+    // @DisplayName: Self Charge Duration
+    // @Description: When the selected battery is below its threshold voltage, the engine will turn on so that the alternator has a chance to charge itself. This is the duration that the motor will stay on to charge before shutting off. This feature will only work while in PARK.
+    // @Units: s
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("CHRG_TIME",  52, AP_ICEngine, recharge.duration_seconds, (5 * 60)),
+
+    // @Param: CHRG_VOLT
+    // @DisplayName: Self Charge Voltage Threshold
+    // @Description: The low-battery voltage threshold that triggers the engine to turn on to self-charge. Use -1 to disable self-charge. This feature will only work while in PARK.
+    // @Units: V
+    // @Increment: 0.1
+    // @Range: -1 100
+    // @User: Advanced
+    AP_GROUPINFO("CHRG_VOLT",  53, AP_ICEngine, recharge.voltage_threshold, -1),
+
+    // @Param: CHRG_BATT
+    // @DisplayName: Self Charge Battery Select
+    // @Description: Selects which battery instances to use for ICE_CHRG_VOLT. This feature will only work while in PARK.
+    // @Values: 0:Primary,1:BATT,2:BATT2,3:BATT3,4:BATT4,5:BATT5,6:BATT6,7:BATT7,8:BATT8,9:BATT9
+    // @User: Advanced
+    AP_GROUPINFO("CHRG_BATT",  54, AP_ICEngine, recharge.battery_instance, 0),
+
     AP_GROUPEND
 };
 
@@ -309,6 +333,8 @@ void AP_ICEngine::init(const bool inhibit_outputs)
     }
 
     gear.pending.cancel();
+
+    recharge.state = recharge.ICE_RECHARGE_STATE_OFF;
 }
 
 AP_ICEngine::ice_ignition_state_t AP_ICEngine::convertPwmToIgnitionState(const uint16_t pwm)
@@ -360,33 +386,63 @@ void AP_ICEngine::update(void)
 
 void AP_ICEngine::update_self_charging()
 {
-    if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) ||
-        gear.pending.is_active() ||
-        !(options & AP_ICENGINE_OPTIONS_MASK_SELF_RECHARGE_AUTOSTART))
-    {
+    if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) || gear.pending.is_active()) {
         recharge.start_time_ms = 0;
         recharge.snooze_time_ms = 0;
+        recharge.state = recharge.ICE_RECHARGE_STATE_OFF;
         return;
     }
 
-    // if already charging, check if time has expired
     const uint32_t now_ms = AP_HAL::millis();
-    if (recharge.start_time_ms != 0) {
-        if (now_ms - recharge.start_time_ms > (1 * 3600 * 1000)) {
-            recharge.snooze_time_ms = now_ms;
-            recharge.start_time_ms = 0;
-            state = ICE_OFF;
-        }
 
-    // are we snoozing from a recent charge?
-    } else if (recharge.snooze_time_ms != 0 && now_ms - recharge.snooze_time_ms > (30 * 1000)) {
-        recharge.snooze_time_ms = 0;
-    }
+    switch (recharge.state) {
+        case recharge.ICE_RECHARGE_STATE_OFF:
+            if (recharge.battery_instance >= 0 && recharge.battery_instance <= 9 &&
+                recharge.duration_seconds > 0 &&
+                recharge.voltage_threshold > 0)
+            {
+                recharge.state = recharge.ICE_RECHARGE_STATE_CHECKING_BATTERY;
+            }
+            break;
 
-    // If battery is low, turn on the engine!
-    else if (AP::battery().healthy() && AP::battery().voltage() < 11) {
-        recharge.start_time_ms = now_ms;
-        engine_control(2, 0, 0, 0, false); // start the engine
+        case recharge.ICE_RECHARGE_STATE_CHECKING_BATTERY:
+            {
+                float voltage;
+                if (recharge.battery_instance == 0 && AP::battery().healthy()) {
+                    voltage = AP::battery().voltage();
+                } else if (AP::battery().healthy(recharge.battery_instance)) {
+                    voltage = AP::battery().voltage(recharge.battery_instance);
+                } else {
+                    // battery is not ready
+                    recharge.state = recharge.ICE_RECHARGE_STATE_OFF;
+                    break;
+                }
+
+                if (voltage < recharge.voltage_threshold) {
+                    recharge.start_time_ms = now_ms;
+                    recharge.state = recharge.ICE_RECHARGE_STATE_CHARGING;
+                    engine_control(2, 0, 0, 0, true); // start the engine
+                }
+            }
+            break;
+
+        case recharge.ICE_RECHARGE_STATE_CHARGING:
+            if (recharge.start_time_ms == 0) {
+                recharge.snooze_time_ms = now_ms;
+                recharge.state = recharge.ICE_RECHARGE_STATE_SNOOZING;
+                engine_control(0, 0, 0, 0, true); // stop the engine
+            } else if (now_ms - recharge.start_time_ms > ((uint32_t)recharge.duration_seconds * 1000)) {
+                recharge.start_time_ms = 0;
+            }
+            break;
+
+        case recharge.ICE_RECHARGE_STATE_SNOOZING:
+            if (recharge.snooze_time_ms == 0) {
+                recharge.state = recharge.ICE_RECHARGE_STATE_OFF;
+            } else if (now_ms - recharge.snooze_time_ms > recharge.snooze_duration_ms) {
+                recharge.snooze_time_ms = 0;
+            }
+        break;
     }
 }
 
