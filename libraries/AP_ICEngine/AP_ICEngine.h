@@ -235,18 +235,21 @@ private:
     };
 
     struct {
+        const uint32_t snooze_duration_ms = 1 * 60 * 1000; // 1 minute
+        uint32_t snooze_time_ms;
+        uint32_t start_time_ms;
+        uint32_t charging_notify_ms;
+        AP_Float voltage_threshold;
+        AP_Int32 duration_seconds;
+        AP_Int8 battery_instance;
+
         enum Recharge_State {
             ICE_RECHARGE_STATE_OFF,
             ICE_RECHARGE_STATE_CHECKING_BATTERY,
             ICE_RECHARGE_STATE_CHARGING,
             ICE_RECHARGE_STATE_SNOOZING,
         } state;
-        const uint32_t snooze_duration_ms = 1 * 60 * 1000; // 1 minute
-        uint32_t snooze_time_ms;
-        uint32_t start_time_ms;
-        AP_Float voltage_threshold;
-        AP_Int32 duration_seconds;
-        AP_Int8 battery_instance;
+
     } recharge;
 
     void update_self_charging();
