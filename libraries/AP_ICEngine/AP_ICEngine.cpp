@@ -353,7 +353,41 @@ void AP_ICEngine::update(void)
 
     set_output_channels();
 
+    update_self_charging();
+
     send_status();
+}
+
+void AP_ICEngine::update_self_charging()
+{
+    if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) ||
+        gear.pending.is_active() ||
+        !(options & AP_ICENGINE_OPTIONS_MASK_SELF_RECHARGE_AUTOSTART))
+    {
+        recharge.start_time_ms = 0;
+        recharge.snooze_time_ms = 0;
+        return;
+    }
+
+    // if already charging, check if time has expired
+    const uint32_t now_ms = AP_HAL::millis();
+    if (recharge.start_time_ms != 0) {
+        if (now_ms - recharge.start_time_ms > (1 * 3600 * 1000)) {
+            recharge.snooze_time_ms = now_ms;
+            recharge.start_time_ms = 0;
+            state = ICE_OFF;
+        }
+
+    // are we snoozing from a recent charge?
+    } else if (recharge.snooze_time_ms != 0 && now_ms - recharge.snooze_time_ms > (30 * 1000)) {
+        recharge.snooze_time_ms = 0;
+    }
+
+    // If battery is low, turn on the engine!
+    else if (AP::battery().healthy() && AP::battery().voltage() < 11) {
+        recharge.start_time_ms = now_ms;
+        engine_control(2, 0, 0, 0, false); // start the engine
+    }
 }
 
 void AP_ICEngine::determine_state()
