@@ -234,23 +234,31 @@ private:
         FUNCTION_HYPERBOLA = 2
     };
 
-    struct {
-        const uint32_t snooze_duration_ms = 1 * 60 * 1000; // 1 minute
-        uint32_t snooze_time_ms;
-        uint32_t start_time_ms;
-        uint32_t charging_notify_ms;
-        AP_Float voltage_threshold;
-        AP_Int32 duration_seconds;
-        AP_Int8 battery_instance;
-
+    struct Recharge {
+        public:
         enum Recharge_State {
             ICE_RECHARGE_STATE_OFF,
             ICE_RECHARGE_STATE_CHECKING_BATTERY,
+            ICE_RECHARGE_STATE_CHARGING_PENDING,
             ICE_RECHARGE_STATE_CHARGING,
             ICE_RECHARGE_STATE_SNOOZING,
-        } state;
+        };
 
-    } recharge;
+        const uint32_t snooze_duration_ms = 1 * 60 * 1000; // 1 minute
+        const float minimum_voltage = 3.0f;
+
+        uint32_t timer_ms;
+        uint32_t notify_ms;
+        float battery_voltage_last;
+        AP_Float voltage_threshold;
+        AP_Int32 duration_seconds;
+        AP_Int8 battery_instance;
+        Recharge_State state;
+
+        float get_smoothed_battery_voltage();
+        void set_state(Recharge_State next_state);
+    };
+    Recharge recharge;
 
     void update_self_charging();
 

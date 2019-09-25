@@ -16,10 +16,10 @@
 
 #include <SRV_Channel/SRV_Channel.h>
 #include <GCS_MAVLink/GCS.h>
+#include <AP_BattMonitor/AP_BattMonitor.h>
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Math/AP_Math.h> // for is_zero, is_equal
 #include "AP_ICEngine.h"
-#include <AP_BattMonitor/AP_BattMonitor.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -334,7 +334,7 @@ void AP_ICEngine::init(const bool inhibit_outputs)
 
     gear.pending.cancel();
 
-    recharge.state = recharge.ICE_RECHARGE_STATE_OFF;
+    recharge.set_state(recharge.ICE_RECHARGE_STATE_OFF);
 }
 
 AP_ICEngine::ice_ignition_state_t AP_ICEngine::convertPwmToIgnitionState(const uint16_t pwm)
@@ -386,80 +386,139 @@ void AP_ICEngine::update(void)
 
 void AP_ICEngine::update_self_charging()
 {
-    if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) || gear.pending.is_active()) {
-        recharge.start_time_ms = 0;
-        recharge.snooze_time_ms = 0;
+    const char *msg = "Engine Self-Charge: ";
 
+    if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) || gear.pending.is_active()) {
         if (recharge.state != recharge.ICE_RECHARGE_STATE_OFF) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine Self-Recharge: Off");
+            gcs().send_text(MAV_SEVERITY_INFO, "%sOff", msg);
         }
-        recharge.state = recharge.ICE_RECHARGE_STATE_OFF;
+        recharge.set_state(recharge.ICE_RECHARGE_STATE_OFF);
         return;
     }
 
     const uint32_t now_ms = AP_HAL::millis();
+    const float battery_voltage = recharge.get_smoothed_battery_voltage();
 
     switch (recharge.state) {
         case recharge.ICE_RECHARGE_STATE_OFF:
             if (recharge.battery_instance >= 0 && recharge.battery_instance <= AP_BATT_MONITOR_MAX_INSTANCES &&
                 recharge.duration_seconds > 0 &&
-                recharge.voltage_threshold > 0)
+                recharge.voltage_threshold > 0 &&
+                battery_voltage > recharge.minimum_voltage)
             {
-                recharge.state = recharge.ICE_RECHARGE_STATE_CHECKING_BATTERY;
+                // params all look OK.
+                recharge.set_state(recharge.ICE_RECHARGE_STATE_CHECKING_BATTERY);
             }
             break;
 
         case recharge.ICE_RECHARGE_STATE_CHECKING_BATTERY:
-            {
-                float voltage;
-                if (recharge.battery_instance == 0 && AP::battery().healthy()) {
-                    voltage = AP::battery().voltage();
-                } else if (recharge.battery_instance > 0 && recharge.battery_instance <= AP_BATT_MONITOR_MAX_INSTANCES && AP::battery().healthy(recharge.battery_instance-1)) {
-                    voltage = AP::battery().voltage(recharge.battery_instance);
-                } else {
-                    // battery is not ready
-                    recharge.state = recharge.ICE_RECHARGE_STATE_OFF;
-                    break;
-                }
+            if (battery_voltage <= recharge.minimum_voltage ||
+                    battery_voltage >= recharge.voltage_threshold ||
+                    startControlSelect == ICE_IGNITION_START_RUN) {
+                // not ready to charge
+                recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
 
-                if (voltage < recharge.voltage_threshold) {
-                    recharge.start_time_ms = now_ms;
-                    recharge.charging_notify_ms = 0;
-                    recharge.state = recharge.ICE_RECHARGE_STATE_CHARGING;
-                    gcs().send_text(MAV_SEVERITY_INFO, "Engine Self-Recharge: Start");
-                    engine_control(2, 0, 0, 0, true); // start the engine
-                }
+            } else if (!recharge.timer_ms) {
+                recharge.timer_ms = now_ms;
+
+            } else if (now_ms - recharge.timer_ms > 3000) {
+                // 3 second debounce
+                recharge.set_state(recharge.ICE_RECHARGE_STATE_CHARGING_PENDING);
+            }
+            break;
+
+        case recharge.ICE_RECHARGE_STATE_CHARGING_PENDING:
+            if (startControlSelect == ICE_IGNITION_START_RUN) {
+                recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
+
+            } else if (!recharge.timer_ms) {
+                recharge.timer_ms = now_ms;
+
+            } else if (now_ms - recharge.timer_ms > 20000) {
+                recharge.set_state(recharge.ICE_RECHARGE_STATE_CHARGING);
+
+            } else if (!recharge.notify_ms || (now_ms - recharge.notify_ms > 5*1000)) {
+                recharge.notify_ms = now_ms;
+                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Pending", msg, battery_voltage);
             }
             break;
 
         case recharge.ICE_RECHARGE_STATE_CHARGING:
-            if (recharge.start_time_ms == 0) {
-                recharge.snooze_time_ms = now_ms;
-                recharge.state = recharge.ICE_RECHARGE_STATE_SNOOZING;
-                gcs().send_text(MAV_SEVERITY_INFO, "Engine Self-Recharge: Done");
+            if (recharge.timer_ms == 0) {
+                recharge.timer_ms = now_ms;
+                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Start", msg, battery_voltage);
+                engine_control(2, 0, 0, 0, true); // start the engine
+
+            } else if (now_ms - recharge.timer_ms >= ((uint32_t)recharge.duration_seconds * 1000)) {
+                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Done", msg, battery_voltage);
                 engine_control(0, 0, 0, 0, true); // stop the engine
+                recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
 
-            } else if (now_ms - recharge.start_time_ms >= ((uint32_t)recharge.duration_seconds * 1000)) {
-                recharge.start_time_ms = 0;
+            } else if (!recharge.notify_ms || (now_ms - recharge.notify_ms > 10*1000)) {
+                recharge.notify_ms = now_ms;
 
-            } else if (!recharge.charging_notify_ms || (now_ms - recharge.charging_notify_ms > 10*1000)) {
-                recharge.charging_notify_ms = now_ms;
+                const uint32_t elapsed_seconds = (now_ms - recharge.timer_ms) * 0.001f;
+                const uint32_t seconds_remaining = (uint32_t)recharge.duration_seconds - elapsed_seconds;
+                if (seconds_remaining % 10) {
+                    // nudge the notify timer by 1 second so we start getting even seconds with a 0 tens digits
+                    recharge.notify_ms -= 1000;
+                }
 
-                const uint32_t total_seconds = (uint32_t)recharge.duration_seconds * 1000;
-                const uint32_t seconds_remaining = total_seconds - (now_ms - recharge.start_time_ms);
-
-                gcs().send_text(MAV_SEVERITY_INFO, "Engine Self-Recharge: Active %dm %ds", seconds_remaining/60, seconds_remaining%60);
+                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Active %dm %ds left", msg, battery_voltage, (seconds_remaining/60), (seconds_remaining%60));
             }
             break;
 
         case recharge.ICE_RECHARGE_STATE_SNOOZING:
-            if (recharge.snooze_time_ms == 0) {
-                recharge.state = recharge.ICE_RECHARGE_STATE_OFF;
-            } else if (now_ms - recharge.snooze_time_ms > recharge.snooze_duration_ms) {
-                recharge.snooze_time_ms = 0;
+            if (recharge.timer_ms == 0) {
+                recharge.timer_ms = now_ms;
+
+            } else if (now_ms - recharge.timer_ms > recharge.snooze_duration_ms) {
+                recharge.set_state(recharge.ICE_RECHARGE_STATE_OFF);
             }
         break;
     }
+}
+
+void AP_ICEngine::Recharge::set_state(Recharge_State next_state) {
+//    ICE_RECHARGE_STATE_OFF,
+//    ICE_RECHARGE_STATE_CHECKING_BATTERY,
+//    ICE_RECHARGE_STATE_CHARGING_PENDING,
+//    ICE_RECHARGE_STATE_CHARGING,
+//    ICE_RECHARGE_STATE_SNOOZING,
+#if 0
+    if (state != next_state) {
+        gcs().send_text(MAV_SEVERITY_INFO, "%d Recharge state change from %d to %d", AP_HAL::millis(), state, next_state);
+    }
+#endif
+    state = next_state;
+    timer_ms = 0;
+    notify_ms = 0;
+}
+
+float AP_ICEngine::Recharge::get_smoothed_battery_voltage()
+{
+    float voltage = -1;
+    if (battery_instance == 0) {
+        if (AP::battery().healthy()) {
+            voltage = AP::battery().voltage();
+        }
+    } else if (battery_instance >= 1 && battery_instance <= AP_BATT_MONITOR_MAX_INSTANCES) {
+        if (AP::battery().healthy(battery_instance-1)) {
+            voltage = AP::battery().voltage(battery_instance-1);
+        }
+    }
+
+    if (voltage < minimum_voltage) {
+        return -1;
+    } else if (battery_voltage_last < minimum_voltage) {
+        battery_voltage_last = voltage;
+    }
+
+    const float diff = fabsf(battery_voltage_last - voltage);
+    const float LPFcoef = diff < 0.5f ? 0.95f : 0.8f; // go faster if its a large difference
+    battery_voltage_last = LPFcoef * battery_voltage_last + (1.0f-LPFcoef)*voltage;
+
+    return battery_voltage_last;
 }
 
 void AP_ICEngine::determine_state()
@@ -919,6 +978,7 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
             force_send_status = true;
             last_cmd_set_by_automission = being_set_by_auto_mission;
             gcs().send_text(MAV_SEVERITY_INFO, "Engine Control set to OFF");
+            recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
         }
     } else if (is_equal(start_control, 1.0f)) {
         if (startControlSelect != ICE_IGNITION_ACCESSORY) {
