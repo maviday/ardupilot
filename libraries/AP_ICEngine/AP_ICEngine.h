@@ -246,6 +246,7 @@ private:
 
         const uint32_t snooze_duration_ms = 1 * 60 * 1000; // 1 minute
         const float minimum_voltage = 3.0f;
+        const char *msg = "Engine Self-Charge: ";
 
         uint32_t timer_ms;
         uint32_t notify_ms;

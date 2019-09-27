@@ -386,11 +386,10 @@ void AP_ICEngine::update(void)
 
 void AP_ICEngine::update_self_charging()
 {
-    const char *msg = "Engine Self-Charge: ";
 
     if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) || gear.pending.is_active()) {
         if (recharge.state != recharge.ICE_RECHARGE_STATE_OFF) {
-            gcs().send_text(MAV_SEVERITY_INFO, "%sOff", msg);
+            gcs().send_text(MAV_SEVERITY_INFO, "%sOff", recharge.msg);
         }
         recharge.set_state(recharge.ICE_RECHARGE_STATE_OFF);
         return;
@@ -439,18 +438,18 @@ void AP_ICEngine::update_self_charging()
 
             } else if (!recharge.notify_ms || (now_ms - recharge.notify_ms > 5*1000)) {
                 recharge.notify_ms = now_ms;
-                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Pending", msg, battery_voltage);
+                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Pending", recharge.msg, battery_voltage);
             }
             break;
 
         case recharge.ICE_RECHARGE_STATE_CHARGING:
             if (recharge.timer_ms == 0) {
                 recharge.timer_ms = now_ms;
-                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Start", msg, battery_voltage);
+                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Start", recharge.msg, battery_voltage);
                 engine_control(2, 0, 0, 0, true); // start the engine
 
             } else if (now_ms - recharge.timer_ms >= ((uint32_t)recharge.duration_seconds * 1000)) {
-                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Done", msg, battery_voltage);
+                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Done", recharge.msg, battery_voltage);
                 engine_control(0, 0, 0, 0, true); // stop the engine
                 recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
 
@@ -464,7 +463,7 @@ void AP_ICEngine::update_self_charging()
                     recharge.notify_ms -= 1000;
                 }
 
-                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Active %dm %ds left", msg, battery_voltage, (seconds_remaining/60), (seconds_remaining%60));
+                gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Active %dm %ds left", recharge.msg, battery_voltage, (seconds_remaining/60), (seconds_remaining%60));
             }
             break;
 
