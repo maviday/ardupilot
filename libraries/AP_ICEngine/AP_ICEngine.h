@@ -258,6 +258,7 @@ private:
 
         float get_smoothed_battery_voltage();
         void set_state(Recharge_State next_state);
+        void pending_abort();
     };
     Recharge recharge;
 

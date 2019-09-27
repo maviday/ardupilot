@@ -478,6 +478,13 @@ void AP_ICEngine::update_self_charging()
     }
 }
 
+void AP_ICEngine::Recharge::pending_abort() {
+    if (state == ICE_RECHARGE_STATE_CHARGING_PENDING) {
+        set_state(ICE_RECHARGE_STATE_SNOOZING);
+        gcs().send_text(MAV_SEVERITY_INFO, "%sPending Abort", msg);
+    }
+}
+
 void AP_ICEngine::Recharge::set_state(Recharge_State next_state) {
 //    ICE_RECHARGE_STATE_OFF,
 //    ICE_RECHARGE_STATE_CHECKING_BATTERY,
@@ -993,6 +1000,8 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
             last_cmd_set_by_automission = being_set_by_auto_mission;
             gcs().send_text(MAV_SEVERITY_INFO, "Engine Control set to START_RUN");
         }
+    } else if (is_equal(start_control, 13.0f)) {
+        recharge.pending_abort();
     }
 
     if (gear_state > 0 &&
