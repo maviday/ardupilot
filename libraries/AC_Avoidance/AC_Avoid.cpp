@@ -371,14 +371,20 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
                 const float distance_to_target = MAX((intersection - position_xy).length() - margin_cm, 0.0f);
                 const float max_speed = get_max_speed(kP, accel_cmss, distance_to_target, dt);
                 if (max_speed < desired_speed) {
+                    desired_vel_cms *= MAX(max_speed, 0.0f) / desired_speed;
                     if (!stop_state) {
-                        gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
+                        const uint32_t now_ms = AP_HAL::millis();
+                        if (now_ms - notify_gcs_ms >= 1000) {
+                            notify_gcs_ms = now_ms;
+                            gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
+                        }
                         stop_state = 1;
                     }
-                    desired_vel_cms *= MAX(max_speed, 0.0f) / desired_speed;
                 } else {
                     stop_state = 0;
                 }
+            } else {
+                stop_state = 0;
             }
         }
     }
@@ -547,17 +553,31 @@ void AC_Avoid::adjust_velocity_polygon(float kP, float accel_cmss, Vector2f &des
                 if (!is_zero(limit_distance_cm)) {
                     if (limit_distance_cm <= margin_cm) {
                         // we are within the margin so stop vehicle
+                        if (!safe_vel.is_zero()) {
+                            gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Stopped vehicle!");
+                        }
                         safe_vel.zero();
                     } else {
                         // vehicle inside the given edge, adjust velocity to not violate this edge
                         limit_direction /= limit_distance_cm;
                         limit_velocity(kP, accel_cmss, safe_vel, limit_direction, MAX(limit_distance_cm - margin_cm, 0.0f), dt);
+
+                        if (!stop_state) {
+                            const uint32_t now_ms = AP_HAL::millis();
+                            if (now_ms - notify_gcs_ms >= 1000) {
+                                notify_gcs_ms = now_ms;
+                                gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
+                            }
+                            stop_state = 1;
+                        }
                     }
                 } else {
                     // We are exactly on the edge - treat this as a fence breach.
                     // i.e. do not adjust velocity.
                     return;
                 }
+            } else {
+                stop_state = 0;
             }
         }
     }
