@@ -96,6 +96,15 @@ const AP_Param::GroupInfo AP_MotorsUGV::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("SPD_SCA_BASE", 11, AP_MotorsUGV, _speed_scale_base, 1.0f),
 
+    // @Param: THR_MAX_MAN
+    // @DisplayName: Throttle maximum in Manual
+    // @Description: Throttle maximum percentage the autopilot will apply during MANUAL mode. Use 0 to disable and use MOT_THR_MAX.
+    // @Units: %
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("THR_MAX_MAN", 30, AP_MotorsUGV, _throttle_max_manual_mode, 0),
+
     AP_GROUPEND
 };
 
@@ -183,7 +192,7 @@ void AP_MotorsUGV::set_steering(float steering, bool apply_scaling)
 }
 
 // set throttle as a value from -100 to 100
-void AP_MotorsUGV::set_throttle(float throttle)
+void AP_MotorsUGV::set_throttle(float throttle, bool is_mode_manual)
 {
     // only allow setting throttle if armed
     if (!hal.util->get_soft_armed()) {
@@ -191,7 +200,11 @@ void AP_MotorsUGV::set_throttle(float throttle)
     }
 
     // check throttle is between -_throttle_max and  +_throttle_max
-    _throttle = constrain_float(throttle, -_throttle_max, _throttle_max);
+    if (is_mode_manual && _throttle_max_manual_mode > 0) {
+        _throttle = constrain_float(throttle, -_throttle_max_manual_mode, _throttle_max_manual_mode);
+    } else {
+        _throttle = constrain_float(throttle, -_throttle_max, _throttle_max);
+    }
 }
 
 // set lateral input as a value from -100 to +100

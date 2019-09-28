@@ -248,7 +248,8 @@ void Rover::set_throttle(float throttle)
         throttle = 0;
     }
     rover.g2.ice_control.set_current_throttle(throttle);
-    g2.motors.set_throttle(throttle);
+    const bool is_mode_manual = (rover.control_mode == &rover.mode_manual);
+    g2.motors.set_throttle(throttle, is_mode_manual);
 }
 
 void Rover::set_brake(float brake_percent)

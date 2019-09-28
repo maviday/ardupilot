@@ -59,7 +59,7 @@ public:
 
     // get or set throttle as a value from -100 to 100
     float get_throttle() const { return _throttle; }
-    void set_throttle(float throttle);
+    void set_throttle(float throttle, bool is_mode_manual);
 
     // set lateral input as a value from -100 to +100
     void set_lateral(float lateral);
@@ -178,6 +178,7 @@ protected:
     AP_Int16 _slew_rate; // slew rate expressed as a percentage / second
     AP_Int8 _throttle_min; // throttle minimum percentage
     AP_Int8 _throttle_max; // throttle maximum percentage
+    AP_Int8 _throttle_max_manual_mode;  // throttle maximum percentage in MANUAL mode
     AP_Float _thrust_curve_expo; // thrust curve exponent from -1 to +1 with 0 being linear
     AP_Float _vector_throttle_base;  // throttle level above which steering is scaled down when using vector thrust.  zero to disable vectored thrust
     AP_Float _speed_scale_base;  // speed above which steering is scaled down when using regular steering/throttle vehicles.  zero to disable speed scaling
