@@ -513,6 +513,13 @@ public:
 protected:
 
     void _exit() override;
+
+//private:
+//    float       throttle_max = 100;
+//    uint32_t    throttle_max_timer_ms;
+//    uint32_t    throttle_max_timer_shring_ms;
+//    uint32_t    throttle_max_timer_grow_ms;
+
 };
 
 

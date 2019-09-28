@@ -629,7 +629,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_GROUPINFO("CRASH_ANGLE_ROLL", 56, ParametersG2, crash_angle_roll, 0),
     AP_GROUPINFO("FS_PID_I_STEER", 57, ParametersG2, fs_pid_i_steering, 0),
     AP_GROUPINFO("FS_PID_I_THR", 58, ParametersG2, fs_pid_i_throttle, 0),
-
+//    AP_GROUPINFO("MAN_THR_SPEED", 59, ParametersG2, manual_speed_limit, 2.0f),
+//    AP_GROUPINFO("MAN_THR_PCNT_MAX", 60, ParametersG2, manual_throttle_percent_max, 25.0f), // depreciated, moved to MOT_THR_MAX_MAN
+//    AP_GROUPINFO("MAN_THR_GAIN_UP", 61, ParametersG2, manual_throttle_max_rate_grow, 1.1f),
+//    AP_GROUPINFO("MAN_THR_GAIN_DN", 62, ParametersG2, manual_throttle_max_rate_shrink, 0.9f),
 
     // -----------------------------
 

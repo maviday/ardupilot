@@ -408,6 +408,10 @@ public:
 
     // mechanical emergency brake channel number
     AP_Int8 ebrake_rc_channel;
+
+//    AP_Float    manual_speed_limit;
+//    AP_Float    manual_throttle_max_rate_grow;
+//    AP_Float    manual_throttle_max_rate_shrink;
 };
 
 extern const AP_Param::Info var_info[];

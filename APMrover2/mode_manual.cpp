@@ -25,6 +25,67 @@ void ModeManual::update()
     // set sailboat mainsail from throttle position
     g2.motors.set_mainsail(desired_throttle);
 
+#if 0
+    if (is_positive(g2.manual_speed_limit)) {
+        const uint32_t now_ms = AP_HAL::millis();
+        float speed_acc;
+        if (AP::gps().status() < AP_GPS::GPS_OK_FIX_3D ||
+            AP::gps().get_hdop() > 5 ||
+            !AP::gps().speed_accuracy(speed_acc))
+        {
+            // with bad GPS, limit throttle to fixed percent via param
+            desired_throttle = MIN(desired_throttle, g2.manual_throttle_percent_max);
+
+        } else {
+            if (now_ms - throttle_max_timer_ms >= 200) {
+                throttle_max_timer_ms = now_ms; // slow it down to 5Hz
+
+                if (AP::ahrs().groundspeed() > g2.manual_speed_limit) {
+                   // if speed is too fast, deduce max throttle
+                   if (throttle_max < 2) {
+                       throttle_max = 0;
+                   } else {
+                       throttle_max *= constrain_float(g2.manual_throttle_max_rate_shrink, 0.01f, 1.0f);
+                       throttle_max = constrain_float(throttle_max, 0, 100);
+                   }
+
+                } else if (desired_throttle >= throttle_max && hal.util->get_soft_armed()) {
+                    // if we're too slow and the throttle is at max throttle for a couple seconds, raise max throttle
+                    if (throttle_max < 2) {
+                        throttle_max = 10;
+                    } else if (now_ms - throttle_max_timer_grow_ms > 3000) {
+                        throttle_max *= constrain_float(g2.manual_throttle_max_rate_grow, 1.0f, 10.0f);
+                        throttle_max = constrain_float(throttle_max, 0, 100);
+                    }
+
+                } else {
+                    throttle_max_timer_grow_ms = now_ms;
+                }
+    #if 1 // debug
+            if (rover.BoardConfig.get_singleton()->vehicleSerialNumber == 1) {
+                static float throttle_previous = 0;
+                if (!is_equal(throttle_previous, throttle_max)) {
+                    gcs().send_text(MAV_SEVERITY_INFO, "Manual Throttle max: %.1f", throttle_max);
+                    throttle_previous = throttle_max;
+                }
+            }
+    #endif
+    #if 0 // debug
+            if (rover.BoardConfig.get_singleton()->vehicleSerialNumber == 1) {
+                static uint32_t notify_ms = 0;
+                if (now_ms - notify_ms > 200) {
+                    notify_ms = now_ms;
+                    gcs().send_text(MAV_SEVERITY_INFO, "Manual Throttle max: %.1f", throttle_max);
+                }
+            }
+    #endif
+
+            }
+            desired_throttle = MIN(desired_throttle, throttle_max);
+        }
+    }
+#endif
+
     // copy RC scaled inputs to outputs
     rover.set_throttle(desired_throttle);
     rover.set_brake(brake * attitude_control.get_brake_gain());
