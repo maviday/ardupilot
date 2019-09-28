@@ -359,7 +359,9 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
             // if stopping point is even further from home (i.e. in wrong direction) then adjust speed to zero
             // otherwise user is backing away from fence so do not apply limits
             if (stopping_point_plus_margin_dist_from_home >= dist_from_home) {
-                if (!desired_vel_cms.is_zero()) {
+                const uint32_t now_ms = AP_HAL::millis();
+                if (!desired_vel_cms.is_zero() && now_ms - notify_gcs_ms >= 1000) {
+                    notify_gcs_ms = now_ms;
                     gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Stopped vehicle!");
                 }
                 desired_vel_cms.zero();
@@ -372,19 +374,12 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
                 const float max_speed = get_max_speed(kP, accel_cmss, distance_to_target, dt);
                 if (max_speed < desired_speed) {
                     desired_vel_cms *= MAX(max_speed, 0.0f) / desired_speed;
-                    if (!stop_state) {
-                        const uint32_t now_ms = AP_HAL::millis();
-                        if (now_ms - notify_gcs_ms >= 1000) {
-                            notify_gcs_ms = now_ms;
-                            gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
-                        }
-                        stop_state = 1;
+                    const uint32_t now_ms = AP_HAL::millis();
+                    if (now_ms - notify_gcs_ms >= 1000) {
+                        notify_gcs_ms = now_ms;
+                        gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
                     }
-                } else {
-                    stop_state = 0;
                 }
-            } else {
-                stop_state = 0;
             }
         }
     }
@@ -551,9 +546,11 @@ void AC_Avoid::adjust_velocity_polygon(float kP, float accel_cmss, Vector2f &des
                 Vector2f limit_direction = intersection - position_xy;
                 const float limit_distance_cm = limit_direction.length();
                 if (!is_zero(limit_distance_cm)) {
+                    const uint32_t now_ms = AP_HAL::millis();
                     if (limit_distance_cm <= margin_cm) {
                         // we are within the margin so stop vehicle
-                        if (!safe_vel.is_zero()) {
+                        if (!safe_vel.is_zero() && now_ms - notify_gcs_ms >= 1000) {
+                            notify_gcs_ms = now_ms;
                             gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Stopped vehicle!");
                         }
                         safe_vel.zero();
@@ -561,14 +558,9 @@ void AC_Avoid::adjust_velocity_polygon(float kP, float accel_cmss, Vector2f &des
                         // vehicle inside the given edge, adjust velocity to not violate this edge
                         limit_direction /= limit_distance_cm;
                         limit_velocity(kP, accel_cmss, safe_vel, limit_direction, MAX(limit_distance_cm - margin_cm, 0.0f), dt);
-
-                        if (!stop_state) {
-                            const uint32_t now_ms = AP_HAL::millis();
-                            if (now_ms - notify_gcs_ms >= 1000) {
-                                notify_gcs_ms = now_ms;
-                                gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
-                            }
-                            stop_state = 1;
+                        if (now_ms - notify_gcs_ms >= 1000) {
+                            notify_gcs_ms = now_ms;
+                            gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
                         }
                     }
                 } else {
@@ -576,8 +568,6 @@ void AC_Avoid::adjust_velocity_polygon(float kP, float accel_cmss, Vector2f &des
                     // i.e. do not adjust velocity.
                     return;
                 }
-            } else {
-                stop_state = 0;
             }
         }
     }

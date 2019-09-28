@@ -134,7 +134,6 @@ private:
     AP_Float _margin;           // vehicle will attempt to stay this distance (in meters) from objects while in GPS modes
     AP_Int8 _behavior;          // avoidance behaviour (slide or stop)
 
-    uint8_t stop_state;
     uint32_t notify_gcs_ms;
 
     bool _proximity_enabled = true; // true if proximity sensor based avoidance is enabled (used to allow pilot to enable/disable)
