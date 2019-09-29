@@ -834,6 +834,9 @@ bool AP_ICEngine::brake_override(float &brake_percent, const float desired_speed
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL:
+            brake_percent = 100;
+            break;
+
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK:
             brake_percent = 0;
             break;
