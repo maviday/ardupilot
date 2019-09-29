@@ -748,8 +748,19 @@ void AP_ICEngine::set_output_channels()
         return;
     }
 
+    ICE_State state_effective = state;
+    if (state_effective == ICE_RUNNING) {
+        if (!delay_run_after_first_accessory_timer_ms) {
+            delay_run_after_first_accessory_timer_ms = AP_HAL::millis();
+        }
+        if (AP_HAL::millis() - delay_run_after_first_accessory_timer_ms <= 1000) {
+            // to reduce power surges, delay a run (act like start/ignition) for an extra second but only on the first time.
+            state_effective = ICE_STARTING;
+        }
+    }
 
-    switch (state) {
+
+    switch (state_effective) {
     case ICE_OFF:
     case ICE_START_DELAY_NO_IGNITION:
         {

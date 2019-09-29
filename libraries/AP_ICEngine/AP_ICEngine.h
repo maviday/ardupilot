@@ -354,6 +354,8 @@ private:
     bool auto_mode_active;
 
     bool vehicle_is_waiting_in_auto;
+
+    uint32_t delay_run_after_first_accessory_timer_ms;
 };
 
 
