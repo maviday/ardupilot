@@ -644,9 +644,9 @@ void AP_ICEngine::determine_state()
         engine_power_up_wait_ms = 0;
         if (starter_start_time_ms == 0) {
             starting_attempts++;
-            starter_start_time_ms = AP_HAL::millis();
+            starter_start_time_ms = now_ms;
         }
-        starter_last_run_ms = AP_HAL::millis();
+        starter_last_run_ms = now_ms;
 
         if (!arming_OK_to_start_or_run) {
             // user abort
