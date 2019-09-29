@@ -632,7 +632,14 @@ void AP_ICEngine::determine_state()
             }
         }
 
-        if (starter_delay <= 0) {
+        if (!delay_starter_on_first_since_boot_timer_ms) {
+            delay_starter_on_first_since_boot_timer_ms = now_ms;
+        }
+
+        if (now_ms - delay_starter_on_first_since_boot_timer_ms < 1000) {
+            // to reduce power surges, delay a run (act like start/ignition) for an extra second but only on the first time.
+            break;
+        } else if (starter_delay <= 0) {
             state = ICE_STARTING;
         } else if (!starter_last_run_ms || now_ms - starter_last_run_ms >= starter_delay*1000) {
             gcs().send_text(MAV_SEVERITY_INFO, "Engine starting for up to %.1fs", (double)starter_delay);
@@ -748,19 +755,7 @@ void AP_ICEngine::set_output_channels()
         return;
     }
 
-    ICE_State state_effective = state;
-    if (state_effective == ICE_RUNNING) {
-        if (!delay_run_after_first_accessory_timer_ms) {
-            delay_run_after_first_accessory_timer_ms = AP_HAL::millis();
-        }
-        if (AP_HAL::millis() - delay_run_after_first_accessory_timer_ms <= 1000) {
-            // to reduce power surges, delay a run (act like start/ignition) for an extra second but only on the first time.
-            state_effective = ICE_STARTING;
-        }
-    }
-
-
-    switch (state_effective) {
+    switch (state) {
     case ICE_OFF:
     case ICE_START_DELAY_NO_IGNITION:
         {

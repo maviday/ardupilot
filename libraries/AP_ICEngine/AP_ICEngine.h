@@ -355,7 +355,7 @@ private:
 
     bool vehicle_is_waiting_in_auto;
 
-    uint32_t delay_run_after_first_accessory_timer_ms;
+    uint32_t delay_starter_on_first_since_boot_timer_ms;
 };
 
 
