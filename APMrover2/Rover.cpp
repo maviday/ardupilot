@@ -56,7 +56,7 @@ const AP_Scheduler::Task Rover::scheduler_tasks[] = {
     SCHED_TASK(update_GPS,             50,    300),
     SCHED_TASK_CLASS(AP_Baro,             &rover.barometer,        update,         10,  200),
     SCHED_TASK_CLASS(AP_Beacon,           &rover.g2.beacon,        update,         50,  200),
-    SCHED_TASK_CLASS(AP_Proximity,        &rover.g2.proximity,     update,         50,  200),
+    SCHED_TASK(proximity_update,       50,    200),
     SCHED_TASK_CLASS(AP_WindVane,         &rover.g2.windvane,      update,         20,  100),
 #if VISUAL_ODOMETRY_ENABLED == ENABLED
     SCHED_TASK_CLASS(AP_VisualOdom,       &rover.g2.visual_odom,   update,         50,  200),
@@ -135,6 +135,19 @@ void Rover::stats_update(void)
 }
 #endif
 
+void Rover::proximity_update(void)
+{
+    const AP_Proximity::Proximity_Status status_before = g2.proximity.get_status();
+    g2.proximity.update();
+    const AP_Proximity::Proximity_Status status_after = g2.proximity.get_status();
+
+    if (status_before == AP_Proximity::Proximity_Good &&
+        status_after == AP_Proximity::Proximity_NoData &&
+        control_mode->is_autopilot_mode())
+    {
+        rover.set_mode(rover.mode_hold, MODE_REASON_PROXIMITY_FAILSAFE);
+    }
+}
 /*
   setup is called when the sketch starts
  */

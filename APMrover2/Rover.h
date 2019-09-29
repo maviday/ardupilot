@@ -450,6 +450,7 @@ private:
     void init_proximity();
     void read_airspeed();
     void rpm_update(void);
+    void proximity_update(void);
 
     // Steering.cpp
     void set_servos(void);
