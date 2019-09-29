@@ -137,14 +137,13 @@ void Rover::stats_update(void)
 
 void Rover::proximity_update(void)
 {
-    const AP_Proximity::Proximity_Status status_before = g2.proximity.get_status();
     g2.proximity.update();
-    const AP_Proximity::Proximity_Status status_after = g2.proximity.get_status();
 
-    if (status_before == AP_Proximity::Proximity_Good &&
-        status_after == AP_Proximity::Proximity_NoData &&
+    if (g2.proximity.get_type(0) != AP_Proximity::Proximity_Type_None &&
+        g2.proximity.get_status() != AP_Proximity::Proximity_Good &&
         control_mode->is_autopilot_mode())
     {
+        gcs().send_text(MAV_SEVERITY_INFO, "Proximity Sensor Failure, switching to HOLD");
         rover.set_mode(rover.mode_hold, MODE_REASON_PROXIMITY_FAILSAFE);
     }
 }

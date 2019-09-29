@@ -38,9 +38,14 @@ bool Mode::enter()
         }
     }
 
-    if (is_autopilot_mode() && g2.proximity.get_status() == AP_Proximity::Proximity_NoData) {
-        // this means we've gotten data and then stopped getting data. That's a failure mode where we inhibit any auto mode
-        gcs().send_text(MAV_SEVERITY_ERROR, "Proximity sensor error");
+
+
+    if (is_autopilot_mode() &&
+        g2.proximity.get_type(0) != AP_Proximity::Proximity_Type_None &&
+        g2.proximity.get_status() != AP_Proximity::Proximity_Good)
+    {
+        // this means we're expecting data but don't have any. That's a failure mode where we inhibit any auto mode
+        gcs().send_text(MAV_SEVERITY_ERROR, "Proximity sensor error - No data");
         return false;
     }
 
