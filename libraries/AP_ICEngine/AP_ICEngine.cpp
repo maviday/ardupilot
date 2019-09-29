@@ -834,11 +834,11 @@ bool AP_ICEngine::brake_override(float &brake_percent, const float desired_speed
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL:
+        case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK:
             brake_percent = 0;
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_UNKNOWN:
-        case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK:
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PWM_VALUE:
         default:
             // unhandled, no brake management
