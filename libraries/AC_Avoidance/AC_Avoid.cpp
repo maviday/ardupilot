@@ -365,6 +365,7 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
                     gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Stopped vehicle!");
                 }
                 desired_vel_cms.zero();
+                set_is_slowing_vehicle(now_ms);
             }
         } else {
             // shorten vector without adjusting its direction
@@ -375,6 +376,7 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
                 if (max_speed < desired_speed) {
                     desired_vel_cms *= MAX(max_speed, 0.0f) / desired_speed;
                     const uint32_t now_ms = AP_HAL::millis();
+                    set_is_slowing_vehicle(now_ms);
                     if (now_ms - notify_gcs_ms >= 1000) {
                         notify_gcs_ms = now_ms;
                         gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");
@@ -554,10 +556,12 @@ void AC_Avoid::adjust_velocity_polygon(float kP, float accel_cmss, Vector2f &des
                             gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Stopped vehicle!");
                         }
                         safe_vel.zero();
+                        set_is_slowing_vehicle(now_ms);
                     } else {
                         // vehicle inside the given edge, adjust velocity to not violate this edge
                         limit_direction /= limit_distance_cm;
                         limit_velocity(kP, accel_cmss, safe_vel, limit_direction, MAX(limit_distance_cm - margin_cm, 0.0f), dt);
+                        set_is_slowing_vehicle(now_ms);
                         if (now_ms - notify_gcs_ms >= 1000) {
                             notify_gcs_ms = now_ms;
                             gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Object detected, slowing vehicle");

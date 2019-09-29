@@ -76,6 +76,8 @@ public:
      // kP should be non-zero for Copter which has a non-linear response
     float get_max_speed(float kP, float accel_cmss, float distance_cm, float dt) const;
 
+    bool get_is_slowing_vehicle() { return (slowing_vehicle_ms > 0) && (AP_HAL::millis() - slowing_vehicle_ms < 500); }
+
     static const struct AP_Param::GroupInfo var_info[];
 
 private:
@@ -137,6 +139,10 @@ private:
     uint32_t notify_gcs_ms;
 
     bool _proximity_enabled = true; // true if proximity sensor based avoidance is enabled (used to allow pilot to enable/disable)
+
+    uint32_t slowing_vehicle_ms;
+
+    void set_is_slowing_vehicle(uint32_t timestamp_ms) { slowing_vehicle_ms = timestamp_ms; }
 
     static AC_Avoid *_singleton;
 };
