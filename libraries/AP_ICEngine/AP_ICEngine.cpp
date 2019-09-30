@@ -1351,10 +1351,11 @@ void AP_ICEngine::send_status()
                     MAV_CMD_ICE_TRANSMISSION_STATE,
                     0, // confirmation is unused
                     0, // index
-                    gear.state,
+                    gear.pending.is_active() ? gear.pending.state : gear.state,
                     current_gear_pwm,
                     startControlSelect,
-                    0,0,0);
+                    gear.pending.is_active(),
+                    0,0);
         }
 
 
