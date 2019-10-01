@@ -140,6 +140,7 @@ public:
     bool sensor_present() const;
     bool sensor_enabled() const;
     bool sensor_failed() const;
+    bool healthy() const { return sensor_enabled() && sensor_present() && !sensor_failed(); }
 
 private:
     static AP_Proximity *_singleton;

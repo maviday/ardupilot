@@ -80,6 +80,9 @@ public:
 
     static const struct AP_Param::GroupInfo var_info[];
 
+    int8_t enabled() const { return _enabled; }
+    bool feature_is_enabled(uint8_t feature_mask) const { return (_enabled & feature_mask) != 0; }
+
 private:
     // behaviour types (see BEHAVE parameter)
     enum BehaviourType {
