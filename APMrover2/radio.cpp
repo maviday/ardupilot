@@ -132,7 +132,8 @@ void Rover::radio_failsafe_check(uint16_t pwm)
 
     if (is_positive(g2.fs_throttle_timeout)) {
         // param is enabled so we'll apply either a long-ish 1000ms timer or a user-defined one
-        const bool proximityAvoidanceEnabledAndHealty = g2.proximity.sensor_enabled() &&        // param PRX_TYPE == 2
+        const bool proximityAvoidanceEnabledAndHealty = control_mode->is_autopilot_mode() &&
+                                                        g2.proximity.sensor_enabled() &&        // param PRX_TYPE == 2
                                                         g2.proximity.healthy() &&               // data has been received
                                                         g2.avoid.feature_is_enabled(AC_AVOID_USE_PROXIMITY_SENSOR); // param AVOID_ENABLE is good
 
