@@ -140,8 +140,8 @@ void Rover::radio_failsafe_check(uint16_t pwm)
         // if proximity avoidance is running, allow the timeout
         // to be much larger because the vehicle should be able
         // to protect itself and the surrounding puny humans
-        const uint32_t timeout = proximityAvoidanceEnabledAndHealty ? 1000 : ((uint32_t)g2.fs_throttle_timeout * 1000);
-        if (AP_HAL::millis() - failsafe.last_valid_rc_ms > timeout) {
+        const uint32_t timeout_ms = proximityAvoidanceEnabledAndHealty ? 1000 : ((uint32_t)(g2.fs_throttle_timeout * 1000));
+        if (AP_HAL::millis() - failsafe.last_valid_rc_ms > timeout_ms) {
             failed = true;
         }
     }
