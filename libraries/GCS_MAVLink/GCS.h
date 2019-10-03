@@ -328,6 +328,7 @@ protected:
     virtual bool should_zero_rc_outputs_on_reboot() const { return false; }
     MAV_RESULT handle_preflight_reboot(const mavlink_command_long_t &packet);
     MAV_RESULT handle_ice(const mavlink_command_long_t &packet);
+    MAV_RESULT handle_user_message(const mavlink_command_long_t &packet);
 
     // reset a message interval via mavlink:
     MAV_RESULT handle_command_set_message_interval(const mavlink_command_long_t &packet);

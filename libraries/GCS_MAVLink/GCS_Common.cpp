@@ -36,6 +36,7 @@
 #include <AP_VisualOdom/AP_VisualOdom.h>
 #include <AP_OpticalFlow/OpticalFlow.h>
 #include <AP_Baro/AP_Baro.h>
+#include "AP_UserCustom/AP_UserCustom.h"
 
 #include "GCS.h"
 
@@ -3495,6 +3496,15 @@ MAV_RESULT GCS_MAVLINK::handle_ice(const mavlink_command_long_t &packet)
     return MAV_RESULT_FAILED;
 }
 
+MAV_RESULT GCS_MAVLINK::handle_user_message(const mavlink_command_long_t &packet)
+{
+    AP_UserCustom *userCustom = AP::usercustom();
+    if (userCustom == nullptr) {
+        return MAV_RESULT_UNSUPPORTED;
+    }
+    return userCustom->handle_user_message(packet) ? MAV_RESULT_ACCEPTED : MAV_RESULT_FAILED;
+}
+
 MAV_RESULT GCS_MAVLINK::handle_command_long_packet(const mavlink_command_long_t &packet)
 {
     MAV_RESULT result = MAV_RESULT_FAILED;
@@ -3604,6 +3614,24 @@ MAV_RESULT GCS_MAVLINK::handle_command_long_packet(const mavlink_command_long_t 
 
     case MAV_CMD_REQUEST_MESSAGE:
         result = handle_command_request_message(packet);
+        break;
+
+    case MAV_CMD_WAYPOINT_USER_1:
+    case MAV_CMD_WAYPOINT_USER_2:
+    case MAV_CMD_WAYPOINT_USER_3:
+    case MAV_CMD_WAYPOINT_USER_4:
+    case MAV_CMD_WAYPOINT_USER_5:
+    case MAV_CMD_SPATIAL_USER_1:
+    case MAV_CMD_SPATIAL_USER_2:
+    case MAV_CMD_SPATIAL_USER_3:
+    case MAV_CMD_SPATIAL_USER_4:
+    case MAV_CMD_SPATIAL_USER_5:
+    case MAV_CMD_USER_1:
+    case MAV_CMD_USER_2:
+    case MAV_CMD_USER_3:
+    case MAV_CMD_USER_4:
+    case MAV_CMD_USER_5:
+        result = handle_user_message(packet);
         break;
 
     case MAV_CMD_ICE_TRANSMISSION_STATE:
