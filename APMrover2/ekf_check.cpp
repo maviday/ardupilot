@@ -165,6 +165,9 @@ void Rover::failsafe_ekf_event()
         case FS_EKF_DISABLE:
             // do nothing
             break;
+        case FS_EFK_MANUAL:
+            set_mode(mode_manual, MODE_REASON_EKF_FAILSAFE);
+            break;
         case FS_EFK_HOLD:
         default:
             set_mode(mode_hold, MODE_REASON_EKF_FAILSAFE);
