@@ -1,6 +1,7 @@
 #include "AP_UserCustom.h"
 
-#if !HAL_MINIMIZE_FEATURES
+#if 0
+//#if !HAL_MINIMIZE_FEATURES
 
 extern const AP_HAL::HAL& hal;
 
