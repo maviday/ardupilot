@@ -952,7 +952,24 @@ bool AP_ICEngine::throttle_override(float &percentage)
 */
 bool AP_ICEngine::engine_control(float start_control, float cold_start, float height_delay, float gear_state_f, bool being_set_by_auto_mission)
 {
-    (void)cold_start; // unused
+    // --------- BEGIN EPIC HACK --------------
+    // --------- BEGIN EPIC HACK --------------
+    // --------- BEGIN EPIC HACK --------------
+    being_set_by_auto_mission = true; // old guided worker won't send anything
+    if (is_equal(cold_start, 1.0f)) {
+        // new guided worker will be sending this
+        being_set_by_auto_mission = true;
+    }
+    if (is_equal(cold_start, 2.0f)) {
+        // C3 will be sending this
+        being_set_by_auto_mission = false;
+    }
+    // ---------  END EPIC HACK --------------
+    // ---------  END EPIC HACK --------------
+    // ---------  END EPIC HACK --------------
+
+
+
     const MAV_ICE_TRANSMISSION_GEAR_STATE gear_state = (MAV_ICE_TRANSMISSION_GEAR_STATE)(int32_t)gear_state_f;
 
     if (options & AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS) {
@@ -978,8 +995,6 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
         gcs().send_text(MAV_SEVERITY_INFO, "Takeoff height set to %.1fm", (double)height_delay);
         last_cmd_set_by_automission = being_set_by_auto_mission;
     }
-#else
-    (void)height_delay; // unused for rover because there is no altitude
 #endif
 
     if (is_equal(start_control, 0.0f)) {
