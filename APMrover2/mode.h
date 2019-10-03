@@ -72,6 +72,8 @@ public:
     // returns true if vehicle can be armed or disarmed from the transmitter in this mode
     virtual bool allows_arming_from_transmitter() { return !is_autopilot_mode(); }
 
+    virtual bool is_waiting() const { return false; }
+
     //
     // attributes for mavlink system status reporting
     //
@@ -279,7 +281,7 @@ public:
 
     // returns true when executing a blocking command that is performing a delay but otherwise not navigating anywhere.
     // Examples of this are during the delay after finishing a NAV_WAYPOINT and during DO_NAV_DELAY
-    bool is_waiting() const { return (_submode == Auto_Stop) && (mission.state() == AP_Mission::MISSION_RUNNING); }
+    bool is_waiting() const override { return (_submode == Auto_Stop) && (mission.state() == AP_Mission::MISSION_RUNNING); }
 
     // start RTL (within auto)
     void start_RTL();
@@ -404,6 +406,9 @@ public:
     // set desired heading-delta, turn-rate and speed
     void set_desired_heading_delta_and_speed(float yaw_delta_cd, float target_speed);
     void set_desired_turn_rate_and_speed(float turn_rate_cds, float target_speed);
+
+    // returns true when we are knowingly stopped. This helps prevent crash detected false alarms
+    bool is_waiting() const override { return false; }
 
     // vehicle start loiter
     bool start_loiter();
