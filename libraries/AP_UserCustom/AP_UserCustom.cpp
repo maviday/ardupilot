@@ -1,5 +1,7 @@
 #include "AP_UserCustom.h"
 
+#if !HAL_MINIMIZE_FEATURES
+
 extern const AP_HAL::HAL& hal;
 
 const AP_Param::GroupInfo AP_UserCustom::var_info[] = {
@@ -49,16 +51,30 @@ const AP_Param::GroupInfo AP_UserCustom::var_info[] = {
     AP_GROUPEND
 };
 
-void AP_UserCustom::init()
+AP_UserCustom::AP_UserCustom() {
+    // constructor
+    if (_singleton) {
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+        AP_HAL::panic("Too many AP_UserCustom");
+#endif
+        return;
+    }
+    _singleton = this;
+
+    AP_Param::setup_object_defaults(this, var_info);
+}
+
+// return true on successful init
+bool AP_UserCustom::init()
 {
     // return immediately if not enabled
     if (!enabled()) {
-        return;
+        return false;
     }
 
     // TODO: add custom init work
 
-    is_initialized = true;
+    return true;
 }
 
 // periodic callback that runs at 50Hz
@@ -66,10 +82,12 @@ void AP_UserCustom::update()
 {
     // return immediately if not enabled
     if (!enabled()) {
+        is_initialized = false;
         return;
     }
     if (!is_initialized) {
-        init();
+        is_initialized = init();
+        // return to give a tiny amount of time between init and update in case it failed or extra time is needed after init
         return;
     }
     const uint32_t now_ms = AP_HAL::millis();
@@ -83,7 +101,6 @@ void AP_UserCustom::update()
 
     // TODO: add custom periodic fast work
 }
-
 
 // return true if checks are OK and we allow arming.
 // return false if checks fail and we want to block arming. If "report" is true we can optionally send a message to inform the user and/or external system(s) of the reason
@@ -137,16 +154,15 @@ bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet)
         return false;
     }
 }
+#else
+bool AP_UserCustom::arming_check(bool report) { return true; }  // do not inhibit arming
+bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet) { return false; } // not handled
+#endif // !HAL_MINIMIZE_FEATURES
 
 // singleton instance
 AP_UserCustom *AP_UserCustom::_singleton;
-
 namespace AP {
-
-AP_UserCustom *usercustom()
-{
+AP_UserCustom *usercustom() {
     return AP_UserCustom::get_singleton();
-}
-
-};
+}};
 

@@ -15,22 +15,14 @@
 
 #pragma once
 
+#include <AP_HAL/AP_HAL.h>
 #include <AP_Param/AP_Param.h>
 #include <GCS_MAVLink/GCS.h>
 
 class AP_UserCustom {
 public:
-    AP_UserCustom() {
-        if (_singleton) {
-    #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-            AP_HAL::panic("Too many AP_UserCustom");
-    #endif
-            return;
-        }
-        _singleton = this;
-
-        AP_Param::setup_object_defaults(this, var_info);
-    }
+    AP_UserCustom();
+    ~AP_UserCustom();
 
     // remove copy constructor for any class that has a singleton
     AP_UserCustom(const AP_UserCustom &other) = delete;
@@ -39,9 +31,6 @@ public:
     static const struct AP_Param::GroupInfo        var_info[];
 
     static AP_UserCustom *get_singleton() { return _singleton; }
-
-    // initialise this module
-    void init();
 
     // update - should be called at at least 10hz but usually 50Hz
     void update();
@@ -62,6 +51,9 @@ public:
     AP_Float    test_float3;
 
 private:
+    // initialise this module
+    bool init();
+
     static AP_UserCustom *_singleton;
     bool is_initialized;
 
