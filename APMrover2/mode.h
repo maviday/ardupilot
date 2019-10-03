@@ -408,7 +408,7 @@ public:
     void set_desired_turn_rate_and_speed(float turn_rate_cds, float target_speed);
 
     // returns true when we are knowingly stopped. This helps prevent crash detected false alarms
-    bool is_waiting() const override { return false; }
+    bool is_waiting() const override { return reached_destination(); }
 
     // vehicle start loiter
     bool start_loiter();
