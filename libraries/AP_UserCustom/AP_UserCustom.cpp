@@ -84,6 +84,29 @@ void AP_UserCustom::update()
     // TODO: add custom periodic fast work
 }
 
+
+// return true if checks are OK and we allow arming.
+// return false if checks fail and we want to block arming. If "report" is true we can optionally send a message to inform the user and/or external system(s) of the reason
+bool AP_UserCustom::arming_check(bool report)
+{
+    if (!enabled()) {
+        return true;
+    }
+
+    bool checks_passed = false;
+
+    // TODO: add custom arming check and set checks_passed to false if the custom checks don't pass
+    checks_passed = true;
+
+    if (report && !checks_passed) {
+        // TODO: add custom arming check failure message
+        const char* reason = "Error";
+        int32_t error_number = 42;
+        gcs().send_text(MAV_SEVERITY_INFO, "UserCustom: %s %d", reason, error_number);
+    }
+    return checks_passed;
+}
+
 // handle inbound MAVLink messages
 bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet)
 {

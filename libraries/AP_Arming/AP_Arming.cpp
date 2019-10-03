@@ -28,6 +28,7 @@
 #include <AP_InternalError/AP_InternalError.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_Baro/AP_Baro.h>
+#include "AP_UserCustom/AP_UserCustom.h"
 
 #if HAL_WITH_UAVCAN
   #include <AP_BoardConfig/AP_BoardConfig_CAN.h>
@@ -731,6 +732,15 @@ bool AP_Arming::can_checks(bool report)
     return true;
 }
 
+bool AP_Arming::user_custom_checks(bool report)
+{
+    AP_UserCustom *userCustom = AP::usercustom();
+    if (userCustom == nullptr) {
+        return true;
+    }
+    return userCustom->arming_check(report);
+}
+
 
 bool AP_Arming::fence_checks(bool display_failure)
 {
@@ -777,6 +787,7 @@ bool AP_Arming::pre_arm_checks(bool report)
         &  board_voltage_checks(report)
         &  system_checks(report)
         &  can_checks(report)
+        &  user_custom_checks(report)
         &  proximity_checks(report);
 }
 

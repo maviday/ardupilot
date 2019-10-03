@@ -16,7 +16,7 @@
 #pragma once
 
 #include <AP_Param/AP_Param.h>
-#include <GCS_MAVLink/GCS_MAVLink.h>
+#include <GCS_MAVLink/GCS.h>
 
 class AP_UserCustom {
 public:
@@ -48,6 +48,8 @@ public:
 
     // indicate whether this module is enabled or not
     bool enabled() const { return _enabled; }
+
+    bool arming_check(bool report);
 
     bool handle_user_message(const mavlink_command_long_t &packet);
 
