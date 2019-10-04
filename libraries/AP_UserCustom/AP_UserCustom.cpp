@@ -175,8 +175,16 @@ bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet)
         // TODO: add custom MAVLink handling work. Change to true for entries that get handled
         return false;
 
-    case MAV_CMD_USER_1:
-        lidar_M8_status = (int32_t)packet.param1;
+    case MAV_CMD_USER_1: {
+            const int32_t old_status = lidar_M8_status;
+            lidar_M8_status = (int32_t)packet.param1;
+            const uint32_t now_ms = AP_HAL::millis();
+            if (test_int1 == 1) {
+                gcs().send_text(MAV_SEVERITY_INFO, "%d LiDAR Status: %d", now_ms, lidar_M8_status);
+            } else if (test_int1 == 2 && (old_status != lidar_M8_status)) {
+                gcs().send_text(MAV_SEVERITY_INFO, "%d LiDAR Status changed: %d -> %d", now_ms, old_status, lidar_M8_status);
+            }
+        }
         return true;
 
     default:
