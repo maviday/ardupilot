@@ -95,6 +95,48 @@ const AP_Param::GroupInfo AP_Relay::var_info[] = {
     // @Values: -1:Disabled,49:BB Blue GP0 pin 4,50:AUXOUT1,51:AUXOUT2,52:AUXOUT3,53:AUXOUT4,54:AUXOUT5,55:AUXOUT6,57:BB Blue GP0 pin 3,113:BB Blue GP0 pin 6,116:BB Blue GP0 pin 5
     AP_GROUPINFO("PIN6",  6, AP_Relay, _pin[5], RELAY6_PIN_DEFAULT),
 
+    // @Param: PIN1_INV
+    // @DisplayName: First Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN1_INV",  7, AP_Relay, _inverted[0], 0),
+
+    // @Param: PIN2_INV
+    // @DisplayName: Second Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN2_INV",  8, AP_Relay, _inverted[1], 0),
+
+    // @Param: PIN3_INV
+    // @DisplayName: Third Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN3_INV",  9, AP_Relay, _inverted[2], 0),
+
+    // @Param: PIN4_INV
+    // @DisplayName: Fourth Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN4_INV",  10, AP_Relay, _inverted[3], 0),
+
+    // @Param: PIN5_INV
+    // @DisplayName: Fifth Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN5_INV",  11, AP_Relay, _inverted[4], 0),
+
+    // @Param: PIN6_INV
+    // @DisplayName: Sixth Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN6_INV",  12, AP_Relay, _inverted[5], 0),
+
     AP_GROUPEND
 };
 
@@ -137,7 +179,7 @@ void AP_Relay::on(uint8_t relay)
 {    
     if (relay < AP_RELAY_NUM_RELAYS && _pin[relay] != -1) {
         hal.gpio->pinMode(_pin[relay], HAL_GPIO_OUTPUT);
-        hal.gpio->write(_pin[relay], 1);
+        hal.gpio->write(_pin[relay], _inverted[relay] ? 0 : 1);
     }
 }
 
@@ -146,7 +188,7 @@ void AP_Relay::off(uint8_t relay)
 {
     if (relay < AP_RELAY_NUM_RELAYS && _pin[relay] != -1) {
         hal.gpio->pinMode(_pin[relay], HAL_GPIO_OUTPUT);
-        hal.gpio->write(_pin[relay], 0);
+        hal.gpio->write(_pin[relay], _inverted[relay] ? 1 : 0);
     }
 }
 
@@ -155,7 +197,7 @@ void AP_Relay::toggle(uint8_t relay)
 {
     if (relay < AP_RELAY_NUM_RELAYS && _pin[relay] != -1) {
         bool ison = hal.gpio->read(_pin[relay]);
-        if (ison)
+        if (_inverted[relay] ? !ison : ison)
             off(relay);
         else
             on(relay);

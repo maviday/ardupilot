@@ -38,6 +38,12 @@ public:
     // disable the relay
     void        disable(uint8_t relay) { if (relay < AP_RELAY_NUM_RELAYS) { _pin[relay] = -1; } }
 
+    // see if the relay is inverted
+    bool        inverted(uint8_t relay) { return relay < AP_RELAY_NUM_RELAYS && _inverted[relay] != 0; }
+
+    // invert the relay
+    void        invert(uint8_t relay, bool is_inverted) { if (relay < AP_RELAY_NUM_RELAYS) { _inverted[relay] = is_inverted; } }
+
     // toggle the relay status
     void        toggle(uint8_t relay);
 
@@ -49,6 +55,7 @@ private:
     static AP_Relay *singleton;
 
     AP_Int8 _pin[AP_RELAY_NUM_RELAYS];
+    AP_Int8 _inverted[AP_RELAY_NUM_RELAYS];
     AP_Int8 _default;
 };
 
