@@ -133,13 +133,6 @@ bool AP_UserCustom::arming_check(bool report)
     if (arming_check_Lidar == 1) {
         AP_Proximity *proximity = AP::proximity();
 
-        if (test_int3 == 1) {
-            if (proximity == nullptr) {
-                gcs().send_text(MAV_SEVERITY_INFO, "proximity is null");
-            } else {
-                gcs().send_text(MAV_SEVERITY_INFO, "pkt:%d==%d, health: %d %d %d", lidar_M8_status, MAV_M8_RUNNING, proximity->sensor_enabled(), proximity->sensor_present(), !proximity->sensor_failed());
-            }
-        }
         if (proximity != nullptr && (proximity->get_type(0) == AP_Proximity::Proximity_Type_MAV)) {
             checks_passed = proximity->healthy() && (lidar_M8_status == MAV_M8_RUNNING);
         }
@@ -152,10 +145,6 @@ bool AP_UserCustom::arming_check(bool report)
                 gcs().send_text(MAV_SEVERITY_INFO, "Arming Failure: %s", msg);
             }
         }
-    }
-
-    if (test_int2 == 1) {
-        gcs().send_text(MAV_SEVERITY_INFO, "%d Lidar arming_check: %d", AP_HAL::millis(), checks_passed);
     }
 
     return checks_passed;
@@ -187,16 +176,8 @@ bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet)
         // TODO: add custom MAVLink handling work. Change to true for entries that get handled
         return false;
 
-    case MAV_CMD_USER_1: {
-            const int32_t old_status = lidar_M8_status;
+    case MAV_CMD_USER_1:
             lidar_M8_status = (int32_t)packet.param1;
-            const uint32_t now_ms = AP_HAL::millis();
-            if (test_int1 == 1) {
-                gcs().send_text(MAV_SEVERITY_INFO, "%d LiDAR Status: %d", now_ms, lidar_M8_status);
-            } else if (test_int1 == 2 && (old_status != lidar_M8_status)) {
-                gcs().send_text(MAV_SEVERITY_INFO, "%d LiDAR Status changed: %d -> %d", now_ms, old_status, lidar_M8_status);
-            }
-        }
         return true;
 
     default:
