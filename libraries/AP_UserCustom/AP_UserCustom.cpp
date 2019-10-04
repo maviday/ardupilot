@@ -13,7 +13,7 @@ const AP_Param::GroupInfo AP_UserCustom::var_info[] = {
         // @Description: UserCustom enable/disable
         // @User: Standard
         // @Values: 0:Disabled, 1:Enabled
-        AP_GROUPINFO_FLAGS("ENABLE", 0, AP_UserCustom, _enabled, 0, AP_PARAM_FLAG_ENABLE),
+        AP_GROUPINFO_FLAGS("ENABLE", 0, AP_UserCustom, _enabled, 1, AP_PARAM_FLAG_ENABLE),
 
         // @Param: TEST_INT1
         // @DisplayName: User Custom Integer 1
