@@ -132,6 +132,14 @@ bool AP_UserCustom::arming_check(bool report)
 
     if (arming_check_Lidar == 1) {
         AP_Proximity *proximity = AP::proximity();
+
+        if (test_int3 == 1) {
+            if (proximity == nullptr) {
+                gcs().send_text(MAV_SEVERITY_INFO, "proximity is null");
+            } else {
+                gcs().send_text(MAV_SEVERITY_INFO, "pkt:%d==%d, health: %d %d %d", lidar_M8_status, MAV_M8_RUNNING, proximity->sensor_enabled(), proximity->sensor_present(), !proximity->sensor_failed());
+            }
+        }
         if (proximity != nullptr && (proximity->get_type(0) == AP_Proximity::Proximity_Type_MAV)) {
             checks_passed = proximity->healthy() && (lidar_M8_status == MAV_M8_RUNNING);
         }
