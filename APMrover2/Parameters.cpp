@@ -674,6 +674,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("EBRAKE_CH", 51, ParametersG2, ebrake_rc_channel, 0),
 
+    // @Group: CSTM_
+    // @Path: ../libraries/AP_UserCustom/AP_UserCustom.cpp
+    AP_SUBGROUPINFO(userCustom, "CSTM_", 52, ParametersG2, AP_UserCustom),
+
     AP_GROUPEND
 };
 

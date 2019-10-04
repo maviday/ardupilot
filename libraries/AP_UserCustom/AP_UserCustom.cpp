@@ -51,6 +51,12 @@ const AP_Param::GroupInfo AP_UserCustom::var_info[] = {
         // @User: Standard
         AP_GROUPINFO("TEST_FLT3", 6, AP_UserCustom, test_float3, 0),
 
+        // @Param: ARMCHK_LDR
+        // @DisplayName: Arming check for LiDAR health
+        // @Description: Arming check for LiDAR health
+        // @User: Standard
+        AP_GROUPINFO("ARMCHK_LDR", 7, AP_UserCustom, arming_check_Lidar, 1),
+
     AP_GROUPEND
 };
 
@@ -94,21 +100,22 @@ void AP_UserCustom::update()
     }
 
 
+    if (arming_check_Lidar == 1) {
+        if (!arming_initial_fail_ms || AP::arming().is_armed()) {
+            arming_initial_fail_ms = 0;
+            return;
+        }
 
-    if (!arming_initial_fail_ms || AP::arming().is_armed()) {
-        arming_initial_fail_ms = 0;
-        return;
-    }
-
-    const uint32_t now_ms = AP_HAL::millis();
-    if (now_ms - arming_retry_ms > 1000) {
-        arming_retry_ms = now_ms;
-        gcs().send_text(MAV_SEVERITY_INFO, "%d Arming auto-retry, quiet", now_ms);
-        if (AP::arming().pre_arm_checks(false) || (now_ms - arming_initial_fail_ms >= 45000)) {
-            // if we pass the checks or timeout, attempt one final arm attempt
-            gcs().send_text(MAV_SEVERITY_INFO, "%d Arming auto-retry, loud and final", now_ms);
-            AP::arming().arm(AP_Arming::Method::USER_CUSTOM, true);
-            arming_initial_fail_ms = 0; // clear this after the check to disable the timer in case we fail again
+        const uint32_t now_ms = AP_HAL::millis();
+        if (now_ms - arming_retry_ms > 1000) {
+            arming_retry_ms = now_ms;
+            gcs().send_text(MAV_SEVERITY_INFO, "%d Arming auto-retry, quiet", now_ms);
+            if (AP::arming().pre_arm_checks(false) || (now_ms - arming_initial_fail_ms >= 45000)) {
+                // if we pass the checks or timeout, attempt one final arm attempt
+                gcs().send_text(MAV_SEVERITY_INFO, "%d Arming auto-retry, loud and final", now_ms);
+                AP::arming().arm(AP_Arming::Method::USER_CUSTOM, true);
+                arming_initial_fail_ms = 0; // clear this after the check to disable the timer in case we fail again
+            }
         }
     }
 }
@@ -123,22 +130,22 @@ bool AP_UserCustom::arming_check(bool report)
 
     bool checks_passed = true;
 
+    if (arming_check_Lidar == 1) {
+        AP_Proximity *proximity = AP::proximity();
+        if (proximity != nullptr && (proximity->get_type(0) == AP_Proximity::Proximity_Type_MAV)) {
+            checks_passed = proximity->healthy() && (lidar_M8_status == MAV_M8_RUNNING);
+        }
+        if (!checks_passed && report) {
+            // report is true only when an actual arm check happens. Otherwise other checks are always passively happening quietly
+            if (!arming_initial_fail_ms) {
+                arming_initial_fail_ms = AP_HAL::millis();
 
-
-
-    AP_Proximity *proximity = AP::proximity();
-    if (proximity != nullptr && (proximity->get_type(0) == AP_Proximity::Proximity_Type_MAV)) {
-        checks_passed = proximity->healthy() && (lidar_M8_status == MAV_M8_RUNNING);
-    }
-    if (!checks_passed && report) {
-        // report is true only when an actual arm check happens. Otherwise other checks are always passively happening quietly
-        if (!arming_initial_fail_ms) {
-            arming_initial_fail_ms = AP_HAL::millis();
-
-            const char* msg = (lidar_M8_status == MAV_M8_STARTUP) ? "LiDAR is Starting Up" : "LiDAR Error";
-            gcs().send_text(MAV_SEVERITY_INFO, "Arming Failure: %s", msg);
+                const char* msg = (lidar_M8_status == MAV_M8_STARTUP) ? "LiDAR is Starting Up" : "LiDAR Error";
+                gcs().send_text(MAV_SEVERITY_INFO, "Arming Failure: %s", msg);
+            }
         }
     }
+
     return checks_passed;
 }
 

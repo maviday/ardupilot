@@ -232,8 +232,6 @@ private:
     // relay support
     AP_Relay relay;
 
-    AP_UserCustom userCustom;
-
     AP_ServoRelayEvents ServoRelayEvents;
 
     // The rover's current location
