@@ -619,6 +619,48 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(scripting, "SCR_", 41, ParametersG2, AP_Scripting),
 #endif
 
+    // @Param: STICK_MIXING
+    // @DisplayName: Stick Mixing
+    // @Description: When enabled, this adds steering user stick input in auto modes, allowing the user to have some degree of control without changing modes.
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    AP_GROUPINFO("STICK_MIXING", 42, ParametersG2, stick_mixing, 0),
+
+    // @Group: WP_
+    // @Path: ../libraries/AR_WPNav/AR_WPNav.cpp
+    AP_SUBGROUPINFO(wp_nav, "WP_", 43, ParametersG2, AR_WPNav),
+
+    // @Group: SAIL_
+    // @Path: sailboat.cpp
+    AP_SUBGROUPINFO(sailboat, "SAIL_", 44, ParametersG2, Sailboat),
+
+    // @Group: OA_
+    // @Path: ../libraries/AC_Avoidance/AP_OAPathPlanner.cpp
+    AP_SUBGROUPINFO(oa, "OA_", 45, ParametersG2, AP_OAPathPlanner),
+
+    // @Param: FS_THR_TIMEOUT
+    // @DisplayName: Throttle Failsafe Timeout
+    // @Description: The throttle failsafe timeout time in seconds. If no RC update occurs for this amount of time then throttle and steering demands are set to zero but no other action is taken. If this condition continues for another FS_TIMEOUT then a throttle failsafe will occur. This is useful for system failures where the RC input disappears or your are controlled only by MAVLink commands.
+    // @Units: s
+    // @User: Standard
+    AP_GROUPINFO("FS_THR_TIMEOUT", 46, ParametersG2, fs_throttle_timeout, 0.5f),
+
+    // @Group: ICE_
+    // @Path: ../libraries/AP_ICEngine/AP_ICEngine.cpp
+    AP_SUBGROUPINFO(ice_control, "ICE_", 50, ParametersG2, AP_ICEngine),
+
+
+    // @Param: EBRAKE_CH
+    // @DisplayName: Emergency Brake Channel
+    // @Description: Emergency Brake RC Input Channel number. Use 0 to disable, else 1 maps to RC1 and 16 maps to RC16
+    // @Range: 0 16
+    // @User: Advanced
+    AP_GROUPINFO("EBRAKE_CH", 51, ParametersG2, ebrake_rc_channel, 0),
+
+    // @Group: CSTM_
+    // @Path: ../libraries/AP_UserCustom/AP_UserCustom.cpp
+    AP_SUBGROUPINFO(userCustom, "CSTM_", 52, ParametersG2, AP_UserCustom),
+
     // @Param: CRASH_ANGLE_ROLL
     // @DisplayName: Crash Angle Roll
     // @Description: Roll angle limit in degrees for crash check. Zero disables check
@@ -635,49 +677,6 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 //    AP_GROUPINFO("MAN_THR_GAIN_DN", 62, ParametersG2, manual_throttle_max_rate_shrink, 0.9f),
 
     // -----------------------------
-
-
-    // @Param: STICK_MIXING
-    // @DisplayName: Stick Mixing
-    // @Description: When enabled, this adds steering user stick input in auto modes, allowing the user to have some degree of control without changing modes.
-    // @Values: 0:Disabled,1:Enabled
-    // @User: Advanced
-    AP_GROUPINFO("STICK_MIXING", 42, ParametersG2, stick_mixing, 0),
-
-    // @Group: WP_
-    // @Path: ../libraries/AR_WPNav/AR_WPNav.cpp
-    AP_SUBGROUPINFO(wp_nav, "WP_", 43, ParametersG2, AR_WPNav),
-
-    // @Group: ICE_
-    // @Path: ../libraries/AP_ICEngine/AP_ICEngine.cpp
-    AP_SUBGROUPINFO(ice_control, "ICE_", 50, ParametersG2, AP_ICEngine),
-	
-    // @Group: SAIL_
-    // @Path: sailboat.cpp
-    AP_SUBGROUPINFO(sailboat, "SAIL_", 44, ParametersG2, Sailboat),
-
-    // @Group: OA_
-    // @Path: ../libraries/AC_Avoidance/AP_OAPathPlanner.cpp
-    AP_SUBGROUPINFO(oa, "OA_", 45, ParametersG2, AP_OAPathPlanner),
-
-    // @Param: FS_THR_TIMEOUT
-    // @DisplayName: Throttle Failsafe Timeout
-    // @Description: The throttle failsafe timeout time in seconds. If no RC update occurs for this amount of time then throttle and steering demands are set to zero but no other action is taken. If this condition continues for another FS_TIMEOUT then a throttle failsafe will occur. This is useful for system failures where the RC input disappears or your are controlled only by MAVLink commands.
-    // @Units: s
-    // @User: Standard
-    AP_GROUPINFO("FS_THR_TIMEOUT", 46, ParametersG2, fs_throttle_timeout, 0.5f),
-
-    // @Param: EBRAKE_CH
-    // @DisplayName: Emergency Brake Channel
-    // @Description: Emergency Brake RC Input Channel number. Use 0 to disable, else 1 maps to RC1 and 16 maps to RC16
-    // @Range: 0 16
-    // @User: Advanced
-    AP_GROUPINFO("EBRAKE_CH", 51, ParametersG2, ebrake_rc_channel, 0),
-
-    // @Group: CSTM_
-    // @Path: ../libraries/AP_UserCustom/AP_UserCustom.cpp
-    AP_SUBGROUPINFO(userCustom, "CSTM_", 52, ParametersG2, AP_UserCustom),
-
     AP_GROUPEND
 };
 
