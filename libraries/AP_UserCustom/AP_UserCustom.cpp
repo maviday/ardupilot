@@ -89,12 +89,6 @@ bool AP_UserCustom::init()
 // periodic callback that runs at 50Hz
 void AP_UserCustom::update()
 {
-    const uint32_t now_ms = AP_HAL::millis();
-    if (now_ms - timer_ms1 > 1000) {
-        timer_ms1 = now_ms;
-        gcs().send_text(MAV_SEVERITY_INFO, "%d AP_UserCustom::update enter", now_ms);
-    }
-
     // return immediately if not enabled
     if (!enabled()) {
         is_initialized = false;
@@ -105,11 +99,6 @@ void AP_UserCustom::update()
         return;
     }
 
-    if (now_ms - timer_ms2 > 1000) {
-        timer_ms2 = now_ms;
-        gcs().send_text(MAV_SEVERITY_INFO, "%d AP_UserCustom::update", now_ms);
-    }
-
 
     if (arming_check_Lidar == 1) {
         if (!arming_initial_fail_ms || AP::arming().is_armed()) {
@@ -117,6 +106,7 @@ void AP_UserCustom::update()
             return;
         }
 
+        const uint32_t now_ms = AP_HAL::millis();
         if (now_ms - arming_retry_ms > 1000) {
             arming_retry_ms = now_ms;
             gcs().send_text(MAV_SEVERITY_INFO, "%d Arming auto-retry, quiet", now_ms);
@@ -134,8 +124,6 @@ void AP_UserCustom::update()
 // return false if checks fail and we want to block arming. If "report" is true we can optionally send a message to inform the user and/or external system(s) of the reason
 bool AP_UserCustom::arming_check(bool report)
 {
-    gcs().send_text(MAV_SEVERITY_INFO, "%d Lidar arming_check enter", AP_HAL::millis());
-
     if (!enabled()) {
         return true;
     }
@@ -168,9 +156,6 @@ bool AP_UserCustom::arming_check(bool report)
 // handle inbound MAVLink messages
 bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet)
 {
-    const uint32_t now_ms = AP_HAL::millis();
-    gcs().send_text(MAV_SEVERITY_INFO, "%d AP_UserCustom::handle_user_message: %d", now_ms, packet.command);
-
     if (!enabled()) {
         return false;
     }
@@ -197,6 +182,7 @@ bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet)
     case MAV_CMD_USER_1: {
             const int32_t old_status = lidar_M8_status;
             lidar_M8_status = (int32_t)packet.param1;
+            const uint32_t now_ms = AP_HAL::millis();
             if (test_int1 == 1) {
                 gcs().send_text(MAV_SEVERITY_INFO, "%d LiDAR Status: %d", now_ms, lidar_M8_status);
             } else if (test_int1 == 2 && (old_status != lidar_M8_status)) {

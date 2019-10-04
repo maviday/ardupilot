@@ -62,9 +62,6 @@ private:
     static AP_UserCustom *_singleton;
     bool is_initialized;
 
-    uint32_t timer_ms1;
-    uint32_t timer_ms2;
-
     uint32_t arming_retry_ms;
     uint32_t arming_initial_fail_ms;
 
