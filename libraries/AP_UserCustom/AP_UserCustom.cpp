@@ -1,7 +1,9 @@
 #include "AP_UserCustom.h"
 
-#if 0
-//#if !HAL_MINIMIZE_FEATURES
+#if !HAL_MINIMIZE_FEATURES && 1
+
+#include <AP_Proximity/AP_Proximity.h>
+#include "AP_Arming/AP_Arming.h"
 
 extern const AP_HAL::HAL& hal;
 
@@ -85,22 +87,30 @@ void AP_UserCustom::update()
     if (!enabled()) {
         is_initialized = false;
         return;
-    }
-    if (!is_initialized) {
+    } else if (!is_initialized) {
         is_initialized = init();
         // return to give a tiny amount of time between init and update in case it failed or extra time is needed after init
         return;
     }
-    const uint32_t now_ms = AP_HAL::millis();
 
-    if (now_ms - last_update_timestamp_ms > 1000) {
-        last_update_timestamp_ms = now_ms;
-        // period work that happens every 1000 ms (1Hz)
 
-        // TODO: add custom periodic slow work
+
+    if (!arming_initial_fail_ms || AP::arming().is_armed()) {
+        arming_initial_fail_ms = 0;
+        return;
     }
 
-    // TODO: add custom periodic fast work
+    const uint32_t now_ms = AP_HAL::millis();
+    if (now_ms - arming_retry_ms > 1000) {
+        arming_retry_ms = now_ms;
+        gcs().send_text(MAV_SEVERITY_INFO, "%d Arming auto-retry, quiet", now_ms);
+        if (AP::arming().pre_arm_checks(false) || (now_ms - arming_initial_fail_ms >= 45000)) {
+            // if we pass the checks or timeout, attempt one final arm attempt
+            gcs().send_text(MAV_SEVERITY_INFO, "%d Arming auto-retry, loud and final", now_ms);
+            AP::arming().arm(AP_Arming::Method::USER_CUSTOM, true);
+            arming_initial_fail_ms = 0; // clear this after the check to disable the timer in case we fail again
+        }
+    }
 }
 
 // return true if checks are OK and we allow arming.
@@ -111,16 +121,23 @@ bool AP_UserCustom::arming_check(bool report)
         return true;
     }
 
-    bool checks_passed = false;
+    bool checks_passed = true;
 
-    // TODO: add custom arming check and set checks_passed to false if the custom checks don't pass
-    checks_passed = true;
 
-    if (report && !checks_passed) {
-        // TODO: add custom arming check failure message
-        const char* reason = "Error";
-        int32_t error_number = 42;
-        gcs().send_text(MAV_SEVERITY_INFO, "UserCustom: %s %d", reason, error_number);
+
+
+    AP_Proximity *proximity = AP::proximity();
+    if (proximity != nullptr && (proximity->get_type(0) == AP_Proximity::Proximity_Type_MAV)) {
+        checks_passed = proximity->healthy() && (lidar_M8_status == MAV_M8_RUNNING);
+    }
+    if (!checks_passed && report) {
+        // report is true only when an actual arm check happens. Otherwise other checks are always passively happening quietly
+        if (!arming_initial_fail_ms) {
+            arming_initial_fail_ms = AP_HAL::millis();
+
+            const char* msg = (lidar_M8_status == MAV_M8_STARTUP) ? "LiDAR is Starting Up" : "LiDAR Error";
+            gcs().send_text(MAV_SEVERITY_INFO, "Arming Failure: %s", msg);
+        }
     }
     return checks_passed;
 }
@@ -143,12 +160,16 @@ bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet)
     case MAV_CMD_SPATIAL_USER_3:
     case MAV_CMD_SPATIAL_USER_4:
     case MAV_CMD_SPATIAL_USER_5:
-    case MAV_CMD_USER_1:
+//    case MAV_CMD_USER_1:
     case MAV_CMD_USER_2:
     case MAV_CMD_USER_3:
     case MAV_CMD_USER_4:
     case MAV_CMD_USER_5:
-        // TODO: add custom MAVLink handling work
+        // TODO: add custom MAVLink handling work. Change to true for entries that get handled
+        return false;
+
+    case MAV_CMD_USER_1:
+        lidar_M8_status = (int32_t)packet.param1;
         return true;
 
     default:
@@ -156,6 +177,8 @@ bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet)
     }
 }
 #else
+AP_UserCustom::AP_UserCustom() { }
+void AP_UserCustom::update() { }
 bool AP_UserCustom::arming_check(bool report) { return true; }  // do not inhibit arming
 bool AP_UserCustom::handle_user_message(const mavlink_command_long_t &packet) { return false; } // not handled
 #endif // !HAL_MINIMIZE_FEATURES

@@ -41,6 +41,7 @@ public:
         AUXSWITCH,
         MOTORTEST,
         SCRIPTING,
+        USER_CUSTOM,
     };
 
     enum class Required {

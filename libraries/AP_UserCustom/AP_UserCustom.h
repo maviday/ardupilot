@@ -22,7 +22,7 @@
 class AP_UserCustom {
 public:
     AP_UserCustom();
-    ~AP_UserCustom();
+    ~AP_UserCustom() { };
 
     // remove copy constructor for any class that has a singleton
     AP_UserCustom(const AP_UserCustom &other) = delete;
@@ -42,6 +42,11 @@ public:
 
     bool handle_user_message(const mavlink_command_long_t &packet);
 
+    int32_t get_lidar_M8_status() const { return lidar_M8_status; }
+    bool lidar_M8_status_Startup() const { return get_lidar_M8_status() == MAV_M8_STARTUP; }
+    bool lidar_M8_status_Running() const { return get_lidar_M8_status() == MAV_M8_RUNNING; }
+
+
     // public parameters
     AP_Int32    test_int1;
     AP_Int32    test_int2;
@@ -57,11 +62,13 @@ private:
     static AP_UserCustom *_singleton;
     bool is_initialized;
 
-    uint32_t last_update_timestamp_ms;
+    uint32_t arming_retry_ms;
+    uint32_t arming_initial_fail_ms;
 
     // private parameters
     AP_Int8     _enabled;               //  module enable/disable
 
+    int32_t lidar_M8_status;
 };
 
 namespace AP {

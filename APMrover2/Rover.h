@@ -61,6 +61,7 @@
 #include <AP_Gripper/AP_Gripper.h>
 #include <AP_Stats/AP_Stats.h>                      // statistics library
 #include <AP_Terrain/AP_Terrain.h>
+#include "AP_UserCustom/AP_UserCustom.h"            // Custom User class to do whatever you want
 #include <AP_Vehicle/AP_Vehicle.h>                  // needed for AHRS build
 #include <AP_VisualOdom/AP_VisualOdom.h>
 #include <AP_WheelEncoder/AP_WheelEncoder.h>
@@ -230,6 +231,8 @@ private:
 
     // relay support
     AP_Relay relay;
+
+    AP_UserCustom userCustom;
 
     AP_ServoRelayEvents ServoRelayEvents;
 
