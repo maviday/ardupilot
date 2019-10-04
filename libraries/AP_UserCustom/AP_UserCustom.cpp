@@ -146,6 +146,10 @@ bool AP_UserCustom::arming_check(bool report)
         }
     }
 
+    if (test_int2 == 1) {
+        gcs().send_text(MAV_SEVERITY_INFO, "%d Lidar arming_check: %d", AP_HAL::millis(), checks_passed);
+    }
+
     return checks_passed;
 }
 
