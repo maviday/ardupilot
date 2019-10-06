@@ -121,6 +121,8 @@ public:
     bool gear_is_neutral() { return has_gears() && gear.is_neutral(); }
     void set_is_waiting_in_auto(bool value) { vehicle_is_waiting_in_auto = value; }
     bool is_waiting_in_auto() { return vehicle_is_waiting_in_auto && auto_mode_active; }
+    bool gear_is_inhibiting_locomotion() { return has_gears() && (gear.pending.is_active() || gear.is_park() || gear.is_neutral()); }
+    float get_idle_throttle() { return enabled() ? MAX((float)idle_percent, 0) : 0; }
 
 private:
     static AP_ICEngine *_singleton;
