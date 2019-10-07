@@ -388,7 +388,7 @@ void AP_ICEngine::update_self_charging()
 {
 
     if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) || gear.pending.is_active()) {
-        if (recharge.state != recharge.ICE_RECHARGE_STATE_OFF) {
+        if (recharge.state == recharge.ICE_RECHARGE_STATE_CHARGING) {
             gcs().send_text(MAV_SEVERITY_INFO, "%sOff", recharge.msg);
         }
         recharge.set_state(recharge.ICE_RECHARGE_STATE_OFF);
