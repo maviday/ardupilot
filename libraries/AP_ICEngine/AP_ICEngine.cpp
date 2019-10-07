@@ -296,6 +296,14 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("CHRG_BATT",  54, AP_ICEngine, recharge.battery_instance, 0),
 
+    // @Param: CHRG_THR
+    // @DisplayName: Self Charge Battery Throttle
+    // @Description: Idle throttle while charging
+    // @Range: 0 100
+    // @Units: %
+    // @User: Advanced
+    AP_GROUPINFO("CHRG_THR",  55, AP_ICEngine, recharge.throttle, 0),
+
     AP_GROUPEND
 };
 
@@ -686,7 +694,7 @@ void AP_ICEngine::determine_state()
 
     case ICE_RUNNING:
         engine_power_up_wait_ms = 0;
-        if (!is_soft_armed && idle_percent <= 0 && !(options & AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED)) {
+        if (!is_soft_armed && get_idle_throttle() <= 0 && !(options & AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED)) {
             // turn off when disarmed unless we need to idle or if we think it's OK to keep running while disarmed
             state = ICE_OFF;
             gcs().send_text(MAV_SEVERITY_INFO, "Engine stopped, disarmed");
@@ -912,13 +920,14 @@ bool AP_ICEngine::throttle_override(float &percentage)
         return false;
     }
 
+    const float idle_percent_local = get_idle_throttle();
     const float percentage_old = percentage;
     bool use_idle_percent = false;
 
     if (state == ICE_RUNNING &&
-        idle_percent > 0 &&
-        idle_percent < 100 &&
-        (int16_t)idle_percent > SRV_Channels::get_output_scaled(SRV_Channel::k_throttle))
+        idle_percent_local > 0 &&
+        idle_percent_local < 100 &&
+        (int16_t)idle_percent_local > SRV_Channels::get_output_scaled(SRV_Channel::k_throttle))
     {
         use_idle_percent = true;
     }  else if (state == ICE_STARTING ||
@@ -933,7 +942,7 @@ bool AP_ICEngine::throttle_override(float &percentage)
 
     if (use_idle_percent) {
         // some of the above logic may have set it to zero but other logic says we're in a state that zero may kill the engine so use idle instead
-        percentage = (float)idle_percent;
+        percentage = idle_percent_local;
     }
 
     if (is_equal(percentage_old, percentage)) {
@@ -1440,6 +1449,19 @@ MAV_ICE_TRANSMISSION_GEAR_STATE AP_ICEngine::convertPwmToGearState(const uint16_
     else {
         return MAV_ICE_TRANSMISSION_GEAR_STATE_PARK;
     }
+}
+
+float AP_ICEngine::get_idle_throttle()
+{
+    if (!enabled()) {
+        return 0;
+    }
+
+    float idle = idle_percent;
+    if (recharge.is_active()) {
+        idle = MAX(idle, recharge.throttle);
+    }
+    return constrain_float(idle, 0, 100);
 }
 
 // singleton instance. Should only ever be set in the constructor.

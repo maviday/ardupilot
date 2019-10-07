@@ -122,7 +122,7 @@ public:
     void set_is_waiting_in_auto(bool value) { vehicle_is_waiting_in_auto = value; }
     bool is_waiting_in_auto() { return vehicle_is_waiting_in_auto && auto_mode_active; }
     bool gear_is_inhibiting_locomotion() { return has_gears() && (gear.pending.is_active() || gear.is_park() || gear.is_neutral()); }
-    float get_idle_throttle() { return enabled() ? MAX((float)idle_percent, 0) : 0; }
+    float get_idle_throttle();
 
 private:
     static AP_ICEngine *_singleton;
@@ -256,8 +256,10 @@ private:
         AP_Float voltage_threshold;
         AP_Int32 duration_seconds;
         AP_Int8 battery_instance;
+        AP_Float throttle;
         Recharge_State state;
 
+        bool is_active() const { return (state == ICE_RECHARGE_STATE_CHARGING); }
         float get_smoothed_battery_voltage();
         void set_state(Recharge_State next_state);
         void pending_abort();
