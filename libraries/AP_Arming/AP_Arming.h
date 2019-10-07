@@ -42,6 +42,7 @@ public:
         MOTORTEST,
         SCRIPTING,
         USER_CUSTOM,
+        ICE_RECHARGE,
     };
 
     enum class Required {
@@ -66,6 +67,8 @@ public:
     // change to have occurred, and thus should not be done as pre-arm
     // checks.  Those go here:
     virtual bool arm_checks(AP_Arming::Method method);
+
+    Method get_armed_method() const { return armed_method; }
 
     // get expected magnetic field strength
     uint16_t compass_magfield_expected() const;
@@ -94,6 +97,7 @@ protected:
     bool                    armed;
     uint32_t                last_accel_pass_ms[INS_MAX_INSTANCES];
     uint32_t                last_gyro_pass_ms[INS_MAX_INSTANCES];
+    Method                  armed_method;
 
     virtual bool barometer_checks(bool report);
 

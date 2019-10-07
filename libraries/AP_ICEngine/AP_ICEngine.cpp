@@ -20,6 +20,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Math/AP_Math.h> // for is_zero, is_equal
 #include "AP_ICEngine.h"
+#include <AP_Arming/AP_Arming.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -398,6 +399,10 @@ void AP_ICEngine::update_self_charging()
     if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) || gear.pending.is_active()) {
         if (recharge.state == Recharge::ICE_RECHARGE_STATE_CHARGING) {
             gcs().send_text(MAV_SEVERITY_INFO, "%sOff", recharge.msg);
+            // uncontrolled finish
+            if (AP::arming().is_armed() && (AP::arming().get_armed_method() == AP_Arming::Method::ICE_RECHARGE)) {
+                AP::arming().disarm();
+            }
         }
         recharge.set_state(Recharge::ICE_RECHARGE_STATE_OFF);
         return;
@@ -453,10 +458,22 @@ void AP_ICEngine::update_self_charging()
         case Recharge::ICE_RECHARGE_STATE_CHARGING:
             if (recharge.timer_ms == 0) {
                 recharge.timer_ms = now_ms;
+
+                if (!AP::arming().is_armed()) {
+                    // override arming checks. This is dangerous so make sure we disarm no-matter-what
+                    // when we stop charging, whether from it finishing or user interrupts
+                    AP::arming().arm(AP_Arming::Method::ICE_RECHARGE, true);
+                }
+
                 gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Start", recharge.msg, battery_voltage);
                 engine_control(2, 0, 0, 0, true); // start the engine
 
             } else if (now_ms - recharge.timer_ms >= ((uint32_t)recharge.duration_seconds * 1000)) {
+                // controlled finish
+                if (AP::arming().is_armed() && (AP::arming().get_armed_method() == AP_Arming::Method::ICE_RECHARGE)) {
+                    AP::arming().disarm();
+                }
+
                 gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Done", recharge.msg, battery_voltage);
                 engine_control(0, 0, 0, 0, true); // stop the engine
                 recharge.set_state(Recharge::ICE_RECHARGE_STATE_SNOOZING);
