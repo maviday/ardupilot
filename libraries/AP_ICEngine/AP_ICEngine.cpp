@@ -342,7 +342,7 @@ void AP_ICEngine::init(const bool inhibit_outputs)
 
     gear.pending.cancel();
 
-    recharge.set_state(recharge.ICE_RECHARGE_STATE_OFF);
+    recharge.set_state(Recharge::ICE_RECHARGE_STATE_OFF);
 }
 
 AP_ICEngine::ice_ignition_state_t AP_ICEngine::convertPwmToIgnitionState(const uint16_t pwm)
@@ -396,10 +396,10 @@ void AP_ICEngine::update_self_charging()
 {
 
     if ((gear.state != MAV_ICE_TRANSMISSION_GEAR_STATE_PARK) || gear.pending.is_active()) {
-        if (recharge.state == recharge.ICE_RECHARGE_STATE_CHARGING) {
+        if (recharge.state == Recharge::ICE_RECHARGE_STATE_CHARGING) {
             gcs().send_text(MAV_SEVERITY_INFO, "%sOff", recharge.msg);
         }
-        recharge.set_state(recharge.ICE_RECHARGE_STATE_OFF);
+        recharge.set_state(Recharge::ICE_RECHARGE_STATE_OFF);
         return;
     }
 
@@ -407,42 +407,42 @@ void AP_ICEngine::update_self_charging()
     const float battery_voltage = recharge.get_smoothed_battery_voltage();
 
     switch (recharge.state) {
-        case recharge.ICE_RECHARGE_STATE_OFF:
+        case Recharge::ICE_RECHARGE_STATE_OFF:
             if (recharge.battery_instance >= 0 && recharge.battery_instance <= AP_BATT_MONITOR_MAX_INSTANCES &&
                 recharge.duration_seconds > 0 &&
                 recharge.voltage_threshold > 0 &&
                 battery_voltage > recharge.minimum_voltage)
             {
                 // params all look OK.
-                recharge.set_state(recharge.ICE_RECHARGE_STATE_CHECKING_BATTERY);
+                recharge.set_state(Recharge::ICE_RECHARGE_STATE_CHECKING_BATTERY);
             }
             break;
 
-        case recharge.ICE_RECHARGE_STATE_CHECKING_BATTERY:
+        case Recharge::ICE_RECHARGE_STATE_CHECKING_BATTERY:
             if (battery_voltage <= recharge.minimum_voltage ||
                     battery_voltage >= recharge.voltage_threshold ||
                     startControlSelect == ICE_IGNITION_START_RUN) {
                 // not ready to charge
-                recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
+                recharge.set_state(Recharge::ICE_RECHARGE_STATE_SNOOZING);
 
             } else if (!recharge.timer_ms) {
                 recharge.timer_ms = now_ms;
 
             } else if (now_ms - recharge.timer_ms > 3000) {
                 // 3 second debounce
-                recharge.set_state(recharge.ICE_RECHARGE_STATE_CHARGING_PENDING);
+                recharge.set_state(Recharge::ICE_RECHARGE_STATE_CHARGING_PENDING);
             }
             break;
 
-        case recharge.ICE_RECHARGE_STATE_CHARGING_PENDING:
+        case Recharge::ICE_RECHARGE_STATE_CHARGING_PENDING:
             if (startControlSelect == ICE_IGNITION_START_RUN) {
-                recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
+                recharge.set_state(Recharge::ICE_RECHARGE_STATE_SNOOZING);
 
             } else if (!recharge.timer_ms) {
                 recharge.timer_ms = now_ms;
 
             } else if (now_ms - recharge.timer_ms > 20000) {
-                recharge.set_state(recharge.ICE_RECHARGE_STATE_CHARGING);
+                recharge.set_state(Recharge::ICE_RECHARGE_STATE_CHARGING);
 
             } else if (!recharge.notify_ms || (now_ms - recharge.notify_ms > 5*1000)) {
                 recharge.notify_ms = now_ms;
@@ -450,7 +450,7 @@ void AP_ICEngine::update_self_charging()
             }
             break;
 
-        case recharge.ICE_RECHARGE_STATE_CHARGING:
+        case Recharge::ICE_RECHARGE_STATE_CHARGING:
             if (recharge.timer_ms == 0) {
                 recharge.timer_ms = now_ms;
                 gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Start", recharge.msg, battery_voltage);
@@ -459,7 +459,7 @@ void AP_ICEngine::update_self_charging()
             } else if (now_ms - recharge.timer_ms >= ((uint32_t)recharge.duration_seconds * 1000)) {
                 gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Done", recharge.msg, battery_voltage);
                 engine_control(0, 0, 0, 0, true); // stop the engine
-                recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
+                recharge.set_state(Recharge::ICE_RECHARGE_STATE_SNOOZING);
 
             } else if (!recharge.notify_ms || (now_ms - recharge.notify_ms > 10*1000)) {
                 recharge.notify_ms = now_ms;
@@ -475,12 +475,12 @@ void AP_ICEngine::update_self_charging()
             }
             break;
 
-        case recharge.ICE_RECHARGE_STATE_SNOOZING:
+        case Recharge::ICE_RECHARGE_STATE_SNOOZING:
             if (recharge.timer_ms == 0) {
                 recharge.timer_ms = now_ms;
 
             } else if (now_ms - recharge.timer_ms > recharge.snooze_duration_ms) {
-                recharge.set_state(recharge.ICE_RECHARGE_STATE_OFF);
+                recharge.set_state(Recharge::ICE_RECHARGE_STATE_OFF);
             }
         break;
     }
