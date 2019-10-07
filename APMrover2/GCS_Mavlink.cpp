@@ -600,10 +600,7 @@ MAV_RESULT GCS_MAVLINK_Rover::handle_command_int_packet(const mavlink_command_in
     case MAV_CMD_DO_CHANGE_SPEED:
         // param1 : unused
         // param2 : new speed in m/s
-        if (is_equal(packet.param2,-2.0f)) {
-            rover.control_mode->set_desired_speed_to_default(false);
-            return MAV_RESULT_ACCEPTED;
-        } else if (!rover.control_mode->set_desired_speed(packet.param2)) {
+        if (!rover.control_mode->set_desired_speed(packet.param2)) {
             return MAV_RESULT_FAILED;
         }
         return MAV_RESULT_ACCEPTED;

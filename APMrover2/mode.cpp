@@ -250,14 +250,19 @@ void Mode::set_desired_speed_to_default(bool rtl)
 {
     _desired_speed = get_speed_default(rtl);
     g2.wp_nav.set_desired_speed(_desired_speed);
+    gcs().send_text(MAV_SEVERITY_DEBUG, "set_desired_speed_to_default() %.1f m/s", _desired_speed);
 }
 
 // set desired speed in m/s
 bool Mode::set_desired_speed(float speed)
 {
-    if (!is_negative(speed)) {
+    if (is_equal(speed,-2.0f)) {
+        rover.control_mode->set_desired_speed_to_default(false);
+        return true;
+    } else if (!is_negative(speed)) {
         _desired_speed = speed;
         g2.wp_nav.set_desired_speed(_desired_speed);
+        gcs().send_text(MAV_SEVERITY_DEBUG, "set_desired_speed = %.1f m/s", speed);
         return true;
     }
     return false;
