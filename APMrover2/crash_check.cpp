@@ -33,7 +33,7 @@ void Rover::crash_check()
     if (!is_balancebot()) {
         const bool is_not_crashing = (ahrs.groundspeed() >= CRASH_CHECK_VEL_MIN) ||         // is moving
                             (fabsf(ahrs.get_gyro().z) >= CRASH_CHECK_VEL_MIN) ||            // is turning
-                            (fabsf(g2.motors.get_throttle()) <= (g2.ice_control.get_min_throttle() + CRASH_CHECK_THROTTLE_MIN)) || // has throttle
+                            (fabsf(g2.motors.get_throttle()) <= (g2.ice_control.get_idle_throttle() + CRASH_CHECK_THROTTLE_MIN)) || // has throttle
                             (g2.ice_control.enabled() && g2.ice_control.gear_is_inhibiting_locomotion()) ||
                             g2.avoid.get_is_slowing_vehicle() ||
                             control_mode->is_waiting();                                     // is intentionally not moving;
