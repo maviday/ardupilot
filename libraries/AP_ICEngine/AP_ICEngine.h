@@ -259,6 +259,7 @@ private:
         AP_Float throttle;
         Recharge_State state;
 
+        uint32_t elapsed_time() const { return is_active() ? (AP_HAL::millis() - timer_ms) : 0; }
         bool is_active() const { return (state == ICE_RECHARGE_STATE_CHARGING); }
         float get_smoothed_battery_voltage();
         void set_state(Recharge_State next_state);
