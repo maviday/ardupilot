@@ -31,6 +31,7 @@ void ModeGuided::update()
                 if (!sent_notification) {
                     sent_notification = true;
                     rover.gcs().send_mission_item_reached_message(0);
+                    gcs().send_text(MAV_SEVERITY_INFO, "Guided: Reached destination");
                 }
 
                 // we have reached the destination so stay here
