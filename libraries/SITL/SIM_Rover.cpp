@@ -153,31 +153,20 @@ void SimRover::update(const struct sitl_input &input)
     } else {
         // if braking is configured, apply it assuming 1G
         float braking = 0;
-        float rolling_friction = 1.0f;
         if (SRV_Channels::function_assigned(SRV_Channel::k_brake)) {
             braking = MAX(0,GRAVITY_MSS * (SRV_Channels::get_output_scaled(SRV_Channel::k_brake) * 0.01f));
 
             // if you have brakes, assume you need them!
             mass = 4.0f;
-            rolling_friction = 2.0f;
         }
 
-        if (speed < -0.1f) {
+        if (is_negative(speed)) {
             // negative acceleration when going backwards. It's all relative!
             braking *= -1;
-
-        } else if (speed < 0.1f) {
-            // if we're not moving, don't decelerate from brakes, switch over to static friction
-            braking = 0;
-            rolling_friction *= 2;
         }
 
         // accel in body frame due to motor minus brake
         accel_body = Vector3f(accel - braking, 0, 0);
-
-        // apply rolling friction
-        accel_body.x /= rolling_friction;
-
     }
 
     // apply inertia
