@@ -239,11 +239,11 @@ private:
     struct Recharge {
         public:
         enum Recharge_State {
-            ICE_RECHARGE_STATE_OFF,
-            ICE_RECHARGE_STATE_CHECKING_BATTERY,
-            ICE_RECHARGE_STATE_CHARGING_PENDING,
-            ICE_RECHARGE_STATE_CHARGING,
-            ICE_RECHARGE_STATE_SNOOZING,
+            ICE_RECHARGE_STATE_OFF = 0,
+            ICE_RECHARGE_STATE_CHECKING_BATTERY = 1,
+            ICE_RECHARGE_STATE_CHARGING_PENDING = 2,
+            ICE_RECHARGE_STATE_CHARGING = 3,
+            ICE_RECHARGE_STATE_SNOOZING = 4,
         };
 
         const uint32_t snooze_duration_ms = 1 * 60 * 1000; // 1 minute
