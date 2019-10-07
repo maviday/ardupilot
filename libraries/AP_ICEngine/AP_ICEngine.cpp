@@ -1458,7 +1458,7 @@ float AP_ICEngine::get_idle_throttle()
     }
 
     float idle = idle_percent;
-    if (recharge.is_active()) {
+    if (recharge.is_active() && (AP_HAL::millis() - recharge.timer_ms > 10000)) {
         idle = MAX(idle, recharge.throttle);
     }
     return constrain_float(idle, 0, 100);
