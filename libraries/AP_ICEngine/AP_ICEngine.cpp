@@ -462,7 +462,7 @@ void AP_ICEngine::update_self_charging()
                 if (!AP::arming().is_armed()) {
                     // override arming checks. This is dangerous so make sure we disarm no-matter-what
                     // when we stop charging, whether from it finishing or user interrupts
-                    AP::arming().arm(AP_Arming::Method::ICE_RECHARGE, true);
+                    AP::arming().arm(AP_Arming::Method::ICE_RECHARGE, false);
                 }
 
                 gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Start", recharge.msg, battery_voltage);
