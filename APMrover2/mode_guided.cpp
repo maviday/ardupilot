@@ -112,6 +112,7 @@ void ModeGuided::update()
     }
 
     Mode::apply_stick_mixing_override();
+    rover.g2.ice_control.set_is_waiting_in_auto(is_waiting());
 }
 
 // return distance (in meters) to destination
