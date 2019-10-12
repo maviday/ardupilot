@@ -336,9 +336,9 @@ void AP_ICEngine::init(const bool inhibit_outputs)
         const uint16_t boot_up_value = c->get_radio_trim();
         c->set_override(boot_up_value, MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE, AP_HAL::millis());
         c->set_radio_in(boot_up_value);
-        startControlSelect = convertPwmToIgnitionState(boot_up_value);
+        set_ignition_state(convertPwmToIgnitionState(boot_up_value), false);
     } else {
-        startControlSelect = ICE_IGNITION_OFF;
+        set_ignition_state(ICE_IGNITION_OFF, false);
     }
 
     gear.pending.cancel();
@@ -554,18 +554,15 @@ float AP_ICEngine::Recharge::get_smoothed_battery_voltage()
 
 void AP_ICEngine::determine_state()
 {
-
     if (auto_mode_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART)) {
         // we're in an auto nav mode and we're configured to always auto-start unless the auto-mission is what turned us off
-        if (startControlSelect != ICE_IGNITION_START_RUN && !last_cmd_set_by_automission) {
-            startControlSelect = ICE_IGNITION_START_RUN;
-            force_send_status = true;
-        }
+        set_ignition_state(ICE_IGNITION_START_RUN, false);
+
     } else {
         RC_Channel *c = rc().channel(start_chan-1);
         if (c != nullptr) {
             // check for 2 or 3 position switch:
-            startControlSelect = convertPwmToIgnitionState(c->get_radio_in());
+            set_ignition_state(convertPwmToIgnitionState(c->get_radio_in()), false);
         }
     }
 
@@ -1024,27 +1021,14 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
 #endif
 
     if (is_equal(start_control, 0.0f)) {
-        if (startControlSelect != ICE_IGNITION_OFF) {
-            startControlSelect = ICE_IGNITION_OFF;
-            force_send_status = true;
-            last_cmd_set_by_automission = being_set_by_auto_mission;
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine Control set to OFF");
-            recharge.set_state(recharge.ICE_RECHARGE_STATE_SNOOZING);
-        }
+        set_ignition_state(ICE_IGNITION_OFF, being_set_by_auto_mission);
+
     } else if (is_equal(start_control, 1.0f)) {
-        if (startControlSelect != ICE_IGNITION_ACCESSORY) {
-            startControlSelect = ICE_IGNITION_ACCESSORY;
-            force_send_status = true;
-            last_cmd_set_by_automission = being_set_by_auto_mission;
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine Control set to ACCESSORY");
-        }
+        set_ignition_state(ICE_IGNITION_ACCESSORY, being_set_by_auto_mission);
+
     } else if (is_equal(start_control, 2.0f)) {
-        if (startControlSelect != ICE_IGNITION_START_RUN) {
-            startControlSelect = ICE_IGNITION_START_RUN;
-            force_send_status = true;
-            last_cmd_set_by_automission = being_set_by_auto_mission;
-            gcs().send_text(MAV_SEVERITY_INFO, "Engine Control set to START_RUN");
-        }
+        set_ignition_state(ICE_IGNITION_START_RUN, being_set_by_auto_mission);
+
     } else if (is_equal(start_control, 13.0f)) {
         recharge.pending_abort();
     }
@@ -1059,6 +1043,29 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
             last_cmd_set_by_automission = being_set_by_auto_mission;
         }
     }
+
+    return true;
+}
+
+const char* AP_ICEngine::get_ignition_state_name(ice_ignition_state_t state_name)
+{
+    switch (state_name) {
+    case ICE_IGNITION_OFF:          return "OFF";
+    case ICE_IGNITION_ACCESSORY:    return "ACCESSORY";
+    case ICE_IGNITION_START_RUN:    return "START_RUN";
+    default: return "UNKNOWN";
+    }
+}
+bool AP_ICEngine::set_ignition_state(ice_ignition_state_t state_new, bool being_set_by_auto_mission)
+{
+    if (state_new == startControlSelect) {
+        return false;
+    }
+
+    startControlSelect = state_new;
+    gcs().send_text(MAV_SEVERITY_INFO, "Engine Control set to %s", get_ignition_state_name(state_new));
+    force_send_status = true;
+    last_cmd_set_by_automission = being_set_by_auto_mission;
 
     return true;
 }

@@ -83,6 +83,9 @@ public:
     } ice_ignition_state_t;
 
     ice_ignition_state_t startControlSelect;
+    const char* get_ignition_state_name(ice_ignition_state_t state);
+    const char* get_ignition_state_name() { return get_ignition_state_name(startControlSelect); }
+    bool set_ignition_state(ice_ignition_state_t state_new, bool being_set_by_auto_mission);
 
     static ice_ignition_state_t convertPwmToIgnitionState(const uint16_t pwm);
 
