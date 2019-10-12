@@ -89,6 +89,8 @@ public:
 
     static ice_ignition_state_t convertPwmToIgnitionState(const uint16_t pwm);
 
+    void auto_mode_change_or_new_guided_point_event();
+
     // get current engine control state
     ICE_State get_state(void) const { return state; }
 

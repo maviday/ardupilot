@@ -27,6 +27,7 @@ bool ModeAuto::_enter()
 
     // restart mission processing
     mission.start_or_resume();
+    g2.ice_control.auto_mode_change_or_new_guided_point_event();
     return true;
 }
 

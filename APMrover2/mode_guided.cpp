@@ -13,6 +13,7 @@ bool ModeGuided::_enter()
     g2.wp_nav.set_desired_speed_to_default();
 
     sent_notification = false;
+    g2.ice_control.auto_mode_change_or_new_guided_point_event();
 
     return true;
 }
@@ -180,6 +181,7 @@ bool ModeGuided::set_desired_location(const struct Location& destination,
         // handle guided specific initialisation and logging
         _guided_mode = ModeGuided::Guided_WP;
         sent_notification = false;
+        g2.ice_control.auto_mode_change_or_new_guided_point_event();
         rover.Log_Write_GuidedTarget(_guided_mode, Vector3f(destination.lat, destination.lng, 0), Vector3f(g2.wp_nav.get_desired_speed(), 0.0f, 0.0f));
         return true;
     }
