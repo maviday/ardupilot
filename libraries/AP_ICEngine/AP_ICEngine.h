@@ -85,7 +85,7 @@ public:
     ice_ignition_state_t startControlSelect;
     const char* get_ignition_state_name(ice_ignition_state_t state);
     const char* get_ignition_state_name() { return get_ignition_state_name(startControlSelect); }
-    bool set_ignition_state(ice_ignition_state_t state_new, bool being_set_by_auto_mission);
+    bool set_ignition_state(ice_ignition_state_t state_new);
 
     static ice_ignition_state_t convertPwmToIgnitionState(const uint16_t pwm);
 
@@ -93,7 +93,7 @@ public:
     ICE_State get_state(void) const { return state; }
 
     // handle DO_ENGINE_CONTROL messages via MAVLink or mission
-    bool engine_control(float start_control, float cold_start, float height_delay, float gear_state_f, bool being_set_by_auto_mission);
+    bool engine_control(float start_control, float cold_start, float height_delay, float gear_state_f);
     
     bool handle_message(const mavlink_command_long_t &packt);
     bool handle_set_ice_transmission_state(const mavlink_command_long_t &packet);
@@ -115,7 +115,7 @@ public:
 
     MAV_ICE_TRANSMISSION_GEAR_STATE get_transmission_gear_state() const { return gear.state; }
 
-    void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; last_cmd_set_by_automission = false; }
+    void set_is_in_auto_mode(bool modeIsAnyAutoNav) { auto_mode_active = modeIsAnyAutoNav; }
     bool is_changing_gears() { return has_gears() && gear.pending.is_active(); }
     bool has_gears() { return gear.is_configured(); }
     bool gear_is_park() { return has_gears() && gear.is_park(); }
@@ -131,7 +131,6 @@ private:
     static AP_ICEngine *_singleton;
 
     bool brakeReleaseAllowedIn_Neutral_and_Disarmed;
-    bool last_cmd_set_by_automission;
 
     enum ICE_State state;
     enum ICE_State state_prev;

@@ -336,9 +336,9 @@ void AP_ICEngine::init(const bool inhibit_outputs)
         const uint16_t boot_up_value = c->get_radio_trim();
         c->set_override(boot_up_value, MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE, AP_HAL::millis());
         c->set_radio_in(boot_up_value);
-        set_ignition_state(convertPwmToIgnitionState(boot_up_value), false);
+        set_ignition_state(convertPwmToIgnitionState(boot_up_value));
     } else {
-        set_ignition_state(ICE_IGNITION_OFF, false);
+        set_ignition_state(ICE_IGNITION_OFF);
     }
 
     gear.pending.cancel();
@@ -466,7 +466,7 @@ void AP_ICEngine::update_self_charging()
                 }
 
                 gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Start", recharge.msg, battery_voltage);
-                engine_control(2, 0, 0, 0, true); // start the engine
+                engine_control(2, 0, 0, 0); // start the engine
 
             } else if (now_ms - recharge.timer_ms >= ((uint32_t)recharge.duration_seconds * 1000)) {
                 // controlled finish
@@ -475,7 +475,7 @@ void AP_ICEngine::update_self_charging()
                 }
 
                 gcs().send_text(MAV_SEVERITY_INFO, "%s%.2fV, Done", recharge.msg, battery_voltage);
-                engine_control(0, 0, 0, 0, true); // stop the engine
+                engine_control(0, 0, 0, 0); // stop the engine
                 recharge.set_state(Recharge::ICE_RECHARGE_STATE_SNOOZING);
 
             } else if (!recharge.notify_ms || (now_ms - recharge.notify_ms > 10*1000)) {
@@ -554,16 +554,10 @@ float AP_ICEngine::Recharge::get_smoothed_battery_voltage()
 
 void AP_ICEngine::determine_state()
 {
-    if (auto_mode_active && (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART)) {
-        // we're in an auto nav mode and we're configured to always auto-start unless the auto-mission is what turned us off
-        set_ignition_state(ICE_IGNITION_START_RUN, false);
-
-    } else {
-        RC_Channel *c = rc().channel(start_chan-1);
-        if (c != nullptr) {
-            // check for 2 or 3 position switch:
-            set_ignition_state(convertPwmToIgnitionState(c->get_radio_in()), false);
-        }
+    RC_Channel *c = rc().channel(start_chan-1);
+    if (c != nullptr) {
+        // check for 2 or 3 position switch:
+        set_ignition_state(convertPwmToIgnitionState(c->get_radio_in()));
     }
 
     const uint32_t now_ms = AP_HAL::millis();
@@ -912,7 +906,6 @@ void AP_ICEngine::update_gear()
     } else if (auto_mode_active &&
             state == ICE_RUNNING &&
             (options & AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD) &&
-            //!last_cmd_set_by_automission &&
             !is_waiting_in_auto() &&
             !gear.is_forward() &&
             !gear.pending.is_active())
@@ -973,26 +966,8 @@ bool AP_ICEngine::throttle_override(float &percentage)
 /*
   handle DO_ENGINE_CONTROL messages via MAVLink or mission
 */
-bool AP_ICEngine::engine_control(float start_control, float cold_start, float height_delay, float gear_state_f, bool being_set_by_auto_mission)
+bool AP_ICEngine::engine_control(float start_control, float cold_start, float height_delay, float gear_state_f)
 {
-    // --------- BEGIN EPIC HACK --------------
-    // --------- BEGIN EPIC HACK --------------
-    // --------- BEGIN EPIC HACK --------------
-    being_set_by_auto_mission = true; // old guided worker won't send anything
-    if (is_equal(cold_start, 1.0f)) {
-        // new guided worker will be sending this
-        being_set_by_auto_mission = true;
-    }
-    if (is_equal(cold_start, 2.0f)) {
-        // C3 will be sending this
-        being_set_by_auto_mission = false;
-    }
-    // ---------  END EPIC HACK --------------
-    // ---------  END EPIC HACK --------------
-    // ---------  END EPIC HACK --------------
-
-
-
     const MAV_ICE_TRANSMISSION_GEAR_STATE gear_state = (MAV_ICE_TRANSMISSION_GEAR_STATE)(int32_t)gear_state_f;
 
     if (options & AP_ICENGINE_OPTIONS_MASK_BLOCK_EXTERNAL_STARTER_CMDS) {
@@ -1016,18 +991,17 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
         height_required = height_delay;
         state = ICE_START_HEIGHT_DELAY;
         gcs().send_text(MAV_SEVERITY_INFO, "Takeoff height set to %.1fm", (double)height_delay);
-        last_cmd_set_by_automission = being_set_by_auto_mission;
     }
 #endif
 
     if (is_equal(start_control, 0.0f)) {
-        set_ignition_state(ICE_IGNITION_OFF, being_set_by_auto_mission);
+        set_ignition_state(ICE_IGNITION_OFF);
 
     } else if (is_equal(start_control, 1.0f)) {
-        set_ignition_state(ICE_IGNITION_ACCESSORY, being_set_by_auto_mission);
+        set_ignition_state(ICE_IGNITION_ACCESSORY);
 
     } else if (is_equal(start_control, 2.0f)) {
-        set_ignition_state(ICE_IGNITION_START_RUN, being_set_by_auto_mission);
+        set_ignition_state(ICE_IGNITION_START_RUN);
 
     } else if (is_equal(start_control, 13.0f)) {
         recharge.pending_abort();
@@ -1040,7 +1014,6 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
     {
         if (set_ice_transmission_state(gear_state, 0)) {
             force_send_status = true;
-            last_cmd_set_by_automission = being_set_by_auto_mission;
         }
     }
 
@@ -1056,7 +1029,8 @@ const char* AP_ICEngine::get_ignition_state_name(ice_ignition_state_t state_name
     default: return "UNKNOWN";
     }
 }
-bool AP_ICEngine::set_ignition_state(ice_ignition_state_t state_new, bool being_set_by_auto_mission)
+
+bool AP_ICEngine::set_ignition_state(ice_ignition_state_t state_new)
 {
     if (state_new == startControlSelect) {
         return false;
@@ -1065,7 +1039,6 @@ bool AP_ICEngine::set_ignition_state(ice_ignition_state_t state_new, bool being_
     startControlSelect = state_new;
     gcs().send_text(MAV_SEVERITY_INFO, "Engine Control set to %s", get_ignition_state_name(state_new));
     force_send_status = true;
-    last_cmd_set_by_automission = being_set_by_auto_mission;
 
     return true;
 }
@@ -1108,7 +1081,6 @@ bool AP_ICEngine::handle_set_ice_transmission_state(const mavlink_command_long_t
 //
 //    if (set_ice_transmission_state(gearState, pwm_value)) {
 //        brakeReleaseAllowedIn_Neutral_and_Disarmed = !is_zero(packet.param4);
-//        last_cmd_set_by_automission = false;
 //        return true;
 //    }
     return false;
