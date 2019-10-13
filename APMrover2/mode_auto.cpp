@@ -560,6 +560,8 @@ bool ModeAuto::do_nav_wp(const AP_Mission::Mission_Command& cmd, bool always_sto
     // this is the delay, stored in seconds
     loiter_duration = cmd.p1;
 
+    g2.ice_control.auto_mode_change_or_new_guided_point_event();
+
     return true;
 }
 
