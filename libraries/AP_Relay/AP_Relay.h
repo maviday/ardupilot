@@ -47,6 +47,12 @@ public:
     // toggle the relay status
     void        toggle(uint8_t relay);
 
+    // set index to default (bootup state)
+    void set_to_default(uint8_t index);
+
+    // set all to default (bootup state)
+    void set_to_default();
+
     static AP_Relay *get_singleton(void) {return singleton; }
 
     static const struct AP_Param::GroupInfo        var_info[];

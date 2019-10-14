@@ -159,18 +159,28 @@ AP_Relay::AP_Relay(void)
 
 void AP_Relay::init() 
 {
+    set_to_default();
+}
+
+void AP_Relay::set_to_default()
+{
     for (uint8_t i=0; i<AP_RELAY_NUM_RELAYS; i++) {
-        if (_pin[i].get() != -1) {
-            switch (_default) {
-            case 0:
-                off(i);
-                break;
-            case 1:
-                on(i);
-                break;
-            default:
-                break;
-            }
+        set_to_default(i);
+    }
+}
+
+void AP_Relay::set_to_default(uint8_t index)
+{
+    if (index < AP_RELAY_NUM_RELAYS && _pin[index].get() != -1) {
+        switch (_default) {
+        case 0:
+            off(index);
+            break;
+        case 1:
+            on(index);
+            break;
+        default:
+            break;
         }
     }
 }
