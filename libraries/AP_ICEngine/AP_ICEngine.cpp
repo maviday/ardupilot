@@ -1460,7 +1460,9 @@ float AP_ICEngine::get_idle_throttle()
     return constrain_float(idle, 0, 100);
 }
 
-void AP_ICEngine::auto_mode_change_or_new_guided_point_event() {
+void AP_ICEngine::auto_mode_change_or_new_guided_point_event()
+{
+    auto_mode_active = true;
     if (options & AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART) {
         set_ignition_state(ICE_IGNITION_START_RUN);
     }
