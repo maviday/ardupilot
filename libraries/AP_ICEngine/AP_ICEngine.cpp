@@ -13,6 +13,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define AION_ALLOW_ICE  1
 
 #include <SRV_Channel/SRV_Channel.h>
 #include <GCS_MAVLink/GCS.h>
@@ -373,6 +374,13 @@ void AP_ICEngine::update(void)
         }
         return;
     }
+#if AION_ALLOW_ICE == 0
+    else {
+        enable.set_and_save(false)
+        enable.notify();
+        return;
+    }
+#endif
 
     if (!run_once) {
         run_once = true;
