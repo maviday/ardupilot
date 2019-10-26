@@ -365,7 +365,7 @@ AP_ICEngine::ice_ignition_state_t AP_ICEngine::convertPwmToIgnitionState(const u
  */
 void AP_ICEngine::update(void)
 {
-    if (!enable) {
+    if (!enabled()) {
         state = ICE_OFF;
         if (run_once) {
             run_once = false;
@@ -815,7 +815,7 @@ bool AP_ICEngine::brake_override(float &brake_percent, const float desired_speed
 {
     const float brake_percent_start = brake_percent;
 
-    if (!enable) {
+    if (!enabled()) {
         return false;
     }
 
@@ -923,7 +923,7 @@ void AP_ICEngine::update_gear()
  */
 bool AP_ICEngine::throttle_override(float &percentage)
 {
-    if (!enable) {
+    if (!enabled()) {
         return false;
     }
 
