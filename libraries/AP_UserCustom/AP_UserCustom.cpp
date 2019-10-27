@@ -57,6 +57,14 @@ const AP_Param::GroupInfo AP_UserCustom::var_info[] = {
         // @User: Standard
         AP_GROUPINFO("ARMCHK_LDR", 7, AP_UserCustom, arming_check_Lidar, 1),
 
+        // @Param: UI1
+        // @Param: UI2
+        // @Param: UI3
+        // @Param: UI4
+        AP_GROUPINFO("UI1", 8, AP_UserCustom, UI[0], 0),
+        AP_GROUPINFO("UI2", 9, AP_UserCustom, UI[1], 0),
+        AP_GROUPINFO("UI3", 10, AP_UserCustom, UI[2], 0),
+        AP_GROUPINFO("UI4", 11, AP_UserCustom, UI[3], 0),
     AP_GROUPEND
 };
 

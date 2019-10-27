@@ -70,6 +70,7 @@ private:
 
     int32_t lidar_M8_status;
     AP_Int32 arming_check_Lidar;
+    AP_Int32 UI[4];
 };
 
 namespace AP {
