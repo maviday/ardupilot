@@ -365,7 +365,7 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
                     gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Stopped vehicle!");
                 }
                 desired_vel_cms.zero();
-                set_is_slowing_vehicle(now_ms);
+                set_is_stopping_vehicle(now_ms);
             }
         } else {
             // shorten vector without adjusting its direction

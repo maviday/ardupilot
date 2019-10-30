@@ -263,6 +263,7 @@ void Rover::set_brake(float brake_percent)
 
     if (is_zero(g2.motors.get_throttle()) &&        // throttle == 0
         speed_is_valid && fabs(speed) < 0.1f &&     // speed == 0
+        g2.avoid.get_is_stopping_vehicle() &&       // Avoiding wants the vehicle stopped
         control_mode->is_autopilot_mode() &&        // in AUTO/GUIDED-ish mode
         !rover.g2.ice_control.gear_is_park() &&     // Gear is not park
         !rover.g2.ice_control.gear_is_neutral())
