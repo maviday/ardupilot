@@ -25,9 +25,8 @@
 // 0000 0000 0010 1101 == 45
 // 0000 0000 1010 1101 == 173
 // 0000 0000 1010 1100 == 172
-// 0001 0000 1010 1100 == 428
 
-#define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION       (1<<0) // yes
+#define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION       (1<<0) // no
 #define AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_START          (1<<1) // no
 #define AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED     (1<<2) // yes
 #define AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART          (1<<3) // yes
@@ -37,8 +36,7 @@
 #define AP_ICENGINE_OPTIONS_MASK_RUNNING_FAIL_FORCE_STOP_MOTOR  (1<<6) // no
 #define AP_ICENGINE_OPTIONS_MASK_RPM_FAIL_HAS_TIMER             (1<<7) // yes
 
-#define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        (AP_ICENGINE_OPTIONS_MASK_ARMING_REQUIRED_IGNITION          \
-                                                                | AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED       \
+#define AP_ICENGINE_OPTIONS_MASK_DEFAULT                        ( AP_ICENGINE_OPTIONS_MASK_KEEP_RUNNING_WHEN_DISARMED       \
                                                                 | AP_ICENGINE_OPTIONS_MASK_AUTO_ALWAYS_AUTOSTART            \
                                                                 | AP_ICENGINE_OPTIONS_MASK_AUTO_SETS_GEAR_FORWARD           \
                                                                 | AP_ICENGINE_OPTIONS_MASK_RPM_FAIL_HAS_TIMER               \
