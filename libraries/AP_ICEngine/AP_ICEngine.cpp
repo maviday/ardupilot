@@ -306,6 +306,13 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("CHRG_THR",  55, AP_ICEngine, recharge.throttle, 0),
 
+    // @Param: NEUTRAL_BRAK
+    // @DisplayName: Apply full brake when in Neutral
+    // @Description: Apply full brake when in Neutral. This applies a brake override while in Neutral gear
+    // @Values: -1:No override,0:Brake is 0%,1:Brake is 100%
+    // @User: Advanced
+    AP_GROUPINFO("NEUTRAL_BRAK",  56, AP_ICEngine, neutral_brake_enable, 0),
+
     AP_GROUPEND
 };
 
@@ -853,7 +860,13 @@ bool AP_ICEngine::brake_override(float &brake_percent, const float desired_speed
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_NEUTRAL:
-            brake_percent = 100;
+            if (neutral_brake_enable == 0) {
+                brake_percent = 0;
+            } else if (neutral_brake_enable == 1) {
+                brake_percent = 100;
+            } else {
+                // no action, let the existing value pass-thru unchanged
+            }
             break;
 
         case MAV_ICE_TRANSMISSION_GEAR_STATE_PARK:

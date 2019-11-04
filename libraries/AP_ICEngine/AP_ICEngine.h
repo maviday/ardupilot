@@ -130,8 +130,6 @@ public:
 private:
     static AP_ICEngine *_singleton;
 
-    bool brakeReleaseAllowedIn_Neutral_and_Disarmed;
-
     enum ICE_State state;
     enum ICE_State state_prev;
     uint32_t state_change_timestamp_ms;
@@ -319,6 +317,8 @@ private:
 
     // throttle percentage for engine idle
     AP_Int8 idle_percent;
+
+    AP_Int8 neutral_brake_enable;
 
     // Time to wait after applying acceessory before applying starter
     AP_Int16 power_up_time;
