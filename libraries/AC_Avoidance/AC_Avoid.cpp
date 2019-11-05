@@ -556,7 +556,7 @@ void AC_Avoid::adjust_velocity_polygon(float kP, float accel_cmss, Vector2f &des
                             gcs().send_text(MAV_SEVERITY_INFO, "AVOID: Stopped vehicle!");
                         }
                         safe_vel.zero();
-                        set_is_slowing_vehicle(now_ms);
+                        set_is_stopping_vehicle(now_ms);
                     } else {
                         // vehicle inside the given edge, adjust velocity to not violate this edge
                         limit_direction /= limit_distance_cm;
