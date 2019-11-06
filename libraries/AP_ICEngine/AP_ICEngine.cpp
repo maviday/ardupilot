@@ -13,13 +13,11 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <SRV_Channel/SRV_Channel.h>
-#include <GCS_MAVLink/GCS.h>
-#include <AP_BattMonitor/AP_BattMonitor.h>
-#include <AP_AHRS/AP_AHRS.h>
-#include <AP_Math/AP_Math.h> // for is_zero, is_equal
 #include "AP_ICEngine.h"
+#include <SRV_Channel/SRV_Channel.h>
+#include <AP_BattMonitor/AP_BattMonitor.h>
 #include <AP_Arming/AP_Arming.h>
+#include <AP_RPM/AP_RPM.h>
 
 extern const AP_HAL::HAL& hal;
 
