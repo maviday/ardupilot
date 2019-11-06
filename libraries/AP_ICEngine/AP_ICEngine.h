@@ -19,6 +19,8 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
+#include <AP_Param/AP_Param.h>
+#include <GCS_MAVLink/GCS.h>
 #include <AP_RPM/AP_RPM.h>
 
 // 0000 0000 0000 0101 == 6
