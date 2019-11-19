@@ -238,6 +238,10 @@ void Rover::update_ahrs_flyforward()
 
 void Rover::set_throttle(float throttle)
 {
+    if (g2.avoid.get_is_stopping_vehicle()) { // Avoid library wants the vehicle stopped
+        throttle = MIN(throttle, 0);
+    }
+
     if (rover.g2.ice_control.throttle_override(throttle)) {
         // the ICE controller wants to override the throttle for starting
         g2.attitude_control.get_throttle_speed_pid().freeze_integrator(1000);
