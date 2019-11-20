@@ -464,6 +464,7 @@ void AR_AttitudeControl::get_throttle_and_brake_out_speed(float desired_speed, b
         // on failure to get speed we do not attempt to steer
         throttle_out = 0;
         brake_out = 0;
+        return;
     }
 
     // if not called recently, reset input filter and desired speed to actual speed (used for accel limiting)
@@ -573,6 +574,7 @@ void AR_AttitudeControl::get_throttle_and_brake_out_stop(bool motor_limit_low, b
         _speed_last_ms = now;
         throttle_out = 0;
         brake_out = 0;
+        return;
     }
 
     // clear stopped system time
