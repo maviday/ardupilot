@@ -613,8 +613,25 @@ void GCS_MAVLINK::send_textv(MAV_SEVERITY severity, const char *fmt, va_list arg
     hal.util->vsnprintf(text, sizeof(text), fmt, arg_list);
     gcs().send_statustext(severity, (1<<chan), text);
 }
+
 void GCS_MAVLINK::send_text(MAV_SEVERITY severity, const char *fmt, ...) const
 {
+    va_list arg_list;
+    va_start(arg_list, fmt);
+    send_textv(severity, fmt, arg_list);
+    va_end(arg_list);
+}
+
+// same as send_text() but will accept a reference to a uint32 timestamp reference that it will use to rate-limit the output.
+// Any attempts to send faster will be dropped. Useful when debugging high-rate loops or events that may cause spurious repeat spam
+void GCS_MAVLINK::send_text_rate_limited(const uint32_t interval_ms, uint32_t &ref_to_timetime_ms, MAV_SEVERITY severity, const char *fmt, ...) const
+{
+    const uint32_t now_ms = AP_HAL::millis();
+    if (now_ms - ref_to_timetime_ms < interval_ms) {
+        return;
+    }
+    ref_to_timetime_ms = now_ms;
+
     va_list arg_list;
     va_start(arg_list, fmt);
     send_textv(severity, fmt, arg_list);
