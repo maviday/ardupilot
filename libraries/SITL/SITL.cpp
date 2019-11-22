@@ -200,6 +200,10 @@ const AP_Param::GroupInfo SITL::var_info2[] = {
 
     AP_GROUPINFO("EFI_TYPE",    58, SITL,  efi_type,  SITL::EFI_TYPE_NONE),
 
+    // @Group: ICE_
+    // @Path: ./SIM_ICEngine.cpp
+    AP_SUBGROUPINFO(icengine_sim, "ICE_", 59, SITL, ICEngine),
+
     AP_GROUPEND
 
 };

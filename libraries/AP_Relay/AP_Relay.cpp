@@ -95,6 +95,48 @@ const AP_Param::GroupInfo AP_Relay::var_info[] = {
     // @Values: -1:Disabled,49:BB Blue GP0 pin 4,50:AUXOUT1,51:AUXOUT2,52:AUXOUT3,53:AUXOUT4,54:AUXOUT5,55:AUXOUT6,57:BB Blue GP0 pin 3,113:BB Blue GP0 pin 6,116:BB Blue GP0 pin 5
     AP_GROUPINFO("PIN6",  6, AP_Relay, _pin[5], RELAY6_PIN_DEFAULT),
 
+    // @Param: PIN1_INV
+    // @DisplayName: First Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN1_INV",  7, AP_Relay, _inverted[0], 0),
+
+    // @Param: PIN2_INV
+    // @DisplayName: Second Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN2_INV",  8, AP_Relay, _inverted[1], 0),
+
+    // @Param: PIN3_INV
+    // @DisplayName: Third Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN3_INV",  9, AP_Relay, _inverted[2], 0),
+
+    // @Param: PIN4_INV
+    // @DisplayName: Fourth Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN4_INV",  10, AP_Relay, _inverted[3], 0),
+
+    // @Param: PIN5_INV
+    // @DisplayName: Fifth Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN5_INV",  11, AP_Relay, _inverted[4], 0),
+
+    // @Param: PIN6_INV
+    // @DisplayName: Sixth Relay Pin Inverted
+    // @Description: Digital pin inverted
+    // @User: Standard
+    // @Values: 0:Normal,1:Inverted
+    AP_GROUPINFO("PIN6_INV",  12, AP_Relay, _inverted[5], 0),
+
     AP_GROUPEND
 };
 
@@ -117,32 +159,49 @@ AP_Relay::AP_Relay(void)
 
 void AP_Relay::init()
 {
+    set_to_default();
+}
+
+void AP_Relay::set_to_default()
+{
+    for (uint8_t i=0; i<AP_RELAY_NUM_RELAYS; i++) {
+        set_to_default(i);
+    }
+}
+
+void AP_Relay::set_to_default(uint8_t instance)
+{
+    if (instance >= AP_RELAY_NUM_RELAYS || _pin[instance] == -1) {
+        return;
+    }
     if (_default != 0 && _default != 1) {
         return;
     }
-    for (uint8_t i=0; i<AP_RELAY_NUM_RELAYS; i++) {
-        set(i, _default);
-    }
+
+    set(instance, _default);
 }
 
 void AP_Relay::set(const uint8_t instance, const bool value)
 {
-    if (instance >= AP_RELAY_NUM_RELAYS) {
+    if (instance >= AP_RELAY_NUM_RELAYS || _pin[instance] == -1) {
         return;
     }
-    if (_pin[instance] == -1) {
-        return;
-    }
+
     hal.gpio->pinMode(_pin[instance], HAL_GPIO_OUTPUT);
-    hal.gpio->write(_pin[instance], value);
+    hal.gpio->write(_pin[instance], _inverted[instance] ? !value : value);
 }
 
 void AP_Relay::toggle(uint8_t instance)
 {
-    if (instance < AP_RELAY_NUM_RELAYS && _pin[instance] != -1) {
-        bool ison = hal.gpio->read(_pin[instance]);
-        set(instance, !ison);
+    if (instance >= AP_RELAY_NUM_RELAYS || _pin[instance] == -1) {
+        return;
     }
+
+    bool ison = hal.gpio->read(_pin[instance]);
+    // *NOTE* this inversion check is not intuitive. It is required
+    // because set() will invert so inverting here will give the
+    // correctly toggled value result
+    set(instance, _inverted[instance] ? !ison : ison);
 }
 
 namespace AP {

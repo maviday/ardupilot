@@ -309,6 +309,7 @@ bool Plane::set_mode(Mode &new_mode, const ModeReason reason)
     // log and notify mode change
     logger.Write_Mode(control_mode->mode_number(), control_mode_reason);
     notify_mode(*control_mode);
+    g2.ice_control.set_is_in_auto_mode(plane.auto_navigation_mode);
     gcs().send_message(MSG_HEARTBEAT);
 
     return true;

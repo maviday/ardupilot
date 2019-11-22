@@ -78,10 +78,6 @@ Plane::Plane(const char *frame_str) :
         ground_behavior = GROUND_BEHAVIOR_TAILSITTER;
         thrust_scale *= 1.5;
     }
-
-    if (strstr(frame_str, "-ice")) {
-        ice_engine = true;
-    }
 }
 
 /*
@@ -300,11 +296,8 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
         throttle = filtered_servo_range(input, 2);
     }
     
-    float thrust     = throttle;
-
-    if (ice_engine) {
-        thrust = icengine.update(input);
-    }
+    float thrust = throttle;
+    icengine->update(input, thrust);
 
     // calculate angle of attack
     angle_of_attack = atan2f(velocity_air_bf.z, velocity_air_bf.x);
@@ -340,9 +333,6 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
             launch_start_ms = 0;
         }
     }
-    
-    // simulate engine RPM
-    rpm1 = thrust * 7000;
     
     // scale thrust to newtons
     thrust *= thrust_scale;

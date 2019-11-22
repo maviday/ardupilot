@@ -51,4 +51,5 @@ enum class ModeReason : uint8_t {
   STARTUP,
   SCRIPTING,
   UNAVAILABLE,
+  PROXIMITY_FAILSAFE,
 };

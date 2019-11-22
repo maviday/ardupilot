@@ -72,7 +72,7 @@ public:
     // returns true if vehicle can be armed or disarmed from the transmitter in this mode
     virtual bool allows_arming_from_transmitter() { return !is_autopilot_mode(); }
 
-    bool allows_stick_mixing() const { return is_autopilot_mode(); }
+    virtual bool is_waiting() const { return false; }
 
     //
     // attributes for mavlink system status reporting
@@ -119,14 +119,19 @@ public:
     // rtl argument should be true if called from RTL or SmartRTL modes (handled here to avoid duplication)
     float get_speed_default(bool rtl = false) const;
 
+
+    void set_desired_speed_to_default(bool rtl);
+
     // set desired speed in m/s
-    virtual bool set_desired_speed(float speed) { return false; }
+    virtual bool set_desired_speed(float speed);
 
     // execute the mission in reverse (i.e. backing up)
     void set_reversed(bool value);
 
     // handle tacking request (from auxiliary switch) in sailboats
     virtual void handle_tack_request();
+
+    virtual bool allows_stick_mixing() const { return false; }
 
 protected:
 
@@ -179,7 +184,10 @@ protected:
     //  reversed should be true if the vehicle is intentionally backing up which allows the pilot to increase the backing up speed by pulling the throttle stick down
     float calc_speed_nudge(float target_speed, bool reversed);
 
-protected:
+    // calculate vehicle stopping location using current location, velocity and maximum acceleration
+    void calc_stopping_location(Location& stopping_loc);
+
+    bool apply_stick_mixing_override();
 
     // decode pilot steering and throttle inputs and return in steer_out and throttle_out arguments
     // steering_out is in the range -4500 ~ +4500 with positive numbers meaning rotate clockwise
@@ -200,6 +208,17 @@ protected:
     float _distance_to_destination; // distance from vehicle to final destination in meters
     bool _reached_destination;  // true once the vehicle has reached the destination
     float _desired_yaw_cd;      // desired yaw in centi-degrees.  used in Auto, Guided and Loiter
+    float _desired_speed;       // desired speed in m/s
+
+    struct stick_mixing_t {
+        uint32_t time_start_ms;
+        float yaw_cd;
+        float initial_speed;
+
+        bool is_active() const { return time_start_ms > 0; }
+        void disable() { time_start_ms = 0; }
+        bool is_expired() const { return (AP_HAL::millis() - time_start_ms > 300); }
+    } _stick_mixing;
 };
 
 
@@ -252,6 +271,12 @@ public:
 
     // set desired speed in m/s
     bool set_desired_speed(float speed) override;
+
+    bool allows_stick_mixing() const override { return true; }
+
+    // returns true when executing a blocking command that is performing a delay but otherwise not navigating anywhere.
+    // Examples of this are during the delay after finishing a NAV_WAYPOINT and during DO_NAV_DELAY
+    bool is_waiting() const override { return (_submode == Auto_Stop) && (mission.state() == AP_Mission::MISSION_RUNNING); }
 
     // start RTL (within auto)
     void start_RTL();
@@ -384,6 +409,9 @@ public:
     void set_desired_heading_delta_and_speed(float yaw_delta_cd, float target_speed);
     void set_desired_turn_rate_and_speed(float turn_rate_cds, float target_speed);
 
+    // returns true when we are knowingly stopped. This helps prevent crash detected false alarms
+    bool is_waiting() const override { return reached_destination(); }
+
     // vehicle start loiter
     bool start_loiter();
 
@@ -393,18 +421,18 @@ public:
     void limit_init_time_and_location();
     bool limit_breached() const;
 
+    bool allows_stick_mixing() const override { return true; }
+
 protected:
 
     enum GuidedMode {
         Guided_WP,
         Guided_HeadingAndSpeed,
         Guided_TurnRateAndSpeed,
-        Guided_Loiter
-    };
+        Guided_Loiter,
+    } _guided_mode;    // stores which GUIDED mode the vehicle is in;
 
     bool _enter() override;
-
-    GuidedMode _guided_mode;    // stores which GUIDED mode the vehicle is in
 
     // attitude control
     bool have_attitude_target;  // true if we have a valid attitude target
@@ -494,6 +522,13 @@ public:
 protected:
 
     void _exit() override;
+
+//private:
+//    float       throttle_max = 100;
+//    uint32_t    throttle_max_timer_ms;
+//    uint32_t    throttle_max_timer_shring_ms;
+//    uint32_t    throttle_max_timer_grow_ms;
+
 };
 
 
@@ -549,11 +584,11 @@ public:
     float get_distance_to_destination() const override { return _distance_to_destination; }
     bool reached_destination() const override { return smart_rtl_state == SmartRTL_StopAtHome; }
 
-    // set desired speed in m/s
-    bool set_desired_speed(float speed) override;
-
     // save current position for use by the smart_rtl flight mode
     void save_position();
+
+    // set desired speed in m/s
+    bool set_desired_speed(float speed) override;
 
 protected:
 

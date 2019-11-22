@@ -65,6 +65,8 @@ void ModeRTL::update()
         // update distance to destination
         _distance_to_destination = rover.current_loc.get_distance(g2.wp_nav.get_destination());
     }
+
+    Mode::apply_stick_mixing_override();
 }
 
 // get desired location

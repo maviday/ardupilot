@@ -158,7 +158,7 @@ const AP_Param::Info Rover::var_info[] = {
     // @Param: FS_EKF_ACTION
     // @DisplayName: EKF Failsafe Action
     // @Description: Controls the action that will be taken when an EKF failsafe is invoked
-    // @Values: 0:Disabled,1:Hold
+    // @Values: 0:Disabled,1:Hold,2:Manual
     // @User: Advanced
     GSCALAR(fs_ekf_action, "FS_EKF_ACTION", 1),
 
@@ -450,7 +450,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 
     // @Param: RTL_SPEED
     // @DisplayName: Return-to-Launch speed default
-    // @Description: Return-to-Launch speed default.  If zero use WP_SPEED or CRUISE_SPEED.
+    // @Description: Return-to-Launch speed default.  If zero use WP_SPEED.
     // @Units: m/s
     // @Range: 0 100
     // @Increment: 0.1
@@ -489,12 +489,12 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 
     // @Param: CRASH_ANGLE
     // @DisplayName: Crash Angle
-    // @Description: Pitch/Roll angle limit in degrees for crash check. Zero disables check
+    // @Description: Pitch angle limit in degrees for crash check. Zero disables check
     // @Units: deg
     // @Range: 0 60
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("CRASH_ANGLE", 22, ParametersG2, crash_angle, 0),
+    AP_GROUPINFO("CRASH_ANGLE", 22, ParametersG2, crash_angle_pitch, 0),
 
     // @Group: FOLL
     // @Path: ../libraries/AP_Follow/AP_Follow.cpp
@@ -628,6 +628,43 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("FS_OPTIONS", 48, ParametersG2, fs_options, 0),
 
+    // @Group: ICE_
+    // @Path: ../libraries/AP_ICEngine/AP_ICEngine.cpp
+    AP_SUBGROUPINFO(ice_control, "ICE_", 50, ParametersG2, AP_ICEngine),
+
+    // @Param: EBRAKE_CH
+    // @DisplayName: Emergency Brake Channel
+    // @Description: Emergency Brake RC Input Channel number. Use 0 to disable, else 1 maps to RC1 and 16 maps to RC16
+    // @Range: 0 16
+    // @User: Advanced
+    AP_GROUPINFO("EBRAKE_CH", 51, ParametersG2, ebrake_rc_channel, 0),
+
+    // @Group: CSTM_
+    // @Path: ../libraries/AP_UserCustom/AP_UserCustom.cpp
+    AP_SUBGROUPINFO(userCustom, "CSTM_", 52, ParametersG2, AP_UserCustom),
+
+    // @Param: FS_THR_TIMEOUT
+    // @DisplayName: Throttle Failsafe Timeout
+    // @Description: The throttle failsafe timeout time in seconds. If no RC update occurs for this amount of time then throttle and steering demands are set to zero but no other action is taken. If this condition continues for another FS_TIMEOUT then a throttle failsafe will occur. This is useful for system failures where the RC input disappears or your are controlled only by MAVLink commands.
+    // @Units: s
+    // @User: Standard
+    AP_GROUPINFO("FS_THR_TIMEOUT", 53, ParametersG2, fs_throttle_timeout, 0.5f),
+
+    // @Param: CRASH_ANGLE_ROLL
+    // @DisplayName: Crash Angle Roll
+    // @Description: Roll angle limit in degrees for crash check. Zero disables check
+    // @Units: deg
+    // @Range: 0 60
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("CRASH_ANGLE_ROLL", 56, ParametersG2, crash_angle_roll, 0),
+    AP_GROUPINFO("FS_PID_I_STEER", 57, ParametersG2, fs_pid_i_steering, 0),
+    AP_GROUPINFO("FS_PID_I_THR", 58, ParametersG2, fs_pid_i_throttle, 0),
+//    AP_GROUPINFO("MAN_THR_SPEED", 59, ParametersG2, manual_speed_limit, 2.0f),
+//    AP_GROUPINFO("MAN_THR_PCNT_MAX", 60, ParametersG2, manual_throttle_percent_max, 25.0f), // depreciated, moved to MOT_THR_MAX_MAN
+//    AP_GROUPINFO("MAN_THR_GAIN_UP", 61, ParametersG2, manual_throttle_max_rate_grow, 1.1f),
+//    AP_GROUPINFO("MAN_THR_GAIN_DN", 62, ParametersG2, manual_throttle_max_rate_shrink, 0.9f),
+
     AP_GROUPEND
 };
 
@@ -667,6 +704,7 @@ ParametersG2::ParametersG2(void)
     afs(rover.mode_auto.mission),
 #endif
     beacon(rover.serial_manager),
+    ice_control(),
     motors(rover.ServoRelayEvents),
     wheel_rate_control(wheel_encoder),
     attitude_control(rover.ahrs),
@@ -752,7 +790,8 @@ void Rover::load_parameters(void)
     SRV_Channels::set_default_function(CH_3, SRV_Channel::k_throttle);
 
     if (is_balancebot()) {
-        g2.crash_angle.set_default(30);
+        g2.crash_angle_pitch.set_default(30);
+        g2.crash_angle_roll.set_default(30);
     }
 
     const uint8_t old_rc_keys[14] = { Parameters::k_param_rc_1_old,  Parameters::k_param_rc_2_old,

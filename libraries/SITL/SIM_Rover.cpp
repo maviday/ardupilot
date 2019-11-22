@@ -17,6 +17,8 @@
 */
 
 #include "SIM_Rover.h"
+#include <SRV_Channel/SRV_Channel.h>
+#include <AP_ICEngine/AP_ICEngine.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -41,6 +43,8 @@ SimRover::SimRover(const char *frame_str) :
         max_accel = 14;
         max_speed = 4;
     }
+
+    mass = 1.0f;
 }
 
 
@@ -90,6 +94,10 @@ float SimRover::calc_lat_accel(float steering_angle, float speed)
 void SimRover::update(const struct sitl_input &input)
 {
     float steering, throttle;
+    AP_ICEngine *ice = AP::ice();
+    const bool gear_is_park = (ice != nullptr && ice->has_gears() && ice->gear_is_park());
+    const bool gear_is_neutral = (ice != nullptr && ice->has_gears() && ice->gear_is_neutral());
+    const bool gear_is_reverse = (ice != nullptr && ice->has_gears() && ice->gear_is_reverse());
 
     // if in skid steering mode the steering and throttle values are used for motor1 and motor2
     if (skid_steering) {
@@ -101,9 +109,21 @@ void SimRover::update(const struct sitl_input &input)
         steering = 2*((input.servos[0]-1000)/1000.0f - 0.5f);
         throttle = 2*((input.servos[2]-1000)/1000.0f - 0.5f);
     }
+    
+    icengine->update(input, throttle);
 
     // how much time has passed?
     float delta_time = frame_time_us * 1.0e-6f;
+
+    if (gear_is_park) {
+        throttle = 0;
+        velocity_ef.x = 0;
+        velocity_ef.y = 0;
+    } else if (gear_is_neutral) {
+        throttle = 0;
+    } else if (gear_is_reverse) {
+        throttle *= -1;
+    }
 
     // speed in m/s in body frame
     Vector3f velocity_body = dcm.transposed() * velocity_ef;
@@ -126,8 +146,31 @@ void SimRover::update(const struct sitl_input &input)
     dcm.rotate(gyro * delta_time);
     dcm.normalize();
 
-    // accel in body frame due to motor
-    accel_body = Vector3f(accel, 0, 0);
+    if (gear_is_park) {
+        // We're in park, thus, not moving
+        accel_body = Vector3f(0, 0, 0);
+
+    } else {
+        // if braking is configured, apply it assuming 1G
+        float braking = 0;
+        if (SRV_Channels::function_assigned(SRV_Channel::k_brake)) {
+            braking = MAX(0,GRAVITY_MSS * (SRV_Channels::get_output_scaled(SRV_Channel::k_brake) * 0.01f));
+
+            // if you have brakes, assume you need them!
+            mass = 4.0f;
+        }
+
+        if (is_negative(speed)) {
+            // negative acceleration when going backwards. It's all relative!
+            braking *= -1;
+        }
+
+        // accel in body frame due to motor minus brake
+        accel_body = Vector3f(accel - braking, 0, 0);
+    }
+
+    // apply inertia
+    accel_body /= mass;
 
     // add in accel due to direction change
     accel_body.y += radians(yaw_rate) * speed;

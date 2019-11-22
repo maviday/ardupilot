@@ -25,6 +25,8 @@
 #define PROXIMITY_MAX_DIRECTION 8
 #define PROXIMITY_SENSOR_ID_START 10
 
+#define PROXIMITY_MAV_TIMEOUT_MS    500 // distance messages must arrive within this many milliseconds
+
 class AP_Proximity_Backend;
 
 class AP_Proximity
@@ -75,6 +77,7 @@ public:
     // return sensor orientation and yaw correction
     uint8_t get_orientation(uint8_t instance) const;
     int16_t get_yaw_correction(uint8_t instance) const;
+    uint32_t get_mavlink_timeout_ms(uint8_t instance) const;
 
     // return sensor health
     Status get_status(uint8_t instance) const;
@@ -139,6 +142,7 @@ public:
     bool sensor_present() const;
     bool sensor_enabled() const;
     bool sensor_failed() const;
+    bool healthy() const { return sensor_enabled() && sensor_present() && !sensor_failed(); }
 
 private:
     static AP_Proximity *_singleton;
@@ -160,6 +164,7 @@ private:
     AP_Int16 _yaw_correction[PROXIMITY_MAX_INSTANCES];
     AP_Int16 _ignore_angle_deg[PROXIMITY_MAX_IGNORE];   // angle (in degrees) of area that should be ignored by sensor (i.e. leg shows up)
     AP_Int8 _ignore_width_deg[PROXIMITY_MAX_IGNORE];    // width of beam (in degrees) that should be ignored
+    AP_Float _mavlink_timeout[PROXIMITY_MAX_INSTANCES];
 
     void detect_instance(uint8_t instance);
 };

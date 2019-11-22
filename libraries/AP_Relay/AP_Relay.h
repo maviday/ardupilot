@@ -35,8 +35,23 @@ public:
     // see if the relay is enabled
     bool        enabled(uint8_t instance) { return instance < AP_RELAY_NUM_RELAYS && _pin[instance] != -1; }
 
+    // disable the relay
+    void        disable(uint8_t relay) { if (relay < AP_RELAY_NUM_RELAYS) { _pin[relay] = -1; } }
+
+    // see if the relay is inverted
+    bool        inverted(uint8_t relay) { return relay < AP_RELAY_NUM_RELAYS && _inverted[relay] != 0; }
+
+    // invert the relay
+    void        invert(uint8_t relay, bool is_inverted) { if (relay < AP_RELAY_NUM_RELAYS) { _inverted[relay] = is_inverted; } }
+
     // toggle the relay status
     void        toggle(uint8_t instance);
+
+    // set index to default (bootup state)
+    void set_to_default(uint8_t index);
+
+    // set all to default (bootup state)
+    void set_to_default();
 
     static AP_Relay *get_singleton(void) {return singleton; }
 
@@ -46,6 +61,7 @@ private:
     static AP_Relay *singleton;
 
     AP_Int8 _pin[AP_RELAY_NUM_RELAYS];
+    AP_Int8 _inverted[AP_RELAY_NUM_RELAYS];
     AP_Int8 _default;
 
     void set(uint8_t instance, bool value);

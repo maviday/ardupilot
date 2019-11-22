@@ -462,7 +462,7 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     // @Param: TYPEMASK
     // @DisplayName: Compass disable driver type mask
     // @Description: This is a bitmask of driver types to disable. If a driver type is set in this mask then that driver will not try to find a sensor at startup
-    // @Bitmask: 0:HMC5883,1:LSM303D,2:AK8963,3:BMM150,4:LSM9DS1,5:LIS3MDL,6:AK09916,7:IST8310,8:ICM20948,9:MMC3416,11:UAVCAN,12:QMC5883,14:MAG3110,15:IST8308
+    // @Bitmask: 0:HMC5883,1:LSM303D,2:AK8963,3:BMM150,4:LSM9DS1,5:LIS3MDL,6:AK09916,7:IST8310,8:ICM20948,9:MMC3416,11:UAVCAN,12:QMC5883,14:MAG3110,15:IST8308,16:RM3100
     // @User: Advanced
     AP_GROUPINFO("TYPEMASK", 33, Compass, _driver_type_mask, 0),
 
@@ -671,7 +671,7 @@ void Compass::_probe_external_i2c_compasses(void)
                                                                     all_external?HAL_COMPASS_QMC5883L_ORIENTATION_EXTERNAL:HAL_COMPASS_QMC5883L_ORIENTATION_INTERNAL));
         }
     }
-    
+
 #if !HAL_MINIMIZE_FEATURES
     // AK09916 on ICM20948
     FOREACH_I2C_EXTERNAL(i) {
@@ -750,6 +750,17 @@ void Compass::_probe_external_i2c_compasses(void)
         ADD_BACKEND(DRIVER_IST8308, AP_Compass_IST8308::probe(GET_I2C_DEVICE(i, HAL_COMPASS_IST8308_I2C_ADDR),
                                                               true, ROTATION_NONE));
     }
+
+    // external i2c bus
+    FOREACH_I2C_EXTERNAL(i) {
+            ADD_BACKEND(DRIVER_RM3100, AP_Compass_RM3100::probe(GET_I2C_DEVICE(i, HAL_COMPASS_RM3100_I2C_ADDR),
+                                                                true, ROTATION_NONE));
+    }
+    FOREACH_I2C_INTERNAL(i) {
+            ADD_BACKEND(DRIVER_RM3100, AP_Compass_RM3100::probe(GET_I2C_DEVICE(i, HAL_COMPASS_RM3100_I2C_ADDR),
+                                                                all_external, ROTATION_NONE));
+    }
+
 #endif // HAL_MINIMIZE_FEATURES
 }
 
