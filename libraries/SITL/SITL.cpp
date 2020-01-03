@@ -209,6 +209,10 @@ const AP_Param::GroupInfo SITL::var_info2[] = {
     // minimum throttle for simulated ins noise
     AP_GROUPINFO("INS_THR_MIN", 62, SITL,  ins_noise_throttle_min, 0.1f),
 
+    // @Group: ICE_
+    // @Path: ./SIM_ICEngine.cpp
+    AP_SUBGROUPINFO(icengine_sim, "ICE_", 63, SITL, ICEngine),
+
     AP_GROUPEND
 
 };
