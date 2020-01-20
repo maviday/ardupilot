@@ -468,6 +468,7 @@ bool NavEKF3_core::assume_zero_sideslip(void) const
 bool NavEKF3_core::setOriginLLH(const Location &loc)
 {
     if (PV_AidingMode == AID_ABSOLUTE) {
+        gcs().send_text(MAV_SEVERITY_WARNING, "EKF3 Aid absolute");
         return false;
     }
     EKF_origin = loc;
