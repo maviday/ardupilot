@@ -389,6 +389,10 @@ void NavEKF3_core::readIMUData()
     // update the inactive bias states
     learnInactiveBiases();
 
+    if (!yawAlignComplete && effective_magCal() == MagCal::EXTERNAL_YAW_FALLBACK && !inFlight) {
+        updateZGyroBias();
+    }
+
     readDeltaVelocity(accel_index_active, imuDataNew.delVel, imuDataNew.delVelDT);
     accelPosOffset = ins.get_imu_pos_offset(accel_index_active);
     imuDataNew.accel_index = accel_index_active;
@@ -1043,4 +1047,26 @@ float NavEKF3_core::MagDeclination(void) const
         return 0;
     }
     return _ahrs->get_compass()->get_declination();
+}
+
+/*
+  update Z gyro bias. This is only used for
+  MagCal::EXTERNAL_YAW_FALLBACK, when not flying and when we have not
+  yet done a yaw alignment. It prevents a buildup of a large Z gyro
+  bias while waiting for GPS yaw
+ */
+void NavEKF3_core::updateZGyroBias(void)
+{
+    const float zgyro_learn_limit = radians(3);
+    const AP_InertialSensor &ins = AP::ins();
+    float &zbias = stateStruct.gyro_bias.z;
+    float z_gyro = ins.get_gyro(gyro_index_active).z - (zbias / dtEkfAvg);
+    if (fabsf(z_gyro) > zgyro_learn_limit) {
+        // more than 3 degrees/second rotation, don't update. We
+        // assume the vehicle really is moving
+        return;
+    }
+    // slowly modify the Z bias state to bring rotation rate to
+    // zero. This corrects a 5 deg/sec bias in around 1 minute
+    stateStruct.gyro_bias.z += z_gyro * 1.0e-4 * dtEkfAvg;
 }

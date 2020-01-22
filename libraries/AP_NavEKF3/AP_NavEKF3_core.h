@@ -375,6 +375,7 @@ public:
         AFTER_FIRST_CLIMB = 3,
         ALWAYS = 4,
         EXTERNAL_YAW = 5,
+        EXTERNAL_YAW_FALLBACK = 6,
     };
 
 private:
@@ -1316,4 +1317,22 @@ private:
 
     // vehicle specific initial gyro bias uncertainty
     float InitialGyroBiasUncertainty(void) const;
+
+    /*
+      learn magnetometer biases from GPS yaw. Return true if the
+      resulting mag vector is close enough to the one predicted by GPS
+      yaw to use it for fallback
+    */
+    bool learnMagBiasFromGPS(void);
+
+    uint32_t last_gps_yaw_fusion_ms;
+    bool gps_yaw_mag_fallback_ok;
+    bool gps_yaw_mag_fallback_active;
+    uint8_t gps_yaw_fallback_good_counter;
+
+    /*
+      learn Z gyro bias when not flying and when no yaw alignment has
+      been done with EXTERNAL_YAW_FALLBACK
+     */
+    void updateZGyroBias(void);
 };
