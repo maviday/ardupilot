@@ -1315,6 +1315,7 @@ void GCS_MAVLINK::packetReceived(const mavlink_status_t &status,
             cstatus->flags &= ~MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
         }
     }
+
     if (!routing.check_and_forward(chan, msg)) {
         // the routing code has indicated we should not handle this packet locally
         return;
@@ -1381,6 +1382,15 @@ GCS_MAVLINK::update_receive(uint32_t max_time_us)
             hal.util->persistent_data.last_mavlink_msgid = msg.msgid;
             hal.util->perf_begin(_perf_packet);
             packetReceived(status, msg);
+            if (msg.sysid == sysid_my_gcs() && total_msg_cnt != 0) {
+                lost_msg_cnt += uint8_t(msg.seq - last_gcs_msg_seq - 1);
+                total_msg_cnt += uint8_t(msg.seq - last_gcs_msg_seq);
+                last_gcs_msg_seq = msg.seq;
+            } else if (total_msg_cnt == 0) {
+                lost_msg_cnt = 0;
+                total_msg_cnt = 1;
+                last_gcs_msg_seq = msg.seq;
+            }
             hal.util->perf_end(_perf_packet);
             parsed_packet = true;
             gcs_alternative_active[chan] = false;
@@ -4332,8 +4342,8 @@ void GCS_MAVLINK::send_sys_status()
         battery.voltage() * 1000,  // mV
         battery_current,        // in 10mA units
         battery_remaining,      // in %
-        0,  // comm drops %,
-        0,  // comm drops in pkts,
+        (lost_msg_cnt*100)/((total_msg_cnt==0)?1:total_msg_cnt),  // comm drops %,
+        lost_msg_cnt,  // comm drops in pkts,
         errors1,
         errors2,
         0,  // errors3
