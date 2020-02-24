@@ -72,6 +72,8 @@ public:
         TOYMODELANDFORCE = 31, // only disarm uses this...
         USER_CUSTOM = 32,
         ICE_RECHARGE = 33,
+        STEERPIDOUTOFBOUNDS = 34,
+        THRPIDOUTOFBOUNDS = 35, 
     };
 
     enum class Required {
