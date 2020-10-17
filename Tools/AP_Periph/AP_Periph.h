@@ -11,7 +11,10 @@
 #include <AP_MSP/msp.h>
 #include "../AP_Bootloader/app_comms.h"
 #include "hwing_esc.h"
-
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+#include <AP_CANManager/AP_CANDriver.h>
+#include <AP_KDECAN/AP_KDECAN.h>
+#endif
 #if defined(HAL_PERIPH_NEOPIXEL_COUNT) || defined(HAL_PERIPH_ENABLE_NCP5623_LED)
 #define AP_PERIPH_HAVE_LED
 #endif
@@ -109,7 +112,44 @@ public:
     HWESC_Telem hwesc_telem;
     void hwesc_telem_update();
 #endif
-    
+
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+    //Parameter Interface for CANDrivers
+    class RCOUTTranslator_Params
+    {
+        friend class AP_Periph_FW;
+
+    public:
+        RCOUTTranslator_Params()
+        {
+            AP_Param::setup_object_defaults(this, var_info);
+        }
+        static const struct AP_Param::GroupInfo var_info[];
+
+        enum can_translate_mode {
+            RCOUT_UAVCAN,
+            RCOUT_KDECAN,
+        };
+    private:
+        AP_Int8 _chan_start;
+        AP_Int8 _chan_end;
+        AP_Int8 _protocol;
+        AP_Int8 _can_out;
+        AP_Int8 _act_type;
+        AP_Int16 _pwm_min;
+        AP_Int16 _pwm_max;
+        AP_Int16 _frequency;
+        AP_CANDriver* _kdecan;
+    } rcout_translator;
+    uint8_t _num_rcout_channels;
+    uint8_t _rcout_protocol;
+    void init_rcout_translator();
+    void translate_rcout_esc(int16_t *rc, uint8_t num_channels);
+    void translate_rcout_srv(uint8_t chan, float rc);
+    void translate_rcout_update();
+    void translate_rcout_handle_safety_state(uint8_t safety_state);
+#endif
+
     // setup the var_info table
     AP_Param param_loader{var_info};
 
