@@ -49,9 +49,11 @@ const AP_Param::GroupInfo AP_Periph_FW::RCOUTTranslator_Params::var_info[] = {
     AP_GROUPINFO("PWM_MIN", 7, AP_Periph_FW::RCOUTTranslator_Params, _pwm_min, 1000),
     AP_GROUPINFO("PWM_MAX", 8, AP_Periph_FW::RCOUTTranslator_Params, _pwm_max, 2000),
 
+    AP_GROUPINFO("KDE_ENUM", 9, AP_Periph_FW::RCOUTTranslator_Params, _enum_mode, 0),
+
     // @Group: KDE_
     // @Path: ../AP_KDECAN/AP_KDECAN.cpp
-    AP_SUBGROUPPTR(_kdecan, "KDE_", 9, AP_Periph_FW::RCOUTTranslator_Params, AP_KDECAN),
+    AP_SUBGROUPPTR(_kdecan, "KDE_", 10, AP_Periph_FW::RCOUTTranslator_Params, AP_KDECAN),
 
     AP_GROUPEND
 };
@@ -115,11 +117,23 @@ void AP_Periph_FW::translate_rcout_esc(int16_t *rc, uint8_t num_channels) {
     if (rcout_translator._can_out == 0) {
         for (uint8_t i = rcout_translator._chan_start; i <= rcout_translator._chan_end; i++) {
             uint16_t output_pwm = rcout_translator._pwm_min + ((rcout_translator._pwm_max - rcout_translator._pwm_min) * constrain_float(rc[i]/ESC_MAX_VALUE, 0.0f, 1.0f));
-            hal.rcout->write(i, output_pwm);
+            hal.rcout->write(i - rcout_translator._chan_start, output_pwm);
         }
     } else {
         switch (_rcout_protocol) {
-            case RCOUTTranslator_Params::RCOUT_KDECAN:
+            case RCOUTTranslator_Params::RCOUT_KDECAN: {
+                if (rcout_translator._kdecan == nullptr) {
+                    return;
+                }
+                rcout_translator._kdecan->lock_rcout();
+                for (uint8_t i = rcout_translator._chan_start; i <= rcout_translator._chan_end; i++) {
+                    float norm_output = 2.0f*constrain_float(rc[i]/ESC_MAX_VALUE, 0.0f, 1.0f) - 1.0f;
+                    rcout_translator._kdecan->set_output(i - rcout_translator._chan_start, norm_output);
+                }
+                rcout_translator._kdecan->release_rcout();
+                break;
+            }
+            case RCOUTTranslator_Params::RCOUT_UAVCAN:
                 break;
         }
     }
@@ -146,7 +160,29 @@ void AP_Periph_FW::translate_rcout_handle_safety_state(uint8_t safety_state) {
 
 
 void AP_Periph_FW::translate_rcout_update() {
-
+    if (rcout_translator._can_out == 1 && 
+        _rcout_protocol == RCOUTTranslator_Params::RCOUT_KDECAN &&
+        rcout_translator._kdecan != nullptr) {
+        // check if enum needs to run/stop
+        if (_enum_state != (bool)rcout_translator._enum_mode) {
+            _enum_state = (bool)rcout_translator._enum_mode;
+            rcout_translator._kdecan->run_enumeration(_enum_state);
+        }
+        // check and transmit new telemetry message is available
+        for (uint8_t i = 0; i < _num_rcout_channels; i++) {
+            AP_KDECAN::telemetry_info_t telem_data = rcout_translator._kdecan->read_telemetry(i);
+            if (!telem_data.new_data) {
+                continue;
+            }
+            uavcan_equipment_esc_Status esc_telem {};
+            esc_telem.esc_index = i + rcout_translator._chan_start;
+            esc_telem.current = telem_data.current;
+            esc_telem.voltage = telem_data.voltage;
+            esc_telem.rpm = telem_data.rpm  * 60UL * 2 / rcout_translator._kdecan->get_num_poles();
+            can_send_esc_telem(esc_telem);
+        }
+    }
+    
 }
 
 

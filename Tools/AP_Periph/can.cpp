@@ -589,6 +589,22 @@ static void handle_esc_rawcommand(CanardInstance* ins, CanardRxTransfer* transfe
     }
     periph.translate_rcout_esc(cmd.cmd.data, cmd.cmd.len);
 }
+
+void AP_Periph_FW::can_send_esc_telem(uavcan_equipment_esc_Status esc_telem)
+{
+    uint8_t buffer[UAVCAN_EQUIPMENT_ESC_STATUS_MAX_SIZE];
+
+    uint32_t len = uavcan_equipment_esc_Status_encode(&esc_telem, buffer);
+
+    canardBroadcast(&canard,
+                    UAVCAN_EQUIPMENT_ESC_STATUS_SIGNATURE,
+                    UAVCAN_EQUIPMENT_ESC_STATUS_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    buffer,
+                    len);
+}
+
 #endif
 
 #ifdef HAL_GPIO_PIN_SAFE_LED
@@ -1203,7 +1219,9 @@ void AP_Periph_FW::can_update()
 #ifdef HAL_PERIPH_ENABLE_MSP
     msp_sensor_update();
 #endif
-
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+    translate_rcout_update();
+#endif
     processTx();
     processRx();
 }
