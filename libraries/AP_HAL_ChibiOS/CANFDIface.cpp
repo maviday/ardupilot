@@ -669,7 +669,7 @@ void CANIface::handleTxCompleteInterrupt(const uint64_t timestamp_us)
             }
             if (event_handle_ != nullptr) {
                 stats.num_events++;
-#if !defined(HAL_BUILD_AP_PERIPH) && !defined(HAL_BOOTLOADER_BUILD)
+#if CH_CFG_USE_EVENTS == TRUE
                 evt_src_.signalI(1 << self_index_);
 #endif
             }
@@ -770,7 +770,7 @@ void CANIface::handleRxInterrupt(uint8_t fifo_index)
     }
     if (event_handle_ != nullptr) {
         stats.num_events++;
-#if !defined(HAL_BUILD_AP_PERIPH) && !defined(HAL_BOOTLOADER_BUILD)
+#if CH_CFG_USE_EVENTS == TRUE
         evt_src_.signalI(1 << self_index_);
 #endif
     }
@@ -835,7 +835,7 @@ uint32_t CANIface::getErrorCount() const
            stats.tx_timedout;
 }
 
-#if !defined(HAL_BUILD_AP_PERIPH) && !defined(HAL_BOOTLOADER_BUILD)
+#if CH_CFG_USE_EVENTS == TRUE
 ChibiOS::EventSource CANIface::evt_src_;
 bool CANIface::set_event_handle(AP_HAL::EventHandle* handle)
 {
