@@ -12,8 +12,10 @@
 #include "../AP_Bootloader/app_comms.h"
 #include "hwing_esc.h"
 #ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+#if HAL_NUM_CAN_IFACES > 1
 #include <AP_CANManager/AP_CANDriver.h>
 #include <AP_KDECAN/AP_KDECAN.h>
+#endif
 #include <uavcan/equipment/esc/Status.h>
 #endif
 #if defined(HAL_PERIPH_NEOPIXEL_COUNT) || defined(HAL_PERIPH_ENABLE_NCP5623_LED)
@@ -141,7 +143,9 @@ public:
         AP_Int16 _pwm_min;
         AP_Int16 _pwm_max;
         AP_Int16 _frequency;
+#if HAL_NUM_CAN_IFACES > 1
         AP_KDECAN* _kdecan;
+#endif
     } rcout_translator;
     uint8_t _num_rcout_channels;
     uint8_t _rcout_protocol;

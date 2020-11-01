@@ -38,7 +38,9 @@ const AP_Param::GroupInfo AP_Periph_FW::RCOUTTranslator_Params::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO("PROTOCOL", 3, AP_Periph_FW::RCOUTTranslator_Params, _protocol, 1),
 
+#if HAL_NUM_CAN_IFACES > 1
     AP_GROUPINFO("CAN_OUT", 4, AP_Periph_FW::RCOUTTranslator_Params, _can_out, 0),
+#endif
 
     AP_GROUPINFO("FREQ", 5, AP_Periph_FW::RCOUTTranslator_Params, _frequency, 50),
 
@@ -49,16 +51,20 @@ const AP_Param::GroupInfo AP_Periph_FW::RCOUTTranslator_Params::var_info[] = {
     AP_GROUPINFO("PWM_MIN", 7, AP_Periph_FW::RCOUTTranslator_Params, _pwm_min, 1000),
     AP_GROUPINFO("PWM_MAX", 8, AP_Periph_FW::RCOUTTranslator_Params, _pwm_max, 2000),
 
+#if HAL_NUM_CAN_IFACES > 1
     AP_GROUPINFO("KDE_ENUM", 9, AP_Periph_FW::RCOUTTranslator_Params, _enum_mode, 0),
 
     // @Group: KDE_
     // @Path: ../AP_KDECAN/AP_KDECAN.cpp
     AP_SUBGROUPPTR(_kdecan, "KDE_", 10, AP_Periph_FW::RCOUTTranslator_Params, AP_KDECAN),
+#endif
 
     AP_GROUPEND
 };
 
+#if HAL_NUM_CAN_IFACES > 1
 static ChibiOS::CANIface rcout_can_iface(1);
+#endif
 
 void AP_Periph_FW::init_rcout_translator() {
     if (rcout_translator._chan_end < rcout_translator._chan_start) {
@@ -66,6 +72,8 @@ void AP_Periph_FW::init_rcout_translator() {
     }
     _rcout_protocol = rcout_translator._protocol;
     _num_rcout_channels = rcout_translator._chan_end - rcout_translator._chan_start + 1;
+
+#if HAL_NUM_CAN_IFACES > 1
     if (rcout_translator._can_out == 1) {
         // initialise CAN driver
         rcout_can_iface.init(1000000, AP_HAL::CANIface::NormalMode);
@@ -88,22 +96,22 @@ void AP_Periph_FW::init_rcout_translator() {
                 break;
             }
         }
-    } else {
-        // Configure non CAN translation via hal rcoutput driver
-        AP_HAL::RCOutput::output_mode mode = (AP_HAL::RCOutput::output_mode)_rcout_protocol;
-        if (mode == AP_HAL::RCOutput::MODE_PWM_NONE) {
-            return;
-        }
-        uint16_t mask = (1UL << (_num_rcout_channels)) - 1UL;
-        for (uint8_t i = 0; i < _num_rcout_channels; i++) {
-            hal.rcout->enable_ch(i);
-        }
-        hal.rcout->set_freq(mask, rcout_translator._frequency);
-        hal.rcout->set_output_mode(mask, mode);
-        if (rcout_translator._act_type == 0) {
-            // only set esc scales for ESC MODE
-            hal.rcout->set_esc_scaling(rcout_translator._pwm_min, rcout_translator._pwm_max);
-        }
+    }
+#endif
+    // Configure non CAN translation via hal rcoutput driver
+    AP_HAL::RCOutput::output_mode mode = (AP_HAL::RCOutput::output_mode)_rcout_protocol;
+    if (mode == AP_HAL::RCOutput::MODE_PWM_NONE) {
+        return;
+    }
+    uint16_t mask = (1UL << (_num_rcout_channels)) - 1UL;
+    for (uint8_t i = 0; i < _num_rcout_channels; i++) {
+        hal.rcout->enable_ch(i);
+    }
+    hal.rcout->set_freq(mask, rcout_translator._frequency);
+    hal.rcout->set_output_mode(mask, mode);
+    if (rcout_translator._act_type == 0) {
+        // only set esc scales for ESC MODE
+        hal.rcout->set_esc_scaling(rcout_translator._pwm_min, rcout_translator._pwm_max);
     }
 }
 
@@ -114,12 +122,12 @@ void AP_Periph_FW::translate_rcout_esc(int16_t *rc, uint8_t num_channels) {
         rcout_translator._act_type == 1) {
         return;
     }
-    if (rcout_translator._can_out == 0) {
-        for (uint8_t i = rcout_translator._chan_start; i <= rcout_translator._chan_end; i++) {
-            uint16_t output_pwm = rcout_translator._pwm_min + ((rcout_translator._pwm_max - rcout_translator._pwm_min) * constrain_float(rc[i]/ESC_MAX_VALUE, 0.0f, 1.0f));
-            hal.rcout->write(i - rcout_translator._chan_start, output_pwm);
-        }
-    } else {
+    for (uint8_t i = rcout_translator._chan_start; i <= rcout_translator._chan_end; i++) {
+        uint16_t output_pwm = rcout_translator._pwm_min + ((rcout_translator._pwm_max - rcout_translator._pwm_min) * constrain_float(rc[i]/ESC_MAX_VALUE, 0.0f, 1.0f));
+        hal.rcout->write(i - rcout_translator._chan_start, output_pwm);
+    }
+#if HAL_NUM_CAN_IFACES > 1
+    if (rcout_translator._can_out == 1) {
         switch (_rcout_protocol) {
             case RCOUTTranslator_Params::RCOUT_KDECAN: {
                 if (rcout_translator._kdecan == nullptr) {
@@ -137,6 +145,7 @@ void AP_Periph_FW::translate_rcout_esc(int16_t *rc, uint8_t num_channels) {
                 break;
         }
     }
+#endif
 }
 
 void AP_Periph_FW::translate_rcout_srv(uint8_t chan, float rc) {
@@ -160,6 +169,7 @@ void AP_Periph_FW::translate_rcout_handle_safety_state(uint8_t safety_state) {
 
 
 void AP_Periph_FW::translate_rcout_update() {
+#if HAL_NUM_CAN_IFACES > 1
     if (rcout_translator._can_out == 1 && 
         _rcout_protocol == RCOUTTranslator_Params::RCOUT_KDECAN &&
         rcout_translator._kdecan != nullptr) {
@@ -182,7 +192,7 @@ void AP_Periph_FW::translate_rcout_update() {
             can_send_esc_telem(esc_telem);
         }
     }
-    
+#endif
 }
 
 
