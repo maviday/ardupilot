@@ -152,7 +152,7 @@ void AP_Periph_FW::translate_rcout_srv(uint8_t chan, float rc) {
     if (rcout_translator._act_type == 0) {
         return;
     }
-    if (chan < rcout_translator._chan_start && chan > rcout_translator._chan_end) {
+    if (chan < rcout_translator._chan_start || chan > rcout_translator._chan_end) {
         return;
     }
     uint16_t output_pwm = 1000 + constrain_float(500.0f*(rc + 1.0f), 0.0f, 1000.0f);
