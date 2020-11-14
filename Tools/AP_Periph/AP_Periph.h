@@ -148,8 +148,8 @@ public:
 #if HAL_NUM_CAN_IFACES > 1
         AP_Int8 kdecan_enum_mode;
         AP_Int8 can_out;
-#endif
         AP_KDECAN*  kdecan;
+#endif
     } rcout_params;
 
     struct {
