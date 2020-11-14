@@ -29,23 +29,21 @@ const AP_Param::GroupInfo AP_Periph_FW::RCOUTTranslator_Params::var_info[] = {
     // @Param: RCOUT_CHAN_LOW
     // @DisplayName: RCOUT first servo output channel number.
     // @Description: RCOUT first servo output channel number. Consecutive output channels are enabled from RCOUT_CHAN_LOW through RCOUT_CHAN_HIGH. Use 1 for PWM1
-        // @RebootRequired: True
+    // @Range: 900 2100
     AP_GROUPINFO("CHAN_LOW", 1, AP_Periph_FW::RCOUTTranslator_Params, chan_start, 0),
 
     // @Param: RCOUT_CHAN_HIGH
     // @DisplayName: RCOUT last servo output channel number.
-    // @Description: RCOUT last servo output channel number. Consecutive output channels are enabled from RCOUT_CHAN_LOW through RCOUT_CHAN_HIGH
-    // @Values: 1:UAVCAN,1:KDECAN
-    // @RebootRequired: True
+    // @Description: RCOUT last servo output channel number. Consecutive output channels are enabled from RCOUT_CHAN_LOW through RCOUT_CHAN_HIGH.
+    // @Range: 900 2100
     AP_GROUPINFO("CHAN_HIGH", 2, AP_Periph_FW::RCOUTTranslator_Params, chan_end, 0),
 
     // @Param: RCOUT_PROTOCOL
     // @DisplayName: Enable use of specific RCOUT protocol
     // @Description: Enabling this option starts selected rcout protocol that will be used
     // @Values {CAN_OUT == 1}: 0:UAVCAN,1:KDECAN
-    // @Values {CAN_OUT == 0}: maps to RCOutput.h output_mode
+    // @Values {CAN_OUT == 0}: maps to RCOutput.h output_mode where 1 means MODE_PWM_NORMAL
     // @User: Advanced
-    // @RebootRequired: True
     AP_GROUPINFO("PROTOCOL", 3, AP_Periph_FW::RCOUTTranslator_Params, protocol, AP_HAL::RCOutput::MODE_PWM_NORMAL),
 
 #if HAL_NUM_CAN_IFACES > 1
@@ -57,16 +55,18 @@ const AP_Param::GroupInfo AP_Periph_FW::RCOUTTranslator_Params::var_info[] = {
     AP_GROUPINFO("FREQ", 5, AP_Periph_FW::RCOUTTranslator_Params, frequency, 50),
 
     // @Param: RCOUT_ACT_TYPE
+    // @DisplayName: RCOut type
+    // @Description: RCOut type
     // @Values : 0:ESC,1:SRV
-    // @RebootRequired: True
     AP_GROUPINFO("ACT_TYPE", 6, AP_Periph_FW::RCOUTTranslator_Params, act_type, RCOUTTranslator_Params::ActType::ESC),
 
-    // For use only under ESC mode
+    // @Param: RCOUT_PWM_MIN
     AP_GROUPINFO("PWM_MIN", 7, AP_Periph_FW::RCOUTTranslator_Params, pwm_min, 1000),
+    // @Param: RCOUT_PWM_MAX
     AP_GROUPINFO("PWM_MAX", 8, AP_Periph_FW::RCOUTTranslator_Params, pwm_max, 2000),
 
 #if HAL_NUM_CAN_IFACES > 1
-    // @RebootRequired: True
+    // @Param: RCOUT_KDE_ENUM
     AP_GROUPINFO("KDE_ENUM", 9, AP_Periph_FW::RCOUTTranslator_Params, kdecan_enum_mode, 0),
 
     // @Group: KDE_
