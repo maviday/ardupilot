@@ -129,27 +129,39 @@ public:
         }
         static const struct AP_Param::GroupInfo var_info[];
 
+        enum ActType {
+            ESC = 0,
+            SRV = 1,
+        };
         enum can_translate_mode {
-            RCOUT_UAVCAN,
-            RCOUT_KDECAN,
+            RCOUT_UAVCAN = 0,
+            RCOUT_KDECAN = 1,
         };
     private:
-        AP_Int8 _chan_start;
-        AP_Int8 _chan_end;
-        AP_Int8 _protocol;
-        AP_Int8 _can_out;
-        AP_Int8 _act_type;
-        AP_Int8 _enum_mode;
-        AP_Int16 _pwm_min;
-        AP_Int16 _pwm_max;
-        AP_Int16 _frequency;
+        AP_Int8 chan_start;
+        AP_Int8 chan_end;
+        AP_Int8 protocol;
+        AP_Int8 act_type;
+        AP_Int16 pwm_min;
+        AP_Int16 pwm_max;
+        AP_Int16 frequency;
 #if HAL_NUM_CAN_IFACES > 1
-        AP_KDECAN* _kdecan;
+        AP_Int8 kdecan_enum_mode;
+        AP_Int8 can_out;
 #endif
-    } rcout_translator;
-    uint8_t _num_rcout_channels;
-    uint8_t _rcout_protocol;
-    bool _enum_state;
+        AP_KDECAN*  kdecan;
+    } rcout_params;
+
+    struct {
+        uint8_t num_channels;
+        uint8_t protocol;
+        uint8_t act_type;
+        bool kdecan_enum_state;
+        uint8_t chan_start;
+        uint8_t chan_end;
+        bool can_init_done;
+    } rcout;
+
     void init_rcout_translator();
     void translate_rcout_esc(int16_t *rc, uint8_t num_channels);
     void translate_rcout_srv(uint8_t chan, float rc);

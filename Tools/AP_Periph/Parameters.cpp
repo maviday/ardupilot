@@ -103,7 +103,7 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // RCOUT Translator
     // @Group: RCOUT
     // @Path: AP_Periph.cpp
-    GOBJECT(rcout_translator, "RCOUT_", AP_Periph_FW::RCOUTTranslator_Params),
+    GOBJECT(rcout_params, "RCOUT_", AP_Periph_FW::RCOUTTranslator_Params),
 #endif
 
     AP_VAREND

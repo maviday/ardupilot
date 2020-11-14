@@ -599,7 +599,7 @@ static void handle_act_command(CanardInstance* ins, CanardRxTransfer* transfer)
     if (uavcan_equipment_actuator_ArrayCommand_decode(transfer, transfer->payload_len, &cmd, &arraybuf_ptr) < 0) {
         return;
     }
-    for (uint8_t i =0; i < cmd.commands.len; i++) {
+    for (uint8_t i=0; i < cmd.commands.len; i++) {
         periph.translate_rcout_srv(cmd.commands.data[i].actuator_id, cmd.commands.data[i].command_value);
     }
 }
@@ -846,7 +846,7 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
 #endif
 #ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
     case UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_ID:
-        *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_SIGNATURE;
+        *out_data_type_signature = UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_SIGNATURE;
         return true;
     
     case UAVCAN_EQUIPMENT_ACTUATOR_ARRAYCOMMAND_ID:
