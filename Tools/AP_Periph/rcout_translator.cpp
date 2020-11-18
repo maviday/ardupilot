@@ -13,12 +13,12 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <AP_HAL/AP_HAL.h>
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
 #include <AP_Math/AP_Math.h>
 #include <AP_HAL_ChibiOS/CANIface.h>
 #include "AP_Periph.h"
 #include "hal.h"
 
-#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
 
 #define ESC_MAX_VALUE 8191.0f
 extern const AP_HAL::HAL &hal;
