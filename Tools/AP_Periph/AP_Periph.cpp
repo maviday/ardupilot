@@ -121,9 +121,16 @@ void AP_Periph_FW::init()
     baro.init();
 #endif
 
-#ifdef HAL_PERIPH_NEOPIXEL_COUNT
+#if defined(HAL_PERIPH_NEOPIXEL_COUNT) || defined(HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR)
     hal.rcout->init();
+#endif
+
+#ifdef HAL_PERIPH_NEOPIXEL_COUNT
     hal.rcout->set_serial_led_num_LEDs(HAL_PERIPH_NEOPIXEL_CHAN, AP_HAL::RCOutput::MODE_NEOPIXEL);
+#endif
+
+#if defined(HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR)
+    init_rcout_translator();
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_ADSB

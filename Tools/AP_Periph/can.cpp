@@ -43,6 +43,8 @@
 #include <ardupilot/equipment/trafficmonitor/TrafficReport.h>
 #include <uavcan/equipment/gnss/RTCMStream.h>
 #include <uavcan/protocol/debug/LogMessage.h>
+#include <uavcan/equipment/esc/RawCommand.h>
+#include <uavcan/equipment/actuator/ArrayCommand.h>
 #include <stdio.h>
 #include <drivers/stm32/canard_stm32.h>
 #include <AP_HAL/I2CDevice.h>
@@ -436,6 +438,7 @@ static void handle_allocation_response(CanardInstance* ins, CanardRxTransfer* tr
 /*
   fix value of a float for canard float16 format
  */
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void fix_float16(float &f)
 {
     *(uint16_t *)&f = canardConvertNativeFloatToFloat16(f);
@@ -483,7 +486,7 @@ static void can_buzzer_update(void)
 }
 #endif // HAL_PERIPH_ENABLE_BUZZER
 
-#ifdef HAL_GPIO_PIN_SAFE_LED
+#if defined(HAL_GPIO_PIN_SAFE_LED) || defined(HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR)
 static uint8_t safety_state;
 
 /*
@@ -496,6 +499,9 @@ static void handle_safety_state(CanardInstance* ins, CanardRxTransfer* transfer)
         return;
     }
     safety_state = req.status;
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+    periph.translate_rcout_handle_safety_state(safety_state);
+#endif
 }
 #endif // HAL_GPIO_PIN_SAFE_LED
 
@@ -572,6 +578,48 @@ static void handle_lightscommand(CanardInstance* ins, CanardRxTransfer* transfer
     }
 }
 #endif // AP_PERIPH_HAVE_LED
+
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+static void handle_esc_rawcommand(CanardInstance* ins, CanardRxTransfer* transfer)
+{
+    uavcan_equipment_esc_RawCommand cmd;
+    uint8_t arraybuf[UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_MAX_SIZE];
+    uint8_t *arraybuf_ptr = arraybuf;
+    if (uavcan_equipment_esc_RawCommand_decode(transfer, transfer->payload_len, &cmd, &arraybuf_ptr) < 0) {
+        return;
+    }
+    periph.translate_rcout_esc(cmd.cmd.data, cmd.cmd.len);
+}
+
+static void handle_act_command(CanardInstance* ins, CanardRxTransfer* transfer)
+{
+    uavcan_equipment_actuator_ArrayCommand cmd;
+    uint8_t arraybuf[UAVCAN_EQUIPMENT_ACTUATOR_ARRAYCOMMAND_MAX_SIZE];
+    uint8_t *arraybuf_ptr = arraybuf;
+    if (uavcan_equipment_actuator_ArrayCommand_decode(transfer, transfer->payload_len, &cmd, &arraybuf_ptr) < 0) {
+        return;
+    }
+    for (uint8_t i=0; i < cmd.commands.len; i++) {
+        periph.translate_rcout_srv(cmd.commands.data[i].actuator_id, cmd.commands.data[i].command_value);
+    }
+}
+
+void AP_Periph_FW::can_send_esc_telem(uavcan_equipment_esc_Status esc_telem)
+{
+    uint8_t buffer[UAVCAN_EQUIPMENT_ESC_STATUS_MAX_SIZE];
+
+    uint32_t len = uavcan_equipment_esc_Status_encode(&esc_telem, buffer);
+
+    canardBroadcast(&canard,
+                    UAVCAN_EQUIPMENT_ESC_STATUS_SIGNATURE,
+                    UAVCAN_EQUIPMENT_ESC_STATUS_ID,
+                    &transfer_id,
+                    CANARD_TRANSFER_PRIORITY_LOW,
+                    buffer,
+                    len);
+}
+
+#endif
 
 #ifdef HAL_GPIO_PIN_SAFE_LED
 /*
@@ -700,7 +748,7 @@ static void onTransferReceived(CanardInstance* ins,
         break;
 #endif
 
-#ifdef HAL_GPIO_PIN_SAFE_LED
+#if defined(HAL_GPIO_PIN_SAFE_LED) || defined(HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR)
     case ARDUPILOT_INDICATION_SAFETYSTATE_ID:
         handle_safety_state(ins, transfer);
         break;
@@ -715,6 +763,16 @@ static void onTransferReceived(CanardInstance* ins,
 #ifdef AP_PERIPH_HAVE_LED
     case UAVCAN_EQUIPMENT_INDICATION_LIGHTSCOMMAND_ID:
         handle_lightscommand(ins, transfer);
+        break;
+#endif
+
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+    case UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_ID:
+        handle_esc_rawcommand(ins, transfer);
+        break;
+
+    case UAVCAN_EQUIPMENT_ACTUATOR_ARRAYCOMMAND_ID:
+        handle_act_command(ins, transfer);
         break;
 #endif
     }
@@ -771,7 +829,7 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
         *out_data_type_signature = UAVCAN_EQUIPMENT_INDICATION_BEEPCOMMAND_SIGNATURE;
         return true;
 #endif
-#ifdef HAL_GPIO_PIN_SAFE_LED
+#if defined(HAL_GPIO_PIN_SAFE_LED) || defined(HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR)
     case ARDUPILOT_INDICATION_SAFETYSTATE_ID:
         *out_data_type_signature = ARDUPILOT_INDICATION_SAFETYSTATE_SIGNATURE;
         return true;
@@ -784,6 +842,15 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
 #ifdef HAL_PERIPH_ENABLE_GPS
     case UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_ID:
         *out_data_type_signature = UAVCAN_EQUIPMENT_GNSS_RTCMSTREAM_SIGNATURE;
+        return true;
+#endif
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+    case UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_ID:
+        *out_data_type_signature = UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_SIGNATURE;
+        return true;
+    
+    case UAVCAN_EQUIPMENT_ACTUATOR_ARRAYCOMMAND_ID:
+        *out_data_type_signature = UAVCAN_EQUIPMENT_ACTUATOR_ARRAYCOMMAND_SIGNATURE;
         return true;
 #endif
     default:
@@ -1174,7 +1241,9 @@ void AP_Periph_FW::can_update()
 #ifdef HAL_PERIPH_ENABLE_MSP
     msp_sensor_update();
 #endif
-
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+    translate_rcout_update();
+#endif
     processTx();
     processRx();
 }

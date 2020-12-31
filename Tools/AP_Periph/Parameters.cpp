@@ -98,7 +98,14 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 #ifdef HAL_PERIPH_ENABLE_HWESC
     GSCALAR(esc_number, "ESC_NUMBER", 0),
 #endif
-    
+
+#ifdef HAL_PERIPH_ENABLE_RCOUT_TRANSLATOR
+    // RCOUT Translator
+    // @Group: RCOUT
+    // @Path: AP_Periph.cpp
+    GOBJECT(rcout_params, "RCOUT_", AP_Periph_FW::RCOUTTranslator_Params),
+#endif
+
     AP_VAREND
 };
 
