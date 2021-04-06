@@ -25,6 +25,7 @@
 #if HAL_ADSB_ENABLED
 #include "AP_ADSB_uAvionix_MAVLink.h"
 #include "AP_ADSB_Sagetech.h"
+//#include "AP_ADSB_Sagetech_MX.h"
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_Logger/AP_Logger.h>
@@ -263,6 +264,12 @@ void AP_ADSB::detect_instance(uint8_t instance)
             return;
         }
         break;
+    case Type::Sagetech_MX:
+        if (AP_ADSB_Sagetech_MX::detect()) {
+            _backend[instance] = new AP_ADSB_Sagetech_MX(*this, instance);
+            return;
+        }
+    break;
     }
 }
 
