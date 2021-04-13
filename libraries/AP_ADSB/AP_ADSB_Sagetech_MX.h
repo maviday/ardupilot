@@ -38,7 +38,7 @@ public:
 private:
 
     static const uint32_t PAYLOAD_MX_MAX_SIZE  = 63;
-
+    // TODO
     enum class SystemStateBits {
         Error_Transponder       = (1U<<0),
         Altitidue_Source        = (1U<<1),

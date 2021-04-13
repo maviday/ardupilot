@@ -73,9 +73,6 @@ void AP_ADSB_Sagetech_MX::update()
         if (data < 0) {
             break;
         }
-        // if (parse_byte_MX((uint8_t)data)) {
-          handle_packet_MX(message_in.packet);
-        // }
         if (parse_byte_MX((uint8_t)data)) {
             handle_packet_MX(message_in.packet);
         }
@@ -95,7 +92,8 @@ void AP_ADSB_Sagetech_MX::update()
         send_packet(MsgType_MX::Preflight_Set);
 
     } else if (now_ms - last_packet_Operating_ms >= 1000 && (
-            last_packet_Operating_ms == 0 || // send once at boot
+            // send once at boot
+            last_packet_Operating_ms == 0 || 
             // send as data changes
             last_operating_squawk != _frontend.out_state.cfg.squawk_octal ||
             abs(last_operating_alt - _frontend._my_loc.alt) > 1555 ||      // 1493cm == 49ft. The output resolution is 100ft per bit
@@ -292,14 +290,13 @@ bool AP_ADSB_Sagetech_MX::parse_byte_MX(const uint8_t data)
         case ParseState::WaitingFor_PayloadLen:
             message_in.packet.payload_length = data;
             message_in.index = 0;
-            message_in.state = (data == 0) ? ParseState::WaitingFor_ChecksumFletcher : ParseState::WaitingFor_PayloadContents;
+            message_in.state = (data == 0) ? ParseState::WaitingFor_Checksum : ParseState::WaitingFor_PayloadContents;
             break;
-
         case ParseState::WaitingFor_PayloadContents:
             message_in.packet.payload[message_in.index++] = data;
             if (message_in.index >= message_in.packet.payload_length) {
                 message_in.state = ParseState::WaitingFor_Checksum;
-                message_in.index = 0;       // not sure ...................................................................................................
+                message_in.index = 0;
             }
             break;
 
@@ -403,30 +400,30 @@ void AP_ADSB_Sagetech_MX::send_msg_Installation()    // ??? mode no longer handl
     // but what gets transmitted over the air is 0x200F1.
     const uint32_t icao_hex = convert_base_to_decimal(16, _frontend.out_state.cfg.ICAO_id_param);
     //put_le24_ptr(&pkt.payload[0], icao_hex);
-    memcpy(&pkt.payload[0], &icao_hex, 3);
+    memcpy(&pkt.payload[0], &icao_hex, 3);      // ICAO address 
     memcpy(&pkt.payload[3], &_frontend.out_state.cfg.callsign, 7);  // make sure callsign is no longer than 7 bytes*********************
+    //two bytes reserved        
 
-    memcpy(&pkt.payload[10], = 0;        // airspeed MAX
+    pkt.payload[12] = 0;                // COM Port 0 baud, fixed at 57600
+    pkt.payload[13] = 0;                // COM Port 1 baud, fixed at 57600
 
-    memcpy(&pkt.payload[12], = 0;        // COM Port 0 baud, fixed at 57600
-    pkt.payload[13] = 0;        // COM Port 1 baud, fixed at 57600
-    pkt.payload[14] = 0;        // COM Port 2 baud, fixed at 57600
+    (uint32_t)(*pkt.payload[14]) = 0;     // IP Adress
+    (uint32_t)(*pkt.payload[18]) = 0;     // Netmask
 
-    pkt.payload[15] = 1;        // GPS from COM port 0 (this port)
-    pkt.payload[16] = 1;        // GPS Integrity
+    (uint16_t)(*pkt.payload[22]) = 1;      // GPS from COM port 0 (this port) *******************
 
-    pkt.payload[17] = _frontend.out_state.cfg.emitterType / 8;      // Emitter Set
-    pkt.payload[18] = _frontend.out_state.cfg.emitterType & 0x0F;   // Emitter Type
+    pkt.payload[24] = 1;                // GPS Integrity
 
-    pkt.payload[19] = _frontend.out_state.cfg.lengthWidth;          // Aircraft Size
+    pkt.payload[25] = _frontend.out_state.cfg.emitterType / 8;      // Emitter Set
+    pkt.payload[26] = _frontend.out_state.cfg.emitterType & 0x0F;   // Emitter Type/catagory
 
-    pkt.payload[20] = 0;        // Altitude Encoder Offset
-    pkt.payload[21] = 0;        // Altitude Encoder Offset
-
-    pkt.payload[22] = 0x07;     // ADSB In Control, enable reading everything
-    pkt.payload[23] = 30;       // ADSB In Report max length COM Port 0 (this one)
-    pkt.payload[24] = 0;        // ADSB In Report max length COM Port 1
-
+    pkt.payload[27] = _frontend.out_state.cfg.lengthWidth;          // Aircraft Size
+    pkt.payload[28] = 0;                // airspeed MAX
+    (uint16_t)(*pkt.payload[29]) = 0;      // Altitude Encoder Offset
+    //two bytes reserved
+    //antenna bottom, reserved, host alt resolutio, heading-true, airspd-true, pres sense heat disabled, weight in wheels
+    pkt.payload[33] = 0x5C;             // inatallation configuration ******************* not sure TODO
+    //two bytes reserved
     send_msg(pkt);
 }
 
@@ -451,29 +448,32 @@ void AP_ADSB_Sagetech_MX::send_msg_Operating()
 
     pkt.type = MsgType_MX::Operating_Set;
     pkt.id = 0;
-    pkt.payload_length = 8;
+    pkt.payload_length = 12;
 
     // squawk
-    // param is saved as native octal so we need convert back to
-    // decimal because Sagetech will convert it back to octal
-    uint16_t squawk = convert_base_to_decimal(8, last_operating_squawk);
-    put_le16_ptr(&pkt.payload[0], squawk);
+    //squawk = convert_base_to_decimal(8, last_operating_squawk);
+    //put_le16_ptr(&pkt.payload[0], squawk);
+    (uint16_t)(*pkt.payload[0]) = last_operating_squawk;
+
+
+    // RF mode
+    pkt.payload[4] = last_operating_rf_select;
 
     // altitude
     if (_frontend.out_state.cfg.rf_capable & 0x01) {
         const float alt_meters = last_operating_alt * 0.01f;
-        const int32_t alt_feet = (int32_t)(alt_meters * FEET_TO_METERS);
+        const int32_t alt_feet = (int32_t)(alt_meters * FEET_TO_METERS); 
         const int16_t alt_feet_adj = (alt_feet + 50) / 100; // 1 = 100 feet, 1 = 149 feet, 5 = 500 feet
         put_le16_ptr(&pkt.payload[2], alt_feet_adj);
 
     } else {
         // use integrated altitude - recommend by sagetech
-        pkt.payload[2] = 0x80;
+        (uint_16)(*pkt.payload[2]) = 0x80;
         pkt.payload[3] = 0x00;
     }
 
-    // RF mode
-    pkt.payload[4] = last_operating_rf_select;
+    
+
     send_msg(pkt);
 }
 
