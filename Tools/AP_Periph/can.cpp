@@ -677,6 +677,8 @@ static void handle_esc_rawcommand(CanardInstance* ins, CanardRxTransfer* transfe
     if (uavcan_equipment_esc_RawCommand_decode(transfer, transfer->payload_len, &cmd, &arraybuf_ptr) < 0) {
         return;
     }
+
+    hal.rcout->force_safety_off();
     periph.rcout_esc(cmd.cmd.data, cmd.cmd.len);
 }
 
@@ -686,6 +688,8 @@ static void handle_act_command(CanardInstance* ins, CanardRxTransfer* transfer)
     if (transfer->payload_len < 1 || transfer->payload_len > UAVCAN_EQUIPMENT_ACTUATOR_ARRAYCOMMAND_MAX_SIZE+1) {
         return;
     }
+
+    hal.rcout->force_safety_off();
 
     const uint8_t data_count = (transfer->payload_len / UAVCAN_EQUIPMENT_ACTUATOR_COMMAND_MAX_SIZE);
     uavcan_equipment_actuator_Command data[data_count] {};
