@@ -18,7 +18,13 @@ env OPTIMIZE -O2
 
 FLASH_RESERVE_START_KB 128
 
-define HAL_STORAGE_SIZE 32768
+define HAL_STORAGE_SIZE 16384
+STM32_ST_USE_TIMER 12
+define CH_CFG_ST_RESOLUTION 16
+# use last 2 pages for flash storage
+# H743 has 16 pages of 128k each
+define STORAGE_FLASH_PAGE 14
+
 
 # order of UARTs (and USB)
 SERIAL_ORDER OTG1 USART2
