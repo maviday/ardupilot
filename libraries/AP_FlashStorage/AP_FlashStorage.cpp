@@ -368,7 +368,7 @@ bool AP_FlashStorage::write_all()
 {
     debug("write_all to sector %u at %u with reserved_space=%u\n",
            current_sector, write_offset, reserved_space);
-    for (uint16_t ofs=0; ofs<storage_size; ofs += max_write) {
+    for (uint32_t ofs=0; ofs<storage_size; ofs += max_write) {
         // local variable needed to overcome problem with MIN() macro and -O0
         const uint8_t max_write_local = max_write;
         uint8_t n = MIN(max_write_local, storage_size-ofs);

@@ -107,9 +107,9 @@ void AP_Periph_FW::rcout_handle_safety_state(uint8_t safety_state)
 
 void AP_Periph_FW::rcout_update()
 {
-    if (!rcout_has_new_data_to_update) {
-        return;
-    }
+    // if (!rcout_has_new_data_to_update) {
+    //     return;
+    // }
     rcout_has_new_data_to_update = false;
 
     SRV_Channels::calc_pwm();

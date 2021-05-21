@@ -174,6 +174,12 @@ public:
         k_trim                  = 135,  // always outputs SERVOn_TRIM
         k_max                   = 136,  // always outputs SERVOn_MAX
         k_mast_rotation         = 137,
+        k_h_bridge_A_high       = 138,
+        k_h_bridge_A_low        = 139,
+        k_h_bridge_B_high       = 140,
+        k_h_bridge_B_low        = 141,
+        k_h_bridge_C_high       = 142,
+        k_h_bridge_C_low        = 143,
         k_nr_aux_servo_functions         ///< This must be the last enum value (only add new values _before_ this one)
     } Aux_servo_function_t;
 

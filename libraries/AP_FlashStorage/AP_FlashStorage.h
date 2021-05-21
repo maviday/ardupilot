@@ -131,7 +131,7 @@ public:
     bool write(uint16_t offset, uint16_t length) WARN_IF_UNUSED;
 
     // fixed storage size
-    static const uint16_t storage_size = HAL_STORAGE_SIZE;
+    static const uint32_t storage_size = HAL_STORAGE_SIZE;
     
 private:
     uint8_t *mem_buffer;
