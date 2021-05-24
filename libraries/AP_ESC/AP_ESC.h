@@ -30,94 +30,102 @@
 #if HAL_AP_ESC_ENABLED
 
 #include <AP_Param/AP_Param.h>
-
+#include <stdio.h>
 class AP_ESC
 {
-public:
-    //constructor
-    AP_ESC() {
-        singleton = this;
-        AP_Param::setup_object_defaults(this, var_info);
-    }
+    public:
+        //constructor
+        AP_ESC() {
+            singleton = this;
+            AP_Param::setup_object_defaults(this, var_info);
+        }
 
-    /* Do not allow copies */
-    AP_ESC(const AP_ESC &other) = delete;
-    AP_ESC &operator=(const AP_ESC&) = delete;
+        /* Do not allow copies */
+        AP_ESC(const AP_ESC &other) = delete;
+        AP_ESC &operator=(const AP_ESC&) = delete;
 
-    enum class EscType : uint8_t {
-        Disabled            = 0,
-        FOC                 = 1,
-    };
+        enum class EscType : uint8_t {
+            Disabled            = 0,
+            FOC                 = 1,
+        };
 
-    // get singleton instance
-    static AP_ESC *get_singleton(void) {
-        return singleton;
-    }
+        // get singleton instance
+        static AP_ESC *get_singleton(void) {
+            return singleton;
+        }
 
-    static const struct AP_Param::GroupInfo var_info[];
+        static const struct AP_Param::GroupInfo var_info[];
 
-    // run-once init
-    void init();
+        // run-once init
+        void init();
 
-    // update slow, usually 10Hz in ap_periph/vehicle thread
-    void update();
+        // update slow, usually 10Hz in ap_periph/vehicle thread
+        void update();
 
-    // update fast (1Kz) in ap_periph/vehicle thread
-    void update_fast();
+        // update fast (1Kz) in ap_periph/vehicle thread
+        void update_fast();
 
-    class Phase
-    {
-        private:
-            bool OnOff;
-            uint8_t DTCY;
+        //some input as demand
+
+        // 
+        uint8_t load_adjustment;
+        struct Phase
+        {
+            // measuring is accomplished by calculating the differenc between the two driven phases
+            // and then  
+            bool measuring;
+            uint8_t DTCY_percent;
             uint8_t Table_Offset;
-    };
+        };
 
-    class Three_Phase_Control
-    {
-        // Duty cycle sine table 99 pionts
-        uint8_t sine_table[90] = {50,53,57,60,64,67,70,73,76,79,
-                                82,85,87,89,91,93,95,96,98,99,
-                                99,100,100,100,100,99,99,98,96,95,
-                                93,91,89,87,85,82,79,76,73,70,
-                                67,64,60,57,53,50,47,43,40,36,
-                                33,30,27,24,21,18,15,13,11,9,
-                                7,5,4,2,1,1,0,0,0,0,
-                                1,1,2,4,5,7,9,11,13,15,
-                                18,21,24,27,30,33,36,40,43,47 };
-        uint16_t phase_currents[3];
-        uint16_t phase_currents_integration;
-        uint16_t motor_angle;
-        uint8_t master_table_position;
-        Phase Phases[3];
+        class Three_Phase_Control
+        {
+            // Duty cycle sine table 99 pionts
+            uint8_t sine_table[90] = {  50,53,57,60,64,67,70,73,76,79,
+                                        82,85,87,89,91,93,95,96,98,99,
+                                        99,100,100,100,100,99,99,98,96,95,
+                                        93,91,89,87,85,82,79,76,73,70,
+                                        67,64,60,57,53,50,47,43,40,36,
+                                        33,30,27,24,21,18,15,13,11,9,
+                                        7,5,4,2,1,1,0,0,0,0,
+                                        1,1,2,4,5,7,9,11,13,15,
+                                        18,21,24,27,30,33,36,40,43,47 };
+            uint16_t phase_currents[3];
+            uint16_t phase_currents_integration;
+            uint8_t master_table_position;
+            uint16_t motor_angle;
+            uint16_t rotor_speed;
+            Phase phases[3];
 
-    };
+        };
 
-    // handle incoming RawCommand UAVCAN packets
-    void handle_can_rx(uint8_t source_id, const int16_t *rc, uint8_t num_channels);
+        // handle incoming RawCommand UAVCAN packets
+        void handle_can_rx(uint8_t source_id, const int16_t *rc, uint8_t num_channels);
 
-    void Update_table_positions_on_interupt(void);
+        void Update_table_positions_on_interupt(void);
 
-    void get_Curents_on_interupt(void);
+        void get_Curents_on_interupt(void);
 
-    uint16_t rotor_position(void);
+        uint16_t rotor_position(void);
 
-private:
-    static AP_ESC *singleton;
+        long map_to_table(long x, long in_min, long in_max, long out_min, long out_max);
 
-    // tick - main call in it's own thread running as fast as it can ( >1kHz )
-    void tick(void);
+    private:
+        static AP_ESC *singleton;
 
-    uint32_t last_tick1Hz_ms;
-    bool initialized;
+        // tick - main call in it's own thread running as fast as it can ( >1kHz )
+        void tick(void);
 
-    AP_Enum<EscType> escType;
-    AP_Float debug1;
-    AP_Float debug2;
-    AP_Float debug3;
-    AP_Int32 esc_freq;
+        uint32_t last_tick1Hz_ms;
+        bool initialized;
 
-    AP_HAL::AnalogSource *_volt_pin_analog_source;
+        AP_Enum<EscType> escType;
+        AP_Float debug1;
+        AP_Float debug2;
+        AP_Float debug3;
+        AP_Int32 esc_freq;
+
+        AP_HAL::AnalogSource *_volt_pin_analog_source;
 };
 
 namespace AP {

@@ -136,24 +136,26 @@ void AP_ESC::handle_can_rx(uint8_t source_id, const int16_t *rc, uint8_t num_cha
  */
 void AP_ESC::tick(void)
 {
-    static uint32_t this_time = 0;
     static int i = 0; 
-    const uint32_t now = AP_HAL::millis();
+    static uint32_t now, this_time; 
+    now = this_time = AP_HAL::millis();
     if (now - last_tick1Hz_ms >= 1000) {
         last_tick1Hz_ms = now;
         // do somehting every 1000ms (1Hz)
-        if (debug1 > 5) {
+        if (debug1 > 5) 
+        {
             hal.console->printf("now=%d\n", (int)now);
         }
 
     }
-     if (now - this_time >= 100) {
+    if (now - this_time >= 100) 
+    {
         this_time = now;
-        
-        SRV_Channels::set_output_scaled(SRV_Channel::k_rcin5, abs(debug2));
-        SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, abs(debug2));
+        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, debug2); //k_h_bridge_A_high , k_rcin5
+        //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, abs(debug2));
         i++;
-        if(i == 1023) i = 0;
+        if(i == 20000) i = 0;
+        hal.console->printf("debug2 = %f\n", debug2);
     }
 
     // need all 6
@@ -161,7 +163,14 @@ void AP_ESC::tick(void)
 
     //k_h_bridge_A_high
 
+    
 }
+
+// long AP_ESC::map_to_table(long x, long in_min, long in_max, long out_min, long out_max) 
+// {
+//     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+// }
+
 
 
 #endif // HAL_AP_ESC
