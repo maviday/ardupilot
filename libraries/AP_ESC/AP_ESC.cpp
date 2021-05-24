@@ -151,11 +151,11 @@ void AP_ESC::tick(void)
     if (now - this_time >= 100) 
     {
         this_time = now;
-        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, debug2); //k_h_bridge_A_high , k_rcin5
+        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, debug2); // k_h_bridge_A_high , k_rcin5
         //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, abs(debug2));
         i++;
         if(i == 20000) i = 0;
-        hal.console->printf("debug2 = %f\n", debug2);
+        hal.console->printf("debug2 = %f\n", (double)debug2);
     }
 
     // need all 6
