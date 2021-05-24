@@ -155,6 +155,12 @@ void SRV_Channel::aux_servo_function_setup(void)
     case k_yaw_out:
         set_angle(4500);
         break;
+    case k_h_bridge_A_high:
+    case k_h_bridge_A_low:
+    case k_h_bridge_B_high:
+    case k_h_bridge_B_low:
+    case k_h_bridge_C_high:
+    case k_h_bridge_C_low:
     case k_throttle:
     case k_throttleLeft:
     case k_throttleRight:

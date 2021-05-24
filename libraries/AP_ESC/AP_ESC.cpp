@@ -20,6 +20,7 @@
 
 #include "AP_ESC.h"
 #include <SRV_Channel/SRV_Channel.h>
+#include <AP_Math/AP_Math.h>
 
 #if HAL_AP_ESC_ENABLED
 
@@ -82,19 +83,20 @@ void AP_ESC::init()
     initialized = true;
 
 
-    uint16_t esc_mask = 0;
-    for (uint8_t i=0; i<6; i++) {
-        const SRV_Channel::Aux_servo_function_t func = (SRV_Channel::Aux_servo_function_t)((int)SRV_Channel::k_h_bridge_A_high + i); 
+    // uint16_t esc_mask = 0;
+    // for (uint8_t i=0; i<6; i++) {
+    //     const SRV_Channel::Aux_servo_function_t func = (SRV_Channel::Aux_servo_function_t)((int)SRV_Channel::k_h_bridge_A_high + i); 
 
-        SRV_Channels::set_range(func, UAVCAN_ESC_MAX_VALUE);
-        uint8_t chan;
-        if (SRV_Channels::find_channel(func, chan)) {
-            esc_mask |= 1U << chan;
-            SRV_Channels::set_rc_frequency(func, esc_freq);
-        }
-    }
+//        SRV_Channels::set_range(func, UAVCAN_ESC_MAX_VALUE);
+        // // uint8_t chan;
+        // if (SRV_Channels::find_channel(func, chan)) {
+        //     esc_mask |= 1U << chan;
+//            SRV_Channels::set_rc_frequency(func, esc_freq);
+    //     }
+    // }
 
-    hal.rcout->set_output_mode(esc_mask, AP_HAL::RCOutput::MODE_PWM_BRUSHED);
+
+//    hal.rcout->set_output_mode(esc_mask, AP_HAL::RCOutput::MODE_PWM_BRUSHED);
 }
 
 /*
@@ -180,9 +182,15 @@ void AP_ESC::tick(void)
             }
         }
 
+        pwm_value = constrain_float(pwm_value, debug1, debug2);
 
-        SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, (int16_t)pwm_value);
-        //SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, pwm_value);
+        // NOTE: cannot have k_h_bridge_A_high set on any pin_function and range is 0-10001
+        //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, (int16_t)pwm_value);
+
+
+
+        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, pwm_value);
+
         hal.console->printf("%u pwm_value = %f\r\n", (unsigned)now, (double)pwm_value);
     }
 }
