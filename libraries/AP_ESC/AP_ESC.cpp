@@ -136,34 +136,55 @@ void AP_ESC::handle_can_rx(uint8_t source_id, const int16_t *rc, uint8_t num_cha
  */
 void AP_ESC::tick(void)
 {
-    static int i = 0; 
-    static uint32_t now, this_time; 
-    now = this_time = AP_HAL::millis();
-    if (now - last_tick1Hz_ms >= 1000) {
-        last_tick1Hz_ms = now;
-        // do somehting every 1000ms (1Hz)
-        if (debug1 > 5) 
-        {
-            hal.console->printf("now=%d\n", (int)now);
-        }
+    // static int i = 0; 
+    const uint32_t now = AP_HAL::millis();
+    // if (now - last_tick1Hz_ms >= 1000) {
+    //     last_tick1Hz_ms = now;
+    //     // do somehting every 1000ms (1Hz)
+    //     if (debug1 > 5) 
+    //     {
+    //         hal.console->printf("now=%d\n", (int)now);
+    //     }
 
-    }
-    if (now - this_time >= 100) 
-    {
-        this_time = now;
-        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, debug2); // k_h_bridge_A_high , k_rcin5
-        //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, abs(debug2));
-        i++;
-        if(i == 20000) i = 0;
-        hal.console->printf("debug2 = %f\n", (double)debug2);
-    }
+    // }
+    // if (now - this_time >= 100) 
+    // {
+    //     this_time = now;
+    //     SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, debug2); // k_h_bridge_A_high , k_rcin5
+    //     //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, abs(debug2));
+    //     i++;
+    //     if(i == 20000) i = 0;
+    //     hal.console->printf("debug2 = %f\n", (double)debug2);
+    // }
 
     // need all 6
 
 
     //k_h_bridge_A_high
 
-    
+    static uint32_t pwm_loop_ms;
+    static float pwm_value = 0;
+    static bool pwm_direction = true;
+    if (now - pwm_loop_ms >= 100) {
+        pwm_loop_ms = now;
+
+        if (pwm_direction) {
+            pwm_value += debug3;
+            if (pwm_value >= debug2) {
+                pwm_direction = !pwm_direction;
+            }
+        } else {
+            pwm_value -= debug3;
+             if (pwm_value <= debug1) {
+                pwm_direction = !pwm_direction;
+            }
+        }
+
+
+        SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, (int16_t)pwm_value);
+        //SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, pwm_value);
+        hal.console->printf("%u pwm_value = %f\r\n", (unsigned)now, (double)pwm_value);
+    }
 }
 
 // long AP_ESC::map_to_table(long x, long in_min, long in_max, long out_min, long out_max) 
