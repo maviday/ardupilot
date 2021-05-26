@@ -53,7 +53,7 @@ class AP_ESC
         static AP_ESC *get_singleton(void) {
             return singleton;
         }
-
+        
         static const struct AP_Param::GroupInfo var_info[];
 
         // run-once init
@@ -69,7 +69,7 @@ class AP_ESC
 
         // 
         uint8_t load_adjustment;
-        struct Phase
+        struct Phases
         {
             // measuring is accomplished by calculating the differenc between the two driven phases
             // and then  
@@ -78,26 +78,38 @@ class AP_ESC
             uint8_t Table_Offset;
         };
 
-        class Three_Phase_Control
+
+        // 50,53,57,60,64,67,70,73,76,79,
+        // 82,85,87,89,91,93,95,96,98,99,
+        // 99,100,100,100,100,99,99,98,96,95,
+        // 93,91,89,87,85,82,79,76,73,70,
+        // 67,64,60,57,53,50,47,43,40,36,
+        // 33,30,27,24,21,18,15,13,11,9,
+        // 7,5,4,2,1,1,0,0,0,0,
+        // 1,1,2,4,5,7,9,11,13,15,
+        // 18,21,24,27,30,33,36,40,43,47
+        struct Three_Phase_Control
         {
-            // Duty cycle sine table 99 pionts
-            uint8_t sine_table[90] = {  50,53,57,60,64,67,70,73,76,79,
+            // Duty cycle sine table 90 pionts MUST BE MULTIPLE OF 3
+           uint8_t sine_table[90] = {   50,53,57,60,64,67,70,73,76,79,
                                         82,85,87,89,91,93,95,96,98,99,
-                                        99,100,100,100,100,99,99,98,96,95,
+                                        99,99,99,99,99,99,99,98,96,95,
                                         93,91,89,87,85,82,79,76,73,70,
                                         67,64,60,57,53,50,47,43,40,36,
                                         33,30,27,24,21,18,15,13,11,9,
-                                        7,5,4,2,1,1,0,0,0,0,
+                                        7,5,4,2,1,1,1,1,1,1,
                                         1,1,2,4,5,7,9,11,13,15,
                                         18,21,24,27,30,33,36,40,43,47 };
-            uint16_t phase_currents[3];
+            uint16_t phase_currents_meassered[3];
             uint16_t phase_currents_integration;
             uint8_t master_table_position;
             uint16_t motor_angle;
             uint16_t rotor_speed;
-            Phase phases[3];
+            Phases phase[3];
+            
 
         };
+       
 
         // handle incoming RawCommand UAVCAN packets
         void handle_can_rx(uint8_t source_id, const int16_t *rc, uint8_t num_channels);

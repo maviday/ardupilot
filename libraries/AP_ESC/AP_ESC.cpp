@@ -139,59 +139,49 @@ void AP_ESC::handle_can_rx(uint8_t source_id, const int16_t *rc, uint8_t num_cha
 void AP_ESC::tick(void)
 {
     // static int i = 0; 
-    const uint32_t now = AP_HAL::millis();
-    // if (now - last_tick1Hz_ms >= 1000) {
-    //     last_tick1Hz_ms = now;
-    //     // do somehting every 1000ms (1Hz)
-    //     if (debug1 > 5) 
-    //     {
-    //         hal.console->printf("now=%d\n", (int)now);
-    //     }
-
-    // }
-    // if (now - this_time >= 100) 
-    // {
-    //     this_time = now;
-    //     SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, debug2); // k_h_bridge_A_high , k_rcin5
-    //     //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, abs(debug2));
-    //     i++;
-    //     if(i == 20000) i = 0;
-    //     hal.console->printf("debug2 = %f\n", (double)debug2);
-    // }
-
-    // need all 6
-
-
-    //k_h_bridge_A_high
-
+    const uint32_t now = AP_HAL::micros();
+    static uint8_t table_position = 0;
+    static uint8_t table_size = sizeof( (Three_Phase_Control::sine_table) ) / sizeof((*(Three_Phase_Control::sine_table)));
+    static struct Three_Phase_Control motor;
+    motor.phase[0].Table_Offset = 0;
+    motor.phase[1].Table_Offset = table_size*1/3;
+    motor.phase[2].Table_Offset = table_size*2/3;
     static uint32_t pwm_loop_ms;
     static float pwm_value = 0;
-    static bool pwm_direction = true;
-    if (now - pwm_loop_ms >= 100) {
+    // static bool pwm_direction = true;
+    if (now - pwm_loop_ms >= 10000) {
         pwm_loop_ms = now;
-
-        if (pwm_direction) {
-            pwm_value += debug3;
-            if (pwm_value >= debug2) {
-                pwm_direction = !pwm_direction;
-            }
-        } else {
-            pwm_value -= debug3;
-             if (pwm_value <= debug1) {
-                pwm_direction = !pwm_direction;
-            }
-        }
-
-        pwm_value = constrain_float(pwm_value, debug1, debug2);
+        
+        table_position = (table_position + 1) % table_size;
+        motor.phase[0].DTCY_percent = motor.sine_table[(table_position + motor.phase[0].Table_Offset) % table_size] ;
+        motor.phase[1].DTCY_percent = motor.sine_table[(table_position + motor.phase[1].Table_Offset) % table_size] ;
+        motor.phase[2].DTCY_percent = motor.sine_table[(table_position + motor.phase[2].Table_Offset) % table_size] ;
+        // hal.console->printf("phase[0] = %d\r\n", motor.phase[0].DTCY_percent);
+        // hal.console->printf("phase[1] = %d\r\n", motor.phase[1].DTCY_percent);
+        // hal.console->printf("phase[2] = %d\r\n\r\n", motor.phase[2].DTCY_percent);
+        // if (pwm_direction) {
+        //     pwm_value += debug3;
+        //     if (pwm_value >= debug2) {
+        //         pwm_direction = !pwm_direction;
+        //     }
+        // } else {
+        //     pwm_value -= debug3;
+        //      if (pwm_value <= debug1) {
+        //         pwm_direction = !pwm_direction;
+        //     }
+        // }
+        
+        pwm_value = constrain_float(pwm_value, debug1, table_size);
 
         // NOTE: cannot have k_h_bridge_A_high set on any pin_function and range is 0-10001
         //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, (int16_t)pwm_value);
 
 
+        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, motor.phase[0].DTCY_percent);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_B_high, motor.phase[1].DTCY_percent);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_C_high, motor.phase[2].DTCY_percent);
 
-        SRV_Channels::set_output_scaled(SRV_Channel::k_h_bridge_A_high, pwm_value);
-
-        hal.console->printf("%u pwm_value = %f\r\n", (unsigned)now, (double)pwm_value);
+        // hal.console->printf("%u pwm_value = %f\r\n", (unsigned)now, (double)pwm_value);
     }
 }
 
