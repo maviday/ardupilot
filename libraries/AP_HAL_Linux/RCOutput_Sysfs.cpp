@@ -62,7 +62,7 @@ void RCOutput_Sysfs::init()
     }
 }
 
-void RCOutput_Sysfs::set_freq(uint32_t chmask, uint16_t freq_hz)
+void RCOutput_Sysfs::set_freq(uint32_t chmask, uint32_t freq_hz)
 {
     for (uint8_t i = 0; i < _channel_count; i++) {
         if (chmask & 1 << i) {

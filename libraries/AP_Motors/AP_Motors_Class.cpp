@@ -96,7 +96,7 @@ void AP_Motors::rc_write_angle(uint8_t chan, int16_t angle_cd)
 /*
   set frequency of a set of channels
  */
-void AP_Motors::rc_set_freq(uint32_t mask, uint16_t freq_hz)
+void AP_Motors::rc_set_freq(uint32_t mask, uint32_t freq_hz)
 {
     if (freq_hz > 50) {
         _motor_fast_mask |= mask;

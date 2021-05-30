@@ -36,8 +36,8 @@ public:
     virtual void init() = 0;
 
     /* Output freq (1/period) control */
-    virtual void     set_freq(uint32_t chmask, uint16_t freq_hz) = 0;
-    virtual uint16_t get_freq(uint8_t chan) = 0;
+    virtual void     set_freq(uint32_t chmask, uint32_t freq_hz) = 0;
+    virtual uint32_t get_freq(uint8_t chan) = 0;
 
     /* Output active/highZ control, either by single channel at a time
      * or a mask of channels */

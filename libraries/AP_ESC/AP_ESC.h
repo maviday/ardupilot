@@ -91,7 +91,7 @@ class AP_ESC
         struct Three_Phase_Control
         {
             // Duty cycle sine table 90 pionts MUST BE MULTIPLE OF 3
-           uint8_t sine_table[90] = {   50,53,57,60,64,67,70,73,76,79,
+           const uint8_t sine_table[90] = {   50,53,57,60,64,67,70,73,76,79,
                                         82,85,87,89,91,93,95,96,98,99,
                                         99,99,99,99,99,99,99,98,96,95,
                                         93,91,89,87,85,82,79,76,73,70,
@@ -137,7 +137,9 @@ class AP_ESC
         AP_Float debug3;
         AP_Int32 esc_freq;
 
-        AP_HAL::AnalogSource *_volt_pin_analog_source;
+        float adc_voltage;
+
+        AP_HAL::AnalogSource *adc_pin;
 };
 
 namespace AP {

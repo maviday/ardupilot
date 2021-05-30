@@ -468,7 +468,7 @@ public:
     static void set_range(SRV_Channel::Aux_servo_function_t function, uint16_t range);
 
     // set output refresh frequency on a servo function
-    static void set_rc_frequency(SRV_Channel::Aux_servo_function_t function, uint16_t frequency);
+    static void set_rc_frequency(SRV_Channel::Aux_servo_function_t function, uint32_t frequency);
 
     // control pass-thru of channels
     void disable_passthrough(bool disable) {

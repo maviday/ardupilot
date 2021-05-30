@@ -42,8 +42,8 @@ public:
     const static uint8_t CHAN_DISABLED = 255;
 
     void     init() override;
-    void     set_freq(uint32_t chmask, uint16_t freq_hz) override;
-    uint16_t get_freq(uint8_t ch) override;
+    void     set_freq(uint32_t chmask, uint32_t freq_hz) override;
+    uint32_t get_freq(uint8_t ch) override;
     void     enable_ch(uint8_t ch) override;
     void     disable_ch(uint8_t ch) override;
     void     write(uint8_t ch, uint16_t period_us) override;

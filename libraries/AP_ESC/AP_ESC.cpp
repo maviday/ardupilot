@@ -31,7 +31,7 @@ AP_ESC *AP_ESC::singleton;
     #define HAL_AP_ESC_TYPE_DEFAULT 0
 #endif
 #ifndef HAL_AP_ESC_FREQ_DEFAULT
-    #define HAL_AP_ESC_FREQ_DEFAULT 123
+    #define HAL_AP_ESC_FREQ_DEFAULT 1000
 #endif
 
 #define UAVCAN_ESC_MAX_VALUE    8191
@@ -65,7 +65,7 @@ const AP_Param::GroupInfo AP_ESC::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("DEBUG3", 4, AP_ESC, debug3, 0),
     
-    AP_GROUPINFO("FREQ", 5, AP_ESC, esc_freq, HAL_AP_ESC_FREQ_DEFAULT),
+    AP_GROUPINFO("FREQ", 5, AP_ESC, esc_freq, 50),
     
     AP_GROUPEND
 };
@@ -82,18 +82,18 @@ void AP_ESC::init()
     hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&AP_ESC::tick, void));
     initialized = true;
 
+    //uint16_t esc_mask = 0;
+    for (uint8_t i=0; i<6; i++) {
+        const SRV_Channel::Aux_servo_function_t func = (SRV_Channel::Aux_servo_function_t)((int)SRV_Channel::k_h_bridge_A_high + i); 
 
-    // uint16_t esc_mask = 0;
-    // for (uint8_t i=0; i<6; i++) {
-    //     const SRV_Channel::Aux_servo_function_t func = (SRV_Channel::Aux_servo_function_t)((int)SRV_Channel::k_h_bridge_A_high + i); 
-
-//        SRV_Channels::set_range(func, UAVCAN_ESC_MAX_VALUE);
-        // // uint8_t chan;
+        SRV_Channels::set_range(func, UAVCAN_ESC_MAX_VALUE);
+        // uint8_t chan;
         // if (SRV_Channels::find_channel(func, chan)) {
         //     esc_mask |= 1U << chan;
-//            SRV_Channels::set_rc_frequency(func, esc_freq);
-    //     }
-    // }
+           SRV_Channels::set_rc_frequency(func, esc_freq);
+        // }
+    }
+    adc_pin = hal.analogin->channel(14);
 
 
 //    hal.rcout->set_output_mode(esc_mask, AP_HAL::RCOutput::MODE_PWM_BRUSHED);
@@ -110,6 +110,11 @@ void AP_ESC::update(void)
         init();
         return;
     }
+
+    //adc_voltage = adc_pin->voltage_latest();
+    adc_voltage = adc_pin->voltage_average();
+    hal.console->printf("%u adc_voltage = %f V\r\n", (unsigned)AP_HAL::millis(), adc_voltage);
+
 }
 
 /*
@@ -146,11 +151,27 @@ void AP_ESC::tick(void)
     motor.phase[0].Table_Offset = 0;
     motor.phase[1].Table_Offset = table_size*1/3;
     motor.phase[2].Table_Offset = table_size*2/3;
-    static uint32_t pwm_loop_ms;
-    static float pwm_value = 0;
+    //static uint32_t pwm_loop0_us;
+    static uint32_t pwm_loop1_us;
+
+
+    uint16_t pwm_rcin8 = 1000;
+    const SRV_Channel* rcin8 = SRV_Channels::get_channel_for(SRV_Channel::k_rcin8);
+    if (rcin8 != nullptr) {
+        pwm_rcin8 = rcin8->get_output_pwm();
+    }
+
+    // diagnostic printout for cycle frequency
+    // if (now - pwm_loop0_us >= 500000) {
+    //     pwm_loop0_us = now;
+    //     hal.console->printf("k_rcin8 = %d\r\n", pwm_rcin8);
+    // }
+
+    //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin8, motor.phase[0].DTCY_percent);
     // static bool pwm_direction = true;
-    if (now - pwm_loop_ms >= 10000) {
-        pwm_loop_ms = now;
+    if (now - pwm_loop1_us >= pwm_rcin8*100) {
+        pwm_loop1_us = now;
+        
         
         table_position = (table_position + 1) % table_size;
         motor.phase[0].DTCY_percent = motor.sine_table[(table_position + motor.phase[0].Table_Offset) % table_size] ;
@@ -159,19 +180,7 @@ void AP_ESC::tick(void)
         // hal.console->printf("phase[0] = %d\r\n", motor.phase[0].DTCY_percent);
         // hal.console->printf("phase[1] = %d\r\n", motor.phase[1].DTCY_percent);
         // hal.console->printf("phase[2] = %d\r\n\r\n", motor.phase[2].DTCY_percent);
-        // if (pwm_direction) {
-        //     pwm_value += debug3;
-        //     if (pwm_value >= debug2) {
-        //         pwm_direction = !pwm_direction;
-        //     }
-        // } else {
-        //     pwm_value -= debug3;
-        //      if (pwm_value <= debug1) {
-        //         pwm_direction = !pwm_direction;
-        //     }
-        // }
         
-        pwm_value = constrain_float(pwm_value, debug1, table_size);
 
         // NOTE: cannot have k_h_bridge_A_high set on any pin_function and range is 0-10001
         //SRV_Channels::set_output_scaled(SRV_Channel::k_rcin6, (int16_t)pwm_value);

@@ -216,7 +216,7 @@ const AP_Param::GroupInfo AP_MotorsHeli_Dual::var_info[] = {
 };
 
 // set update rate to motors - a value in hertz
-void AP_MotorsHeli_Dual::set_update_rate( uint16_t speed_hz )
+void AP_MotorsHeli_Dual::set_update_rate( uint32_t speed_hz )
 {
     // record requested speed
     _speed_hz = speed_hz;

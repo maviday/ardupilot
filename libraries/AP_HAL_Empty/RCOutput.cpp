@@ -6,9 +6,9 @@ using namespace Empty;
 
 void RCOutput::init() {}
 
-void RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz) {}
+void RCOutput::set_freq(uint32_t chmask, uint32_t freq_hz) {}
 
-uint16_t RCOutput::get_freq(uint8_t chan) {
+uint32_t RCOutput::get_freq(uint8_t chan) {
     return 50;
 }
 

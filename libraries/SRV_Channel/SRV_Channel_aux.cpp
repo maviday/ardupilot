@@ -788,7 +788,7 @@ void SRV_Channels::upgrade_parameters(void)
 }
 
 // set RC output frequency on a function output
-void SRV_Channels::set_rc_frequency(SRV_Channel::Aux_servo_function_t function, uint16_t frequency_hz)
+void SRV_Channels::set_rc_frequency(SRV_Channel::Aux_servo_function_t function, uint32_t frequency_hz)
 {
     uint16_t mask = 0;
     for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {

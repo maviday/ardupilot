@@ -303,7 +303,7 @@ void RCOutput::set_freq_group(pwm_group &group)
 /*
   set output frequency in HZ for a set of channels given by a mask
  */
-void RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
+void RCOutput::set_freq(uint32_t chmask, uint32_t freq_hz)
 {
 #if HAL_WITH_IO_MCU
     if (AP_BoardConfig::io_enabled()) {
@@ -342,9 +342,9 @@ void RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
     for (auto &group : pwm_group_list) {
         // greater than 400 doesn't give enough room at higher periods for
         // the down pulse. This still allows for high rate with oneshot and dshot.
-        uint16_t group_freq = freq_hz;
-        if (group_freq > 400 && group.current_mode != MODE_PWM_BRUSHED) {
-            group_freq = 400;
+        uint32_t group_freq = freq_hz;
+        if (group_freq > 400000 && group.current_mode != MODE_PWM_BRUSHED) {
+            group_freq = 400000;
         }
         if ((group.ch_mask & chmask) != 0) {
             group.rc_frequency = group_freq;
@@ -443,7 +443,7 @@ RCOutput::pwm_group *RCOutput::find_chan(uint8_t chan, uint8_t &group_idx)
     return nullptr;
 }
 
-uint16_t RCOutput::get_freq(uint8_t chan)
+uint32_t RCOutput::get_freq(uint8_t chan)
 {
 #if HAL_WITH_IO_MCU
     if (chan < chan_offset) {

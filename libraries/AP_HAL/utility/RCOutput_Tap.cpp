@@ -431,11 +431,11 @@ uint8_t RCOutput_Tap::_crc_packet(EscPacket &p)
 /*
   set output frequency
  */
-void RCOutput_Tap::set_freq(uint32_t chmask, uint16_t freq_hz)
+void RCOutput_Tap::set_freq(uint32_t chmask, uint32_t freq_hz)
 {
 }
 
-uint16_t RCOutput_Tap::get_freq(uint8_t ch)
+uint32_t RCOutput_Tap::get_freq(uint8_t ch)
 {
     return 400;
 }

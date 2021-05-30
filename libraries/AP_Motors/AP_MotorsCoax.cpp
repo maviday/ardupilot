@@ -50,7 +50,7 @@ void AP_MotorsCoax::set_frame_class_and_type(motor_frame_class frame_class, moto
 }
 
 // set update rate to motors - a value in hertz
-void AP_MotorsCoax::set_update_rate(uint16_t speed_hz)
+void AP_MotorsCoax::set_update_rate(uint32_t speed_hz)
 {
     // record requested speed
     _speed_hz = speed_hz;

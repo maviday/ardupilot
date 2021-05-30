@@ -19,13 +19,13 @@ using namespace HALSITL;
 
 void RCOutput::init() {}
 
-void RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
+void RCOutput::set_freq(uint32_t chmask, uint32_t freq_hz)
 {
     Debug("set_freq(0x%04x, %u)\n", static_cast<uint32_t>(chmask), static_cast<uint32_t>(freq_hz));
     _freq_hz = freq_hz;
 }
 
-uint16_t RCOutput::get_freq(uint8_t ch)
+uint32_t RCOutput::get_freq(uint8_t ch)
 {
     return _freq_hz;
 }
